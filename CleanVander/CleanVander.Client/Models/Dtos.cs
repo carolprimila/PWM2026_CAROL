@@ -1,0 +1,10 @@
+namespace CleanVander.Client.Models;
+public sealed class Produto { public int Id { get; set; } public string Codigo { get; set; } = ""; public string Descricao { get; set; } = ""; public string Categoria { get; set; } = ""; public string UnidadeMedida { get; set; } = "UN"; public string TamanhoVolume { get; set; } = ""; public decimal Preco { get; set; } public bool Ativo { get; set; } public string Info => $"{Codigo} · {TamanhoVolume} · {UnidadeMedida}"; }
+public sealed class CadastroClienteDto { public string TipoPessoa { get; set; } = "Fisica"; public string Nome { get; set; } = ""; public string Documento { get; set; } = ""; public string Email { get; set; } = ""; public string Telefone { get; set; } = ""; public string Endereco { get; set; } = ""; }
+public sealed class CadastroClienteResultado { public int ClienteId { get; set; } public string ChaveAcesso { get; set; } = ""; public string Nome { get; set; } = ""; }
+public sealed class ItemPedidoDto { public int ProdutoId { get; set; } public int Quantidade { get; set; } }
+public sealed class ItemPedido { public int ProdutoId { get; set; } public string CodigoProduto { get; set; } = ""; public string DescricaoProduto { get; set; } = ""; public string UnidadeMedida { get; set; } = "UN"; public string TamanhoVolume { get; set; } = ""; public int Quantidade { get; set; } public decimal PrecoUnitario { get; set; } public decimal Subtotal { get; set; } }
+public sealed class ClienteResumo { public int Id { get; set; } public string TipoPessoa { get; set; } = ""; public string Nome { get; set; } = ""; public string Documento { get; set; } = ""; public string Telefone { get; set; } = ""; }
+public sealed class Pedido { public int Id { get; set; } public string Numero { get; set; } = ""; public DateTime CriadoEm { get; set; } public string Status { get; set; } = ""; public string FormaPagamento { get; set; } = ""; public decimal Total { get; set; } public ClienteResumo? Cliente { get; set; } public List<ItemPedido> Itens { get; set; } = []; public string ResumoItens { get; set; } = ""; }
+
+

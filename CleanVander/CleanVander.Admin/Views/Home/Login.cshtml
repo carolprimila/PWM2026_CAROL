@@ -1,0 +1,28 @@
+@model CleanVander.Admin.Models.LoginForm
+@{
+    ViewData["Title"] = "Acesso administrativo";
+}
+
+<section class="login-card">
+    <div class="brand-mark">CV</div>
+    <p class="eyebrow">ÁREA DA EMPRESA</p>
+    <h1>Entrar no CleanVander</h1>
+    <p class="muted">Use a chave administrativa configurada no projeto.</p>
+
+    <form asp-action="Login" method="post">
+        <div asp-validation-summary="ModelOnly" class="error"></div>
+
+        <label asp-for="Chave">Chave de acesso</label>
+        <input asp-for="Chave"
+               type="password"
+               autocomplete="current-password"
+               placeholder="Digite a chave"
+               required />
+
+        <button class="primary full" type="submit">
+            Acessar painel <span>→</span>
+        </button>
+    </form>
+
+    <p class="login-note">CleanVander · Gestão de pedidos e produtos</p>
+</section>

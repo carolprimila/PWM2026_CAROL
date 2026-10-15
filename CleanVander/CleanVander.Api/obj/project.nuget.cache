@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "4GwamFgT5pA=",
+  "success": true,
+  "projectFilePath": "C:\\PWM\\CleanVander\\CleanVander.Api\\CleanVander.Api.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\cprim\\.nuget\\packages\\sourcegear.sqlite3\\3.53.3\\sourcegear.sqlite3.3.53.3.nupkg.sha512",
+    "C:\\Users\\cprim\\.nuget\\packages\\sqlite-net-pcl\\1.11.285\\sqlite-net-pcl.1.11.285.nupkg.sha512",
+    "C:\\Users\\cprim\\.nuget\\packages\\sqlitepclraw.core\\3.0.3\\sqlitepclraw.core.3.0.3.nupkg.sha512",
+    "C:\\Users\\cprim\\.nuget\\packages\\sqlitepclraw.provider.e_sqlite3\\3.0.3\\sqlitepclraw.provider.e_sqlite3.3.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
