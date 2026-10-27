@@ -1,0 +1,18 @@
+.vs/
+**/bin/
+**/obj/
+**/artifacts/
+*.db
+*.db-shm
+*.db-wal
+.dotnet-home/
+.nuget-packages/
+
+# Arquivos locais do Visual Studio
+*.csproj.user
+*.suo
+
+# Configurações locais e segredos
+**/appsettings.Local.json
+**/secrets.json
+
