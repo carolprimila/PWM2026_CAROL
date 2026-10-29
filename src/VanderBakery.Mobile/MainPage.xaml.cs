@@ -31,6 +31,13 @@ public partial class MainPage : ContentPage
     }
 
     private bool _registering;
+    private bool _showPassword;
+    private void PasswordToggleClicked(object? sender, EventArgs e)
+    {
+        _showPassword = !_showPassword;
+        AuthPasswordEntry.IsPassword = !_showPassword;
+        PasswordToggleButton.Text = _showPassword ? "Ocultar" : "Mostrar";
+    }
     private void AuthToggleClicked(object? sender, EventArgs e)
     {
         _registering = !_registering;
@@ -57,7 +64,7 @@ public partial class MainPage : ContentPage
             AuthPanel.IsVisible = false; AppPanel.IsVisible = true;
             await RefreshDataAsync();
         }
-        catch { AuthMessageLabel.Text = "Não foi possível conectar ao sistema da distribuidora."; }
+        catch { AuthMessageLabel.Text = "API offline. Inicie VanderBakery.Api no Visual Studio e tente novamente."; }
     }
 
     private void LogoutClicked(object? sender, EventArgs e)

@@ -27,6 +27,8 @@ Acesse `http://localhost:5168`. O portal consulta a API em `http://localhost:529
 
 O portal web abre na tela de acesso do **administrador**; o aplicativo MAUI abre no acesso do **vendedor**. Contas de demonstração: `admin@vanderbakery.com` e `vendedor@vanderbakery.com`, ambas com senha `Vander123!`. As duas telas também permitem cadastro do respectivo perfil. A API guarda senhas com hash e sal, e protege as rotas de dados com token de sessão (as sessões em memória expiram quando a API é reiniciada).
 
+**No Visual Studio:** a API precisa estar rodando junto com a tela que você abrir. Clique com o botão direito na solução → **Configurar projetos de inicialização** → **Vários projetos de inicialização**; marque `VanderBakery.Api` e `VanderBakery.Mobile` (ou `VanderBakery.Web`) como **Iniciar**. Inicie a API antes do app para que a autenticação consiga conectar em `http://localhost:5293`.
+
 ## Executar Android
 
 Requer a carga de trabalho MAUI/Android e um emulador Android:
