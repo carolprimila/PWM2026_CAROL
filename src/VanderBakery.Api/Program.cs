@@ -26,7 +26,11 @@ app.Use(async (context, next) =>
     if (path is "/api/health" or "/api/locations" || path.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase)) { await next(); return; }
     var token = context.Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase);
     if (!sessions.TryGetValue(token, out var user)) { context.Response.StatusCode = 401; return; }
-    if (user.Role != "Admin" && (path.StartsWith("/api/products", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/api/receivables", StringComparison.OrdinalIgnoreCase) || path.Contains("/route", StringComparison.OrdinalIgnoreCase))) { context.Response.StatusCode = 403; return; }
+    var isAdminWrite = HttpMethods.IsPost(context.Request.Method) && path == "/api/products"
+        || HttpMethods.IsPut(context.Request.Method) && path.StartsWith("/api/products/", StringComparison.OrdinalIgnoreCase)
+        || HttpMethods.IsPost(context.Request.Method) && path.Contains("/route", StringComparison.OrdinalIgnoreCase)
+        || HttpMethods.IsPut(context.Request.Method) && path.StartsWith("/api/receivables/", StringComparison.OrdinalIgnoreCase);
+    if (user.Role != "Admin" && isAdminWrite) { context.Response.StatusCode = 403; return; }
     await next();
 });
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
@@ -51,6 +55,21 @@ using (var scope = app.Services.CreateScope())
     if (!db.PaymentConditions.Any(x => x.Code == 10)) db.PaymentConditions.Add(new PaymentCondition { Code = 10, Name = "2 parcelas · 7/14 dias", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 50m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 14, Percent = 50m, PaymentMethod = "Boleto bancário" }] });
     if (!db.PaymentConditions.Any(x => x.Code == 20)) db.PaymentConditions.Add(new PaymentCondition { Code = 20, Name = "3 parcelas · 7/14/21 dias", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 33.33m, PaymentMethod = "PIX" }, new PaymentRule { Days = 14, Percent = 33.33m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 21, Percent = 33.34m, PaymentMethod = "Boleto bancário" }] });
     if (!db.PaymentConditions.Any(x => x.Code == 30)) db.PaymentConditions.Add(new PaymentCondition { Code = 30, Name = "À vista · 1 parcela", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 0, Percent = 100m, PaymentMethod = "PIX" }] });
+    for (var installments = 4; installments <= 12; installments++)
+    {
+        var code = 100 + installments;
+        if (db.PaymentConditions.Any(x => x.Code == code)) continue;
+        var percent = decimal.Round(100m / installments, 2, MidpointRounding.AwayFromZero);
+        var allocated = 0m;
+        var rules = new List<PaymentRule>();
+        for (var installment = 1; installment <= installments; installment++)
+        {
+            var installmentPercent = installment == installments ? 100m - allocated : percent;
+            allocated += installmentPercent;
+            rules.Add(new PaymentRule { Days = installment * 7, Percent = installmentPercent, PaymentMethod = "Boleto bancário" });
+        }
+        db.PaymentConditions.Add(new PaymentCondition { Code = code, Name = $"{installments}x · a cada 7 dias", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = rules });
+    }
     if (!db.Customers.Any())
     {
         var michel = new Customer { Name = "Michel Padaria", TradeName = "Pão do Michel", TaxId = "12345678909", Email = "michel@exemplo.com", City = "Foz do Iguaçu", Neighborhood = "Centro" };

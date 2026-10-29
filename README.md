@@ -50,6 +50,7 @@ No emulador, o app usa `http://10.0.2.2:5293` para acessar a API do computador. 
 - A API rejeita quantidades acima do estoque, não permite saldo negativo e não confia em preço enviado pelo app.
 - Consulta do histórico de compras do cliente no aplicativo.
 - Formas de pagamento boleto, PIX, cartão de crédito e débito; opção à vista ou em 2 e 3 parcelas. A forma escolhida fica registrada em cada parcela.
+- O app do vendedor também permite parcelar em até 12 vezes, com parcelas semanais e total calculado sem diferença de centavos.
 - Condições 10 (7/14 dias) e 20 (7/14/21 dias), com parcelas que fecham exatamente o total da venda e multa de 5%, juros de 2% ao dia e desconto de 1% ao dia. A condição à vista fica disponível como 1 parcela.
 - O histórico informa se cada venda está em aberto, parcialmente quitada, atrasada ou quitada, além do status de cada parcela.
 - A demonstração inclui compra de Michel Padaria com as parcelas quitadas e compra de Marcos Alimentos com uma parcela quitada e outra em aberto.

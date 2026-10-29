@@ -111,7 +111,7 @@ public partial class MainPage : ContentPage
         {
             var stops = await _api.GetFromJsonAsync<List<RouteModel>>($"api/routes?day={Uri.EscapeDataString(day)}", Json) ?? [];
             RouteList.Children.Clear();
-            if (stops.Count == 0) { RouteList.Children.Add(new Label { Text = "Sem visitas programadas para este dia.", TextColor = Color.FromArgb("#A18A93"), FontSize = 12 }); return; }
+            if (stops.Count == 0) { RouteList.Children.Add(new Label { Text = "Sem visitas programadas para este dia.", TextColor = Color.FromArgb("#B9A8B1"), FontSize = 12 }); return; }
             foreach (var stop in stops)
                 RouteList.Children.Add(BuildRouteCard(stop));
         }
@@ -121,10 +121,10 @@ public partial class MainPage : ContentPage
     private static View BuildRouteCard(RouteModel stop)
     {
         var grid = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) }, ColumnSpacing = 11 };
-        grid.Children.Add(new Label { Text = stop.Position.ToString("00"), TextColor = Color.FromArgb("#C16988"), BackgroundColor = Color.FromArgb("#FFF0F5"), FontAttributes = FontAttributes.Bold, Padding = new Thickness(10, 8), VerticalOptions = LayoutOptions.Center });
-        var details = new VerticalStackLayout { Spacing = 2, Children = { new Label { Text = stop.Name, TextColor = Color.FromArgb("#503742"), FontAttributes = FontAttributes.Bold, FontSize = 13 }, new Label { Text = $"{stop.City} · {stop.Neighborhood}", TextColor = Color.FromArgb("#A18A93"), FontSize = 10 } } };
+        grid.Children.Add(new Label { Text = stop.Position.ToString("00"), TextColor = Color.FromArgb("#F06C9D"), BackgroundColor = Color.FromArgb("#30232C"), FontAttributes = FontAttributes.Bold, Padding = new Thickness(10, 8), VerticalOptions = LayoutOptions.Center });
+        var details = new VerticalStackLayout { Spacing = 2, Children = { new Label { Text = stop.Name, TextColor = Color.FromArgb("#F7EEF2"), FontAttributes = FontAttributes.Bold, FontSize = 13 }, new Label { Text = $"{stop.City} · {stop.Neighborhood}", TextColor = Color.FromArgb("#B9A8B1"), FontSize = 10 } } };
         Grid.SetColumn(details, 1); grid.Children.Add(details);
-        return new Border { Stroke = Color.FromArgb("#F2E7EB"), StrokeThickness = 1, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 11 }, Padding = 10, Content = grid };
+        return new Border { Stroke = Color.FromArgb("#39323A"), StrokeThickness = 1, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 11 }, Padding = 10, Content = grid };
     }
 
     private void RenderProducts()
@@ -132,12 +132,12 @@ public partial class MainPage : ContentPage
         ProductList.Children.Clear(); _quantities.Clear();
         foreach (var product in _products)
         {
-            var quantity = new Entry { Placeholder = "Qtd.", Keyboard = Keyboard.Numeric, WidthRequest = 75, HorizontalTextAlignment = TextAlignment.Center, BackgroundColor = Color.FromArgb("#FFF8FA"), TextColor = Color.FromArgb("#503742") };
+            var quantity = new Entry { Placeholder = "Qtd.", Keyboard = Keyboard.Numeric, WidthRequest = 75, HorizontalTextAlignment = TextAlignment.Center, BackgroundColor = Color.FromArgb("#121114"), TextColor = Color.FromArgb("#F7EEF2") };
             _quantities[product.Id] = quantity;
             var row = new Grid { ColumnDefinitions = { new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto) }, ColumnSpacing = 8 };
-            row.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { new Label { Text = product.Name, TextColor = Color.FromArgb("#503742"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = $"{product.Price:C} · Estoque: {product.Stock:0.##} {product.Unit} · Val.: {product.ExpiryDate?.ToString("dd/MM/yy") ?? "—"}", TextColor = product.Stock > 0 ? Color.FromArgb("#9B7E88") : Color.FromArgb("#D36B75"), FontSize = 10 } } });
+            row.Children.Add(new VerticalStackLayout { Spacing = 2, Children = { new Label { Text = product.Name, TextColor = Color.FromArgb("#F7EEF2"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = $"{product.Price:C} · Estoque: {product.Stock:0.##} {product.Unit} · Val.: {product.ExpiryDate?.ToString("dd/MM/yy") ?? "—"}", TextColor = product.Stock > 0 ? Color.FromArgb("#B9A8B1") : Color.FromArgb("#FF829A"), FontSize = 10 } } });
             Grid.SetColumn(quantity, 1); row.Children.Add(quantity);
-            ProductList.Children.Add(new Border { Stroke = Color.FromArgb("#F2E7EB"), StrokeThickness = 1, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 9, Content = row });
+            ProductList.Children.Add(new Border { Stroke = Color.FromArgb("#39323A"), StrokeThickness = 1, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 9, Content = row });
         }
     }
 
@@ -192,11 +192,11 @@ public partial class MainPage : ContentPage
         try
         {
             var info = await _api.GetFromJsonAsync<CustomerHistory>($"api/customers/{customer.Id}", Json); HistoryList.Children.Clear();
-            if (info is not null) HistoryList.Children.Add(new Label { Text = $"Saldo em aberto: {info.OpenBalance:C}", TextColor = Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 12 });
-            if (info?.Purchases.Count == 0) { HistoryList.Children.Add(new Label { Text = "Este cliente ainda não tem compras.", TextColor = Color.FromArgb("#A18A93"), FontSize = 11 }); return; }
+            if (info is not null) HistoryList.Children.Add(new Label { Text = $"Saldo em aberto: {info.OpenBalance:C}", TextColor = Color.FromArgb("#F06C9D"), FontAttributes = FontAttributes.Bold, FontSize = 12 });
+            if (info?.Purchases.Count == 0) { HistoryList.Children.Add(new Label { Text = "Este cliente ainda não tem compras.", TextColor = Color.FromArgb("#B9A8B1"), FontSize = 11 }); return; }
             foreach (var purchase in info!.Purchases)
             {
-                HistoryList.Children.Add(new Border { BackgroundColor = Color.FromArgb("#FFF8FA"), StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 10, Content = new VerticalStackLayout { Spacing = 3, Children = { new Label { Text = $"Compra #{purchase.Id:0000} · {purchase.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}", TextColor = Color.FromArgb("#503742"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = $"{purchase.PaymentStatus} · {purchase.PaymentMethod}", TextColor = purchase.PaymentStatus == "Quitado" ? Color.FromArgb("#54876B") : Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 11 }, new Label { Text = string.Join(" · ", purchase.Items.Select(i => $"{i.Quantity:0.##} {i.ProductName} ({i.UnitPrice:C})")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 }, new Label { Text = $"Total {purchase.Total:C}", TextColor = Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = string.Join(" · ", purchase.Receivables.Select(r => $"Parcela {r.InstallmentNumber}: {r.Amount:C}{(!r.Paid && r.CurrentAmount != r.Amount ? $" (hoje {r.CurrentAmount:C})" : "")} em {r.DueDate:dd/MM} ({r.PaymentMethod}) · {(r.Paid ? "quitada" : "em aberto")}")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 }, new Label { Text = "Multa 5% · juros 2% a.d. · desconto 1% a.d.", TextColor = Color.FromArgb("#A18A93"), FontSize = 9 } } } });
+                HistoryList.Children.Add(new Border { BackgroundColor = Color.FromArgb("#121114"), StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 10, Content = new VerticalStackLayout { Spacing = 3, Children = { new Label { Text = $"Compra #{purchase.Id:0000} · {purchase.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}", TextColor = Color.FromArgb("#F7EEF2"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = $"{purchase.PaymentStatus} · {purchase.PaymentMethod}", TextColor = purchase.PaymentStatus == "Quitado" ? Color.FromArgb("#79C99A") : Color.FromArgb("#F06C9D"), FontAttributes = FontAttributes.Bold, FontSize = 11 }, new Label { Text = string.Join(" · ", purchase.Items.Select(i => $"{i.Quantity:0.##} {i.ProductName} ({i.UnitPrice:C})")), TextColor = Color.FromArgb("#B9A8B1"), FontSize = 10 }, new Label { Text = $"Total {purchase.Total:C}", TextColor = Color.FromArgb("#F06C9D"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = string.Join(" · ", purchase.Receivables.Select(r => $"Parcela {r.InstallmentNumber}: {r.Amount:C}{(!r.Paid && r.CurrentAmount != r.Amount ? $" (hoje {r.CurrentAmount:C})" : "")} em {r.DueDate:dd/MM} ({r.PaymentMethod}) · {(r.Paid ? "quitada" : "em aberto")}")), TextColor = Color.FromArgb("#B9A8B1"), FontSize = 10 }, new Label { Text = "Multa 5% · juros 2% a.d. · desconto 1% a.d.", TextColor = Color.FromArgb("#B9A8B1"), FontSize = 9 } } } });
             }
         }
         catch { StatusLabel.Text = "Não foi possível carregar o histórico."; }
