@@ -4,24 +4,123 @@ namespace VanderBakery.Api;
 
 public sealed class BakeryDb(DbContextOptions<BakeryDb> options) : DbContext(options)
 {
-    public DbSet<User> Users => Set<User>(); public DbSet<Seller> Sellers => Set<Seller>(); public DbSet<Coverage> Coverages => Set<Coverage>(); public DbSet<Customer> Customers => Set<Customer>();
-    public DbSet<ProductGroup> ProductGroups => Set<ProductGroup>(); public DbSet<Product> Products => Set<Product>(); public DbSet<ProductLot> Lots => Set<ProductLot>();
-    public DbSet<PaymentCondition> PaymentConditions => Set<PaymentCondition>(); public DbSet<PaymentMethod> PaymentMethods => Set<PaymentMethod>();
-    public DbSet<BakeryOrder> Orders => Set<BakeryOrder>(); public DbSet<OrderItem> OrderItems => Set<OrderItem>(); public DbSet<Sale> Sales => Set<Sale>(); public DbSet<SaleItem> SaleItems => Set<SaleItem>(); public DbSet<Receivable> Receivables => Set<Receivable>();
-    protected override void OnModelCreating(ModelBuilder b) { b.Entity<BakeryOrder>().HasIndex(x => x.IdempotencyKey).IsUnique(); b.Entity<Product>().Property(x => x.Price).HasPrecision(12,2); b.Entity<OrderItem>().Property(x => x.UnitPrice).HasPrecision(12,2); b.Entity<Receivable>().Property(x => x.Amount).HasPrecision(12,2); }
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<RouteStop> RouteStops => Set<RouteStop>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+    public DbSet<PaymentCondition> PaymentConditions => Set<PaymentCondition>();
+    public DbSet<PaymentRule> PaymentRules => Set<PaymentRule>();
+    public DbSet<Receivable> Receivables => Set<Receivable>();
+
+    protected override void OnModelCreating(ModelBuilder model)
+    {
+        model.Entity<Customer>().HasIndex(x => x.TaxId).IsUnique();
+        model.Entity<Product>().Property(x => x.Price).HasPrecision(12, 2);
+        model.Entity<Product>().Property(x => x.Cost).HasPrecision(12, 2);
+        model.Entity<SaleItem>().Property(x => x.UnitPrice).HasPrecision(12, 2);
+        model.Entity<SaleItem>().Property(x => x.UnitCost).HasPrecision(12, 2);
+    }
 }
-public class User { public int Id { get; set; } public string Email { get; set; }=""; public string Name { get; set; }=""; public string PasswordHash { get; set; }=""; public string Role { get; set; }="Vendedor"; public int? SellerId { get; set; } public Seller? Seller { get; set; } public bool Active { get; set; }=true; }
-public class Seller { public int Id { get; set; } public string Name { get; set; }=""; public string Email { get; set; }=""; public bool Active { get; set; }=true; public List<Customer> Customers { get; set; }=[]; public List<Coverage> Coverages { get; set; }=[]; }
-public class Coverage { public int Id { get; set; } public int SellerId { get; set; } public Seller Seller { get; set; }=null!; public string? City { get; set; } public string State { get; set; }=""; }
-public class Customer { public int Id { get; set; } public string PersonType { get; set; }="J"; public string Name { get; set; }=""; public string? LegalName { get; set; } public string TaxId { get; set; }=""; public string Phone { get; set; }=""; public string Email { get; set; }=""; public string Address { get; set; }=""; public string City { get; set; }=""; public string State { get; set; }=""; public int? SellerId { get; set; } public Seller? Seller { get; set; } public int VisitOrder { get; set; } public string AssignmentRule { get; set; }="Carteira do vendedor"; public int? AssignedByUserId { get; set; } public DateTime? AssignedAt { get; set; } public bool Active { get; set; }=true; }
-public class ProductGroup { public int Id { get; set; } public string Name { get; set; }=""; public bool Active { get; set; }=true; public List<Product> Products { get; set; }=[]; }
-public class Product { public int Id { get; set; } public string Name { get; set; }=""; public string Description { get; set; }=""; public int GroupId { get; set; } public ProductGroup? Group { get; set; } public string Unit { get; set; }="un"; public string Package { get; set; }=""; public decimal Price { get; set; } public bool Active { get; set; }=true; public List<ProductLot> Lots { get; set; }=[]; }
-public class ProductLot { public int Id { get; set; } public int ProductId { get; set; } public Product? Product { get; set; } public string LotNumber { get; set; }=""; public decimal Quantity { get; set; } public DateOnly ExpiryDate { get; set; } }
-public class PaymentCondition { public int Id { get; set; } public string Name { get; set; }=""; public decimal FinePercent { get; set; } public decimal DailyInterestPercent { get; set; } public decimal DailyDiscountPercent { get; set; } public bool Active { get; set; }=true; public List<PaymentInstallmentRule> Installments { get; set; }=[]; }
-public class PaymentInstallmentRule { public int Id { get; set; } public int PaymentConditionId { get; set; } public int Days { get; set; } public decimal Percent { get; set; } public string PaymentMethodName { get; set; }="Boleto"; }
-public class PaymentMethod { public int Id { get; set; } public string Name { get; set; }=""; public bool Active { get; set; }=true; }
-public class BakeryOrder { public int Id { get; set; } public int CustomerId { get; set; } public Customer Customer { get; set; }=null!; public int SellerId { get; set; } public Seller Seller { get; set; }=null!; public int CreatedByUserId { get; set; } public int? CutByUserId { get; set; } public DateTime? CutAt { get; set; } public int? InvoicedByUserId { get; set; } public int PaymentConditionId { get; set; } public string Status { get; set; }="Recebido"; public string IdempotencyKey { get; set; }=""; public DateTime CreatedAt { get; set; } public List<OrderItem> Items { get; set; }=[]; public Sale? Sale { get; set; } }
-public class OrderItem { public int Id { get; set; } public int BakeryOrderId { get; set; } public BakeryOrder? Order { get; set; } public int ProductId { get; set; } public Product? Product { get; set; } public decimal RequestedQuantity { get; set; } public decimal ApprovedQuantity { get; set; } public decimal UnitPrice { get; set; } }
-public class Sale { public int Id { get; set; } public int BakeryOrderId { get; set; } public BakeryOrder? Order { get; set; } public DateTime CreatedAt { get; set; } public decimal Total { get; set; } public List<SaleItem> Items { get; set; }=[]; public List<Receivable> Receivables { get; set; }=[]; }
-public class SaleItem { public int Id { get; set; } public int SaleId { get; set; } public Sale? Sale { get; set; } public int ProductId { get; set; } public string ProductName { get; set; }=""; public decimal Quantity { get; set; } public decimal UnitPrice { get; set; } }
-public class Receivable { public int Id { get; set; } public int SaleId { get; set; } public Sale? Sale { get; set; } public int InstallmentNumber { get; set; } public DateOnly DueDate { get; set; } public decimal Amount { get; set; } public string PaymentMethod { get; set; }=""; public decimal FinePercent { get; set; } public decimal DailyInterestPercent { get; set; } public decimal DailyDiscountPercent { get; set; } public bool Paid { get; set; } }
+
+public sealed class Customer
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string? TradeName { get; set; }
+    public string TaxId { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string City { get; set; } = "Foz do Iguaçu";
+    public string Neighborhood { get; set; } = "";
+    public bool Active { get; set; } = true;
+    public List<RouteStop> RouteStops { get; set; } = [];
+}
+
+public sealed class RouteStop
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public Customer? Customer { get; set; }
+    public string Day { get; set; } = "Segunda-feira";
+    public int Position { get; set; }
+}
+
+public sealed class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Group { get; set; } = "";
+    public string Unit { get; set; } = "un";
+    public decimal Price { get; set; }
+    public decimal Cost { get; set; }
+    public decimal Stock { get; set; }
+    public DateOnly? ExpiryDate { get; set; }
+    public bool Active { get; set; } = true;
+}
+
+public sealed class Sale
+{
+    public int Id { get; set; }
+    public int CustomerId { get; set; }
+    public Customer? Customer { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public int PaymentConditionId { get; set; }
+    public PaymentCondition? PaymentCondition { get; set; }
+    public List<SaleItem> Items { get; set; } = [];
+    public List<Receivable> Receivables { get; set; } = [];
+}
+
+public sealed class SaleItem
+{
+    public int Id { get; set; }
+    public int SaleId { get; set; }
+    public Sale? Sale { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; } = "";
+    public decimal Quantity { get; set; }
+    public decimal UnitPrice { get; set; }
+    public decimal UnitCost { get; set; }
+}
+
+public sealed class PaymentCondition
+{
+    public int Id { get; set; }
+    public int Code { get; set; }
+    public string Name { get; set; } = "";
+    public decimal FinePercent { get; set; }
+    public decimal DailyInterestPercent { get; set; }
+    public decimal DailyDiscountPercent { get; set; }
+    public bool Active { get; set; } = true;
+    public List<PaymentRule> Rules { get; set; } = [];
+}
+
+public sealed class PaymentRule
+{
+    public int Id { get; set; }
+    public int PaymentConditionId { get; set; }
+    public PaymentCondition? PaymentCondition { get; set; }
+    public int Days { get; set; }
+    public decimal Percent { get; set; }
+    public string PaymentMethod { get; set; } = "Boleto";
+}
+
+public sealed class Receivable
+{
+    public int Id { get; set; }
+    public int SaleId { get; set; }
+    public Sale? Sale { get; set; }
+    public int InstallmentNumber { get; set; }
+    public DateOnly DueDate { get; set; }
+    public decimal Amount { get; set; }
+    public string PaymentMethod { get; set; } = "Boleto";
+    public decimal FinePercent { get; set; }
+    public decimal DailyInterestPercent { get; set; }
+    public decimal DailyDiscountPercent { get; set; }
+    public bool Paid { get; set; }
+}
+
+public sealed record CustomerInput(string Name, string? TradeName, string TaxId, string Email, string City, string Neighborhood);
+public sealed record RouteInput(string Day, int Position);
+public sealed record ProductInput(string Name, string Group, string Unit, decimal Price, decimal Cost, decimal Stock, DateOnly? ExpiryDate);
+public sealed record SaleInput(int CustomerId, List<SaleLineInput> Items, int PaymentConditionId = 1);
+public sealed record SaleLineInput(int ProductId, decimal Quantity);

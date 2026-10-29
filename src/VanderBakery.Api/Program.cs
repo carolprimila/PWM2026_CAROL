@@ -1,56 +1,179 @@
-using System.Collections.Concurrent;
-using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using VanderBakery.Api;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddDbContext<BakeryDb>(o=>o.UseSqlite(builder.Configuration.GetConnectionString("Default")??"Data Source=vanderbakery-mvp.db"));
-builder.Services.AddOpenApi(); builder.Services.AddCors(o=>o.AddDefaultPolicy(p=>p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
-var app=builder.Build(); if(app.Environment.IsDevelopment()) app.MapOpenApi(); app.UseCors();
-var sessions=new ConcurrentDictionary<string,(int UserId,string Role,int? SellerId)>();
-app.Use(async(ctx,next)=>{ if(!ctx.Request.Path.StartsWithSegments("/api")||ctx.Request.Path=="/api/auth/login"||ctx.Request.Path=="/api/health"){await next();return;} var key=ctx.Request.Headers.Authorization.ToString().Replace("Bearer ",""); if(!sessions.TryGetValue(key,out var principal)){ctx.Response.StatusCode=401;await ctx.Response.WriteAsJsonAsync(new {message="Não autorizado."});return;} var db=ctx.RequestServices.GetRequiredService<BakeryDb>();var user=await db.Users.Include(x=>x.Seller).AsNoTracking().FirstOrDefaultAsync(x=>x.Id==principal.UserId);if(user==null||!user.Active||(principal.Role=="Vendedor"&&user.Seller?.Active!=true)){ctx.Response.StatusCode=401;await ctx.Response.WriteAsJsonAsync(new {message="Usuário inativo."});return;}ctx.Items["principal"]=principal; await next(); });
-app.MapGet("/api/health",()=>Results.Ok(new{status="ok"}));
-app.MapPost("/api/auth/login",async(LoginDto input,BakeryDb db)=>{var u=await db.Users.SingleOrDefaultAsync(x=>x.Email==input.Email&&x.Active); if(u==null||!Password.Verify(input.Password,u.PasswordHash))return Results.Unauthorized(); var token=Convert.ToHexString(RandomNumberGenerator.GetBytes(32)); sessions[token]=(u.Id,u.Role,u.SellerId); return Results.Ok(new{token,u.Name,u.Role,u.SellerId});});
-app.MapGet("/api/auth/me",(HttpContext c)=>{var p=Principal(c);return Results.Ok(new{p.UserId,p.Role,p.SellerId});});
-app.MapGet("/api/lookups/payment-conditions",async(BakeryDb db)=>await db.PaymentConditions.Include(x=>x.Installments).Where(x=>x.Active).Select(x=>new{x.Id,x.Name}).ToListAsync());
-app.MapGet("/api/lookups/groups",async(BakeryDb db)=>await db.ProductGroups.Where(x=>x.Active).Select(x=>new{x.Id,x.Name}).ToListAsync());
-app.MapGet("/api/products",async(int? groupId,string? search,BakeryDb db)=>await db.Products.Include(x=>x.Group).Include(x=>x.Lots).Where(x=>x.Active&&x.Lots.Any(l=>l.Quantity>0&&l.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today))&&(groupId==null||x.GroupId==groupId)&&(search==null||x.Name.Contains(search))).Select(x=>new{x.Id,x.Name,x.Description,Group=x.Group!.Name,x.Unit,x.Package,x.Price,Available=x.Lots.Where(l=>l.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today)).Sum(l=>l.Quantity),Expiry=x.Lots.Where(l=>l.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today)).OrderBy(l=>l.ExpiryDate).Select(l=>(DateOnly?)l.ExpiryDate).FirstOrDefault()}).ToListAsync());
-app.MapGet("/api/customers",async(HttpContext c,BakeryDb db)=>{var p=Principal(c);var q=db.Customers.AsQueryable();if(p.Role=="Vendedor")q=q.Where(x=>x.SellerId==p.SellerId);return Results.Ok(await q.OrderBy(x=>x.VisitOrder).Select(x=>new{x.Id,x.Name,x.City,x.State,x.VisitOrder,x.Active}).ToListAsync());});
-app.MapPost("/api/customers",async(CreateCustomerDto d,HttpContext c,BakeryDb db)=>{var p=Principal(c);if(p.Role!="Vendedor")return Results.Forbid();if(string.IsNullOrWhiteSpace(d.Name)||string.IsNullOrWhiteSpace(d.TaxId)||string.IsNullOrWhiteSpace(d.City)||string.IsNullOrWhiteSpace(d.State))return Results.BadRequest(new{message="Preencha todos os campos obrigatórios."});if(!TaxId.Valid(d.TaxId))return Results.BadRequest(new{message="CPF ou CNPJ inválido."});var taxId=new string(d.TaxId.Where(char.IsDigit).ToArray());if(await db.Customers.AnyAsync(x=>x.TaxId==taxId))return Results.BadRequest(new{message="CPF ou CNPJ já cadastrado."});var x=new Customer{PersonType=d.PersonType,Name=d.Name,LegalName=d.LegalName,TaxId=taxId,Phone=d.Phone,Email=d.Email,Address=d.Address,City=d.City,State=d.State,SellerId=p.SellerId,VisitOrder=d.VisitOrder,AssignedByUserId=p.UserId,AssignedAt=DateTime.UtcNow,AssignmentRule="Carteira do vendedor autenticado"};db.Customers.Add(x);await db.SaveChangesAsync();return Results.Created($"/api/customers/{x.Id}",new{message="Cliente cadastrado com sucesso.",x.Id});});
-app.MapGet("/api/customers/{id:int}/summary",async(int id,HttpContext c,BakeryDb db)=>{var p=Principal(c);var x=await db.Customers.FirstOrDefaultAsync(x=>x.Id==id&&x.Active&&(p.Role!="Vendedor"||x.SellerId==p.SellerId));if(x==null)return Results.BadRequest(new{message="Cliente não está disponível para este vendedor."});var recent=await db.Sales.Where(s=>s.Order!.CustomerId==id).OrderByDescending(s=>s.CreatedAt).Select(s=>new{ s.Id,s.CreatedAt,s.Total }).FirstOrDefaultAsync();var recentItems=recent==null?[]:await db.SaleItems.Where(i=>i.SaleId==recent.Id).Select(i=>new{ i.ProductName,i.Quantity,i.UnitPrice }).ToListAsync();var balance=await db.Receivables.Include(r=>r.Sale).ThenInclude(s=>s!.Order).Where(r=>r.Sale!.Order!.CustomerId==id&&!r.Paid).SumAsync(r=>(decimal?)r.Amount)??0;return Results.Ok(new{customer=new{x.Id,x.Name,x.City,x.State},openBalance=balance,lastPurchase=recent==null?null:new{recent.CreatedAt,recent.Total,items=recentItems}});});
-app.MapGet("/api/orders",async(HttpContext c,string? status,int? customerId,BakeryDb db)=>{var p=Principal(c);var q=db.Orders.Include(x=>x.Customer).Include(x=>x.Seller).Include(x=>x.Items).ThenInclude(x=>x.Product).AsQueryable();if(p.Role=="Vendedor")q=q.Where(x=>x.SellerId==p.SellerId);if(!string.IsNullOrEmpty(status))q=q.Where(x=>x.Status==status);if(customerId!=null)q=q.Where(x=>x.CustomerId==customerId);var rows=await q.OrderByDescending(x=>x.CreatedAt).ToListAsync();return Results.Ok(rows.Select(OrderView));});
-app.MapPost("/api/orders",async(CreateOrderDto d,HttpContext c,BakeryDb db)=>{var p=Principal(c);if(string.IsNullOrWhiteSpace(d.IdempotencyKey)||d.Items.Count==0)return Results.BadRequest(new{message="Preencha todos os campos obrigatórios."});var prior=await db.Orders.Include(x=>x.Items).Include(x=>x.Customer).Include(x=>x.Seller).FirstOrDefaultAsync(x=>x.IdempotencyKey==d.IdempotencyKey);if(prior!=null){if(p.Role=="Vendedor"&&prior.SellerId!=p.SellerId)return Results.BadRequest(new{message="Cliente não está disponível para este vendedor."});return Results.Ok(new{message="Pedido enviado com sucesso.",order=OrderView(prior)});}var customer=await db.Customers.FirstOrDefaultAsync(x=>x.Id==d.CustomerId&&x.Active&&(p.Role!="Vendedor"||x.SellerId==p.SellerId));if(customer==null)return Results.BadRequest(new{message="Cliente não está disponível para este vendedor."});var sellerId=p.SellerId??customer.SellerId;if(sellerId==null)return Results.BadRequest(new{message="Cliente pendente de atribuição manual."});if(!await db.PaymentConditions.AnyAsync(x=>x.Id==d.PaymentConditionId&&x.Active))return Results.BadRequest(new{message="Condição de pagamento inválida."});var order=new BakeryOrder{CustomerId=customer.Id,SellerId=sellerId.Value,CreatedByUserId=p.UserId,PaymentConditionId=d.PaymentConditionId,IdempotencyKey=d.IdempotencyKey,CreatedAt=DateTime.UtcNow,Status="Recebido"};foreach(var li in d.Items){if(li.Quantity<=0)return Results.BadRequest(new{message="Preencha todos os campos obrigatórios."});var prod=await db.Products.FirstOrDefaultAsync(x=>x.Id==li.ProductId&&x.Active&&x.Lots.Any(l=>l.Quantity>0&&l.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today)));if(prod==null)return Results.BadRequest(new{message="Produto não está disponível para pedidos."});order.Items.Add(new OrderItem{ProductId=prod.Id,RequestedQuantity=li.Quantity,UnitPrice=prod.Price});}db.Orders.Add(order);await db.SaveChangesAsync();await db.Entry(order).Reference(x=>x.Customer).LoadAsync();await db.Entry(order).Reference(x=>x.Seller).LoadAsync();return Results.Created($"/api/orders/{order.Id}",new{message="Pedido enviado com sucesso.",order=OrderView(order)});});
-app.MapPost("/api/orders/{id:int}/repeat",async(int id,HttpContext c,BakeryDb db)=>{var p=Principal(c);var x=await db.Orders.Include(x=>x.Items).FirstOrDefaultAsync(x=>x.Id==id&&(p.Role!="Vendedor"||x.SellerId==p.SellerId));return x==null?Results.NotFound():Results.Ok(new{customerId=x.CustomerId,paymentConditionId=x.PaymentConditionId,items=x.Items.Select(i=>new{productId=i.ProductId,quantity=i.RequestedQuantity})});});
-app.MapGet("/api/orders/{id:int}",async(int id,HttpContext c,BakeryDb db)=>{var p=Principal(c);var x=await db.Orders.Include(x=>x.Items).Include(x=>x.Customer).Include(x=>x.Seller).FirstOrDefaultAsync(x=>x.Id==id&&(p.Role!="Vendedor"||x.SellerId==p.SellerId));return x==null?Results.NotFound():Results.Ok(OrderView(x));});
-app.MapPost("/api/orders/{id:int}/cut",async(int id,CutDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var order=await db.Orders.Include(x=>x.Items).FirstOrDefaultAsync(x=>x.Id==id);if(order==null)return Results.NotFound();if(order.Status!="Recebido")return Results.BadRequest(new{message="Somente pedidos recebidos podem ser cortados."});if(d.Items.Select(x=>x.OrderItemId).Distinct().Count()!=d.Items.Count||d.Items.Any(x=>!order.Items.Any(i=>i.Id==x.OrderItemId)))return Results.BadRequest(new{message="Itens de pedido inválidos."});foreach(var cut in d.Items){var item=order.Items.First(x=>x.Id==cut.OrderItemId);if(cut.Quantity<0||cut.Quantity>item.RequestedQuantity)return Results.BadRequest(new{message="Quantidade aprovada inválida."});var stock=await db.Lots.Where(l=>l.ProductId==item.ProductId&&l.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today)).SumAsync(l=>(decimal?)l.Quantity)??0;var reserved=await db.OrderItems.Where(i=>i.ProductId==item.ProductId&&i.Order!.Status=="Cortado"&&i.BakeryOrderId!=id).SumAsync(i=>(decimal?)i.ApprovedQuantity)??0;var sameOrder=d.Items.Where(x=>order.Items.First(i=>i.Id==x.OrderItemId).ProductId==item.ProductId).Sum(x=>x.Quantity);if(sameOrder>stock-reserved)return Results.BadRequest(new{message="A quantidade para entrega não pode ser maior que o estoque disponível."});item.ApprovedQuantity=cut.Quantity;}order.Status="Cortado";order.CutByUserId=Principal(c).UserId;order.CutAt=DateTime.UtcNow;await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapPost("/api/orders/{id:int}/invoice",async(int id,HttpContext c,BakeryDb db)=>{if(Principal(c).Role=="Vendedor")return Results.Forbid();var order=await db.Orders.Include(x=>x.Items).ThenInclude(i=>i.Product).Include(x=>x.Seller).Include(x=>x.Customer).FirstOrDefaultAsync(x=>x.Id==id);if(order==null)return Results.NotFound();if(order.Status!="Cortado"||order.Sale!=null)return Results.BadRequest(new{message="Pedido precisa estar cortado e ainda não faturado."});var rules=await db.PaymentConditions.Include(x=>x.Installments).FirstAsync(x=>x.Id==order.PaymentConditionId);var sale=new Sale{BakeryOrderId=id,CreatedAt=DateTime.UtcNow};foreach(var item in order.Items.Where(i=>i.ApprovedQuantity>0)){sale.Items.Add(new SaleItem{ProductId=item.ProductId,ProductName=item.Product!.Name,Quantity=item.ApprovedQuantity,UnitPrice=item.UnitPrice});sale.Total+=item.ApprovedQuantity*item.UnitPrice;}decimal sum=0;for(var n=0;n<rules.Installments.Count;n++){var rule=rules.Installments.OrderBy(x=>x.Days).ElementAt(n);var amount=n==rules.Installments.Count-1?sale.Total-sum:Math.Round(sale.Total*rule.Percent/100,2);sum+=amount;sale.Receivables.Add(new Receivable{InstallmentNumber=n+1,DueDate=DateOnly.FromDateTime(DateTime.Today.AddDays(rule.Days)),Amount=amount,PaymentMethod=rule.PaymentMethodName,FinePercent=rules.FinePercent,DailyInterestPercent=rules.DailyInterestPercent,DailyDiscountPercent=rules.DailyDiscountPercent});}order.Status="Faturado";order.InvoicedByUserId=Principal(c).UserId;db.Sales.Add(sale);foreach(var item in order.Items){var toAllocate=item.ApprovedQuantity;var lots=await db.Lots.Where(x=>x.ProductId==item.ProductId&&x.ExpiryDate>=DateOnly.FromDateTime(DateTime.Today)).OrderBy(x=>x.ExpiryDate).ToListAsync();foreach(var lot in lots){var take=Math.Min(lot.Quantity,toAllocate);lot.Quantity-=take;toAllocate-=take;if(toAllocate==0)break;}}await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso.",saleId=sale.Id,sale.Total,installments=sale.Receivables.Select(r=>new{r.Id,r.InstallmentNumber,r.DueDate,r.Amount,r.PaymentMethod,r.FinePercent,r.DailyInterestPercent,r.DailyDiscountPercent})});});
-app.MapGet("/api/receivables",async(HttpContext c,BakeryDb db)=>{var p=Principal(c);var q=db.Receivables.Include(x=>x.Sale).ThenInclude(x=>x!.Order).AsQueryable();if(p.Role=="Vendedor")q=q.Where(x=>x.Sale!.Order!.SellerId==p.SellerId);return Results.Ok(await q.Select(x=>new{x.Id,x.SaleId,x.Sale!.Order!.CustomerId,x.InstallmentNumber,x.DueDate,x.Amount,x.PaymentMethod,x.Paid}).ToListAsync());});
-app.MapGet("/api/admin/payment-conditions",async(HttpContext c,BakeryDb db)=>IsAdmin(c)?Results.Ok(await db.PaymentConditions.Include(x=>x.Installments).ToListAsync()):Results.Forbid());
-app.MapPut("/api/admin/payment-conditions/{id:int}",async(int id,PaymentConditionDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var x=await db.PaymentConditions.Include(x=>x.Installments).FirstOrDefaultAsync(x=>x.Id==id);if(x==null)return Results.NotFound();x.Name=d.Name;x.FinePercent=d.FinePercent;x.DailyInterestPercent=d.DailyInterestPercent;x.DailyDiscountPercent=d.DailyDiscountPercent;db.RemoveRange(x.Installments);x.Installments=d.Installments.Select(i=>new PaymentInstallmentRule{Days=i.Days,Percent=i.Percent,PaymentMethodName=i.Method}).ToList();await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapGet("/api/admin/sellers",async(HttpContext c,BakeryDb db)=>IsAdmin(c)?Results.Ok(await db.Sellers.Include(x=>x.Coverages).Select(x=>new{x.Id,x.Name,x.Email,x.Active,coverages=x.Coverages.Select(v=>new{v.Id,v.City,v.State})}).ToListAsync()):Results.Forbid());
-app.MapGet("/api/admin/region-options",(HttpContext c)=>IsAdmin(c)?Results.Ok(RegionCatalog.Options):Results.Forbid());
-app.MapPost("/api/admin/sellers",async(SellerDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(string.IsNullOrWhiteSpace(d.Name)||string.IsNullOrWhiteSpace(d.Email)||string.IsNullOrWhiteSpace(d.Password))return Results.BadRequest(new{message="Preencha todos os campos obrigatórios."});if(await db.Users.AnyAsync(x=>x.Email==d.Email))return Results.BadRequest(new{message="E-mail já cadastrado."});var seller=new Seller{Name=d.Name,Email=d.Email,Active=true};db.Sellers.Add(seller);db.Users.Add(new User{Name=d.Name,Email=d.Email,Role="Vendedor",Seller=seller,PasswordHash=Password.Hash(d.Password)});await db.SaveChangesAsync();return Results.Created($"/api/admin/sellers/{seller.Id}",new{id=seller.Id,name=seller.Name,email=seller.Email});});
-app.MapPut("/api/admin/sellers/{id:int}",async(int id,SellerUpdateDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var x=await db.Sellers.FindAsync(id);if(x==null)return Results.NotFound();x.Name=d.Name;x.Email=d.Email;x.Active=d.Active;var u=await db.Users.FirstOrDefaultAsync(u=>u.SellerId==id);if(u!=null){u.Name=d.Name;u.Email=d.Email;u.Active=d.Active;}await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapPost("/api/admin/sellers/{id:int}/coverages",async(int id,CoverageDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(!await db.Sellers.AnyAsync(x=>x.Id==id))return Results.NotFound();db.Add(new Coverage{SellerId=id,City=d.City,State=d.State});await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapPost("/api/admin/customers",async(CreateCustomerDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(!TaxId.Valid(d.TaxId))return Results.BadRequest(new{message="CPF ou CNPJ inválido."});var cityCoverage=await db.Coverages.Include(x=>x.Seller).Where(x=>x.City!=null&&x.City.ToLower()==d.City.ToLower()&&x.State.ToLower()==d.State.ToLower()&&x.Seller!.Active).Select(x=>x.SellerId).Distinct().ToListAsync();var candidates=cityCoverage.Count>0?cityCoverage:await db.Coverages.Include(x=>x.Seller).Where(x=>x.City==null&&x.State.ToLower()==d.State.ToLower()&&x.Seller!.Active).Select(x=>x.SellerId).Distinct().ToListAsync();int? sellerId=null;if(candidates.Count>0){sellerId=await db.Sellers.Where(x=>candidates.Contains(x.Id)).Select(x=>new{ x.Id,Count=x.Customers.Count }).OrderBy(x=>x.Count).ThenBy(x=>x.Id).Select(x=>(int?)x.Id).FirstAsync();}var customer=new Customer{PersonType=d.PersonType,Name=d.Name,LegalName=d.LegalName,TaxId=new string(d.TaxId.Where(char.IsDigit).ToArray()),Phone=d.Phone,Email=d.Email,Address=d.Address,City=d.City,State=d.State,VisitOrder=d.VisitOrder,SellerId=sellerId,AssignedByUserId=Principal(c).UserId,AssignedAt=DateTime.UtcNow,AssignmentRule=sellerId==null?"Pendente de atribuição":cityCoverage.Count>0?"Cidade específica; menor carteira e menor ID":"Estado; menor carteira e menor ID"};db.Customers.Add(customer);await db.SaveChangesAsync();return Results.Created($"/api/customers/{customer.Id}",new{customer.Id,customer.SellerId,customer.AssignmentRule,message=sellerId==null?"Cliente criado pendente de atribuição manual.":"Operação realizada com sucesso."});});
-app.MapPut("/api/admin/customers/{id:int}/assignment",async(int id,AssignCustomerDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var x=await db.Customers.FindAsync(id);if(x==null)return Results.NotFound();if(d.SellerId!=null&&!await db.Sellers.AnyAsync(s=>s.Id==d.SellerId&&s.Active))return Results.BadRequest(new{message="Vendedor não encontrado ou inativo."});x.SellerId=d.SellerId;x.VisitOrder=d.VisitOrder;x.AssignmentRule="Correção manual pelo administrador";x.AssignedByUserId=Principal(c).UserId;x.AssignedAt=DateTime.UtcNow;await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapGet("/api/admin/customers",async(HttpContext c,BakeryDb db)=>IsAdmin(c)?Results.Ok(await db.Customers.Include(x=>x.Seller).Select(x=>new{x.Id,x.Name,x.TaxId,x.City,x.State,x.VisitOrder,x.Active,x.SellerId,seller=x.Seller==null?"Pendente":x.Seller.Name,x.AssignmentRule}).ToListAsync()):Results.Forbid());
-app.MapGet("/api/admin/groups",async(HttpContext c,BakeryDb db)=>IsAdmin(c)?Results.Ok(await db.ProductGroups.ToListAsync()):Results.Forbid());
-app.MapPost("/api/admin/groups",async(GroupDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var x=new ProductGroup{Name=d.Name};db.Add(x);await db.SaveChangesAsync();return Results.Created($"/api/admin/groups/{x.Id}",new{id=x.Id,name=x.Name});});
-app.MapPost("/api/admin/products",async(ProductDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(d.Price<0||string.IsNullOrWhiteSpace(d.Name)||!await db.ProductGroups.AnyAsync(x=>x.Id==d.GroupId))return Results.BadRequest(new{message="Preencha todos os campos obrigatórios."});var x=new Product{Name=d.Name,Description=d.Description,GroupId=d.GroupId,Unit=d.Unit,Package=d.Package,Price=d.Price};db.Add(x);await db.SaveChangesAsync();return Results.Created($"/api/products/{x.Id}",new{id=x.Id,name=x.Name});});
-app.MapPost("/api/admin/products/{id:int}/lots",async(int id,LotDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(!await db.Products.AnyAsync(x=>x.Id==id))return Results.NotFound();if(d.Quantity<=0||d.ExpiryDate<DateOnly.FromDateTime(DateTime.Today))return Results.BadRequest(new{message="Lote, quantidade e validade futura são obrigatórios."});db.Lots.Add(new ProductLot{ProductId=id,LotNumber=d.LotNumber,Quantity=d.Quantity,ExpiryDate=d.ExpiryDate});await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapPut("/api/admin/orders/{id:int}/status",async(int id,StatusDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();if(d.Status is not("Em análise" or "Cancelado"))return Results.BadRequest(new{message="Status inválido."});var x=await db.Orders.FindAsync(id);if(x==null)return Results.NotFound();x.Status=d.Status;await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapPut("/api/admin/receivables/{id:int}/paid",async(int id,PaidDto d,HttpContext c,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var x=await db.Receivables.FindAsync(id);if(x==null)return Results.NotFound();x.Paid=d.Paid;await db.SaveChangesAsync();return Results.Ok(new{message="Operação realizada com sucesso."});});
-app.MapGet("/api/admin/orders",async(HttpContext c,string? status,BakeryDb db)=>{if(!IsAdmin(c))return Results.Forbid();var q=db.Orders.Include(x=>x.Customer).Include(x=>x.Seller).Include(x=>x.Items).ThenInclude(i=>i.Product).AsQueryable();if(status!=null)q=q.Where(x=>x.Status==status);var rows=await q.OrderByDescending(x=>x.CreatedAt).ToListAsync();return Results.Ok(rows.Select(OrderView));});
-using(var s=app.Services.CreateScope()){var db=s.ServiceProvider.GetRequiredService<BakeryDb>();await db.Database.EnsureCreatedAsync();await Seed.Run(db);}
+var sqlite = new SqliteConnectionStringBuilder(builder.Configuration.GetConnectionString("Default") ?? "Data Source=vanderbakery-foz-v2.db");
+if (!Path.IsPathRooted(sqlite.DataSource)) sqlite.DataSource = Path.Combine(builder.Environment.ContentRootPath, sqlite.DataSource);
+builder.Services.AddDbContext<BakeryDb>(options => options.UseSqlite(sqlite.ConnectionString));
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
+builder.Services.AddOpenApi();
+var app = builder.Build();
+var days = new[] { "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo" };
+var locations = new Dictionary<string, string[]>
+{
+    ["Foz do Iguaçu"] = ["Alvorada", "América", "Bourbon", "Campos do Iguaçu", "Carimã", "Cataratas", "Centro", "Centro Cívico", "Cidade Nova", "Cognópolis", "Itaipu A", "Itaipu B", "Itaipu C", "Itaipu Binacional", "Ipê", "KLP", "Lancaster", "Lote Grande", "Maracanã", "Mata Verde", "Monjolo", "Morumbi", "Náutica", "Panorama", "Parque Nacional", "Polo Centro", "Polo Universitário", "Portes", "Portal", "Porto Belo", "Porto Meira", "Remanso", "São Roque", "Três Bandeiras", "Três Fronteiras", "Três Lagoas", "Yolanda", "Área Rural", "Vila A", "Vila B", "Vila C", "Jardim América", "Jardim Central", "Jardim das Flores", "Jardim Europa", "Jardim Lancaster", "Jardim São Paulo", "Jardim Social", "Portal da Foz", "Vila Portes", "Vila Yolanda", "Parque Presidente", "Profilurb I", "Profilurb II", "Conjunto Libra", "Cohapar III", "Arroio Dourado", "Remanso Grande", "Alto da Boa Vista", "Loteamento Bourbon", "Parque Ouro Verde"],
+    ["Santa Terezinha de Itaipu"] = ["Ascari", "Bairro Empresarial e Logístico I", "Bairro Empresarial e Logístico II", "Centro", "Ipê", "Parque dos Estados", "Parque São Lourenço", "Planalto", "Região dos Conjuntos", "Santa Mônica", "Tarumã", "Área Rural", "BNH", "Conjunto Panorama", "Santa Inês", "Residencial Brasília", "Jardim Ascari", "Jardim Canadá", "Jardim das Palmeiras", "Parque dos Imigrantes", "Vila Aparecidinha"]
+};
+app.UseCors();
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<BakeryDb>();
+    db.Database.EnsureCreated();
+    if (!db.Products.Any()) db.Products.AddRange(
+        new Product { Name = "Fermento biológico seco", Group = "Fermentos", Unit = "pct 500 g", Price = 18.90m, Cost = 11.20m, Stock = 48, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(8)) },
+        new Product { Name = "Mistura para bolo", Group = "Misturas", Unit = "pct 5 kg", Price = 42.50m, Cost = 28m, Stock = 22, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(6)) },
+        new Product { Name = "Margarina para panificação", Group = "Gorduras", Unit = "balde 20 L", Price = 189m, Cost = 137m, Stock = 9, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(5)) },
+        new Product { Name = "Pré-mistura para pão", Group = "Misturas", Unit = "saco 25 kg", Price = 129.90m, Cost = 94m, Stock = 16, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(7)) });
+    if (!db.PaymentConditions.Any())
+    {
+        var weekly = new PaymentCondition { Code = 10, Name = "7/14 dias · Boleto", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 50m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 14, Percent = 50m, PaymentMethod = "Boleto bancário" }] };
+        var threeWeeks = new PaymentCondition { Code = 20, Name = "7/14/21 dias · PIX e boleto", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 33.33m, PaymentMethod = "PIX" }, new PaymentRule { Days = 14, Percent = 33.33m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 21, Percent = 33.34m, PaymentMethod = "Boleto bancário" }] };
+        db.PaymentConditions.AddRange(weekly, threeWeeks);
+    }
+    if (!db.Customers.Any())
+    {
+        var michel = new Customer { Name = "Michel Padaria", TradeName = "Pão do Michel", TaxId = "12345678909", Email = "michel@exemplo.com", City = "Foz do Iguaçu", Neighborhood = "Centro" };
+        var marcos = new Customer { Name = "Marcos Alimentos", TradeName = "Padaria Marcos", TaxId = "11222333000181", Email = "marcos@exemplo.com", City = "Foz do Iguaçu", Neighborhood = "Vila A" };
+        var maria = new Customer { Name = "Maria da Silva", TaxId = "11144477735", Email = "maria@exemplo.com", City = "Santa Terezinha de Itaipu", Neighborhood = "Centro" };
+        var ana = new Customer { Name = "Ana Panificadora", TradeName = "Ponto do Pão", TaxId = "98765432000198", Email = "ana@exemplo.com", City = "Santa Terezinha de Itaipu", Neighborhood = "Parque dos Estados" };
+        db.Customers.AddRange(michel, marcos, maria, ana);
+        db.SaveChanges();
+        db.RouteStops.AddRange(new RouteStop { CustomerId = michel.Id, Day = "Segunda-feira", Position = 1 }, new RouteStop { CustomerId = marcos.Id, Day = "Segunda-feira", Position = 2 }, new RouteStop { CustomerId = maria.Id, Day = "Quarta-feira", Position = 1 }, new RouteStop { CustomerId = ana.Id, Day = "Quarta-feira", Position = 3 });
+    }
+    db.SaveChanges();
+}
+
+app.MapGet("/api/health", () => Results.Ok(new { status = "ok", sede = "Foz do Iguaçu" }));
+app.MapGet("/api/locations", () => Results.Ok(locations));
+app.MapGet("/api/customers", async (BakeryDb db) => Results.Ok(await db.Customers.Include(x => x.RouteStops).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.TradeName, x.TaxId, x.Email, x.City, x.Neighborhood, x.Active, OpenBalance = db.Receivables.Where(r => !r.Paid && r.Sale!.CustomerId == x.Id).Sum(r => (decimal?)r.Amount) ?? 0m, Route = x.RouteStops.OrderBy(r => r.Day).ThenBy(r => r.Position).Select(r => new { r.Day, r.Position }) }).ToListAsync()));
+app.MapGet("/api/customers/{id:int}", async (int id, BakeryDb db) =>
+{
+    var customer = await db.Customers.Include(x => x.RouteStops).FirstOrDefaultAsync(x => x.Id == id);
+    if (customer is null) return Results.NotFound();
+    var sales = await db.Sales.Where(x => x.CustomerId == id).Include(x => x.Items).Include(x => x.Receivables).OrderByDescending(x => x.CreatedAt).ToListAsync();
+    return Results.Ok(new { customer.Id, customer.Name, customer.TradeName, customer.TaxId, customer.Email, customer.City, customer.Neighborhood, customer.Active, Route = customer.RouteStops.Select(r => new { r.Day, r.Position }), OpenBalance = sales.SelectMany(s => s.Receivables).Where(r => !r.Paid).Sum(r => r.Amount), Purchases = sales.Select(s => new { s.Id, s.CreatedAt, Total = s.Items.Sum(i => i.Quantity * i.UnitPrice), Receivables = s.Receivables.Select(r => new { r.InstallmentNumber, r.DueDate, r.Amount, r.PaymentMethod, r.Paid }), Items = s.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice }) }) });
+});
+app.MapPost("/api/customers", async (CustomerInput input, BakeryDb db) =>
+{
+    if (string.IsNullOrWhiteSpace(input.Name) || string.IsNullOrWhiteSpace(input.TaxId) || string.IsNullOrWhiteSpace(input.Email) || string.IsNullOrWhiteSpace(input.Neighborhood)) return Results.BadRequest(new { message = "Informe nome, CPF/CNPJ, e-mail, cidade e bairro." });
+    if (!IsValidDocument(input.TaxId)) return Results.BadRequest(new { message = "CPF ou CNPJ inválido." });
+    if (input.City is not ("Foz do Iguaçu" or "Santa Terezinha de Itaipu")) return Results.BadRequest(new { message = "Atendemos somente Foz do Iguaçu e Santa Terezinha de Itaipu." });
+    if (!locations[input.City].Contains(input.Neighborhood)) return Results.BadRequest(new { message = "Selecione um bairro cadastrado para a cidade escolhida." });
+    if (await db.Customers.AnyAsync(x => x.TaxId == input.TaxId)) return Results.Conflict(new { message = "Já existe cliente com este CPF/CNPJ." });
+    var item = new Customer { Name = input.Name.Trim(), TradeName = input.TradeName?.Trim(), TaxId = input.TaxId.Trim(), Email = input.Email.Trim(), City = input.City, Neighborhood = input.Neighborhood.Trim() };
+    db.Customers.Add(item); await db.SaveChangesAsync(); return Results.Created($"/api/customers/{item.Id}", item);
+});
+app.MapPost("/api/customers/{id:int}/route", async (int id, RouteInput input, BakeryDb db) =>
+{
+    if (input.Position < 1 || !days.Contains(input.Day)) return Results.BadRequest(new { message = "Dia ou posição da rota inválidos." });
+    if (!await db.Customers.AnyAsync(x => x.Id == id)) return Results.NotFound();
+    var stop = await db.RouteStops.FirstOrDefaultAsync(x => x.CustomerId == id && x.Day == input.Day);
+    if (stop is null) db.RouteStops.Add(new RouteStop { CustomerId = id, Day = input.Day, Position = input.Position }); else stop.Position = input.Position;
+    await db.SaveChangesAsync(); return Results.Ok(new { message = "Rota atualizada." });
+});
+app.MapGet("/api/routes", async (string? day, BakeryDb db) =>
+{
+    var selected = day ?? DateTime.Today.ToString("dddd", new System.Globalization.CultureInfo("pt-BR"));
+    selected = char.ToUpper(selected[0]) + selected[1..] + (selected.EndsWith("-feira") || selected == "Sábado" || selected == "Domingo" ? "" : "-feira");
+    return Results.Ok(await db.RouteStops.Include(x => x.Customer).Where(x => x.Day == selected && x.Customer!.Active).OrderBy(x => x.Position).Select(x => new { x.Id, x.Day, x.Position, CustomerId = x.CustomerId, Name = x.Customer!.Name, x.Customer.TradeName, x.Customer.City, x.Customer.Neighborhood }).ToListAsync());
+});
+app.MapGet("/api/products", async (BakeryDb db) => Results.Ok(await db.Products.Where(x => x.Active).OrderBy(x => x.Group).ThenBy(x => x.Name).Select(x => new { x.Id, x.Name, x.Group, x.Unit, x.Price, x.Cost, x.Stock, x.ExpiryDate }).ToListAsync()));
+app.MapPost("/api/products", async (ProductInput input, BakeryDb db) =>
+{
+    if (string.IsNullOrWhiteSpace(input.Name) || input.Price < 0 || input.Cost < 0 || input.Stock < 0) return Results.BadRequest(new { message = "Confira os dados do produto e estoque." });
+    var product = new Product { Name = input.Name.Trim(), Group = input.Group.Trim(), Unit = input.Unit.Trim(), Price = input.Price, Cost = input.Cost, Stock = input.Stock, ExpiryDate = input.ExpiryDate };
+    db.Products.Add(product); await db.SaveChangesAsync(); return Results.Created($"/api/products/{product.Id}", product);
+});
+app.MapPut("/api/products/{id:int}/stock", async (int id, decimal quantity, BakeryDb db) =>
+{
+    if (quantity < 0) return Results.BadRequest(new { message = "Estoque não pode ser negativo." });
+    var product = await db.Products.FindAsync(id); if (product is null) return Results.NotFound(); product.Stock = quantity; await db.SaveChangesAsync(); return Results.Ok(product);
+});
+app.MapPost("/api/sales", async (SaleInput input, BakeryDb db) =>
+{
+    if (input.Items.Count == 0 || input.Items.Any(i => i.Quantity <= 0)) return Results.BadRequest(new { message = "Adicione produtos e quantidades maiores que zero." });
+    var customer = await db.Customers.FindAsync(input.CustomerId); if (customer is null || !customer.Active) return Results.BadRequest(new { message = "Cliente não disponível." });
+    var condition = await db.PaymentConditions.Include(x => x.Rules).FirstOrDefaultAsync(x => x.Id == input.PaymentConditionId && x.Active);
+    if (condition is null) return Results.BadRequest(new { message = "Selecione uma condição de pagamento ativa." });
+    await using var transaction = await db.Database.BeginTransactionAsync();
+    var sale = new Sale { CustomerId = customer.Id, PaymentConditionId = condition.Id };
+    foreach (var line in input.Items)
+    {
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == line.ProductId && p.Active);
+        if (product is null) return Results.BadRequest(new { message = "Produto indisponível." });
+        if (product.Stock < line.Quantity) return Results.Conflict(new { message = $"Estoque insuficiente de {product.Name}. Disponível: {product.Stock:0.##} {product.Unit}." });
+        product.Stock -= line.Quantity;
+        sale.Items.Add(new SaleItem { ProductId = product.Id, ProductName = product.Name, Quantity = line.Quantity, UnitPrice = product.Price, UnitCost = product.Cost });
+    }
+    var total = sale.Items.Sum(i => i.Quantity * i.UnitPrice);
+    var allocated = 0m;
+    var dueDate = DateOnly.FromDateTime(sale.CreatedAt.ToLocalTime());
+    for (var index = 0; index < condition.Rules.Count; index++)
+    {
+        var rule = condition.Rules.OrderBy(r => r.Days).ElementAt(index);
+        var amount = index == condition.Rules.Count - 1 ? total - allocated : decimal.Round(total * rule.Percent / 100m, 2, MidpointRounding.AwayFromZero);
+        allocated += amount;
+        sale.Receivables.Add(new Receivable { InstallmentNumber = index + 1, DueDate = dueDate.AddDays(rule.Days), Amount = amount, PaymentMethod = rule.PaymentMethod, FinePercent = condition.FinePercent, DailyInterestPercent = condition.DailyInterestPercent, DailyDiscountPercent = condition.DailyDiscountPercent });
+    }
+    db.Sales.Add(sale); await db.SaveChangesAsync(); await transaction.CommitAsync();
+    return Results.Created($"/api/sales/{sale.Id}", new { sale.Id, sale.CreatedAt, Total = total, Profit = sale.Items.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), Receivables = sale.Receivables.Select(r => new { r.InstallmentNumber, r.DueDate, r.Amount, r.PaymentMethod }) });
+});
+app.MapGet("/api/payment-conditions", async (BakeryDb db) => Results.Ok(await db.PaymentConditions.Include(x => x.Rules).Where(x => x.Active).OrderBy(x => x.Code).Select(x => new { x.Id, x.Code, x.Name, x.FinePercent, x.DailyInterestPercent, x.DailyDiscountPercent, Rules = x.Rules.OrderBy(r => r.Days).Select(r => new { r.Days, r.Percent, r.PaymentMethod }) }).ToListAsync()));
+app.MapGet("/api/receivables", async (DateOnly? date, bool? paid, BakeryDb db) =>
+{
+    var query = db.Receivables.Include(x => x.Sale).ThenInclude(s => s!.Customer).AsQueryable();
+    if (date is not null) query = query.Where(x => x.DueDate == date);
+    if (paid is not null) query = query.Where(x => x.Paid == paid);
+    return Results.Ok(await query.OrderBy(x => x.DueDate).Select(x => new { x.Id, x.SaleId, Customer = x.Sale!.Customer!.Name, x.InstallmentNumber, x.DueDate, x.Amount, x.PaymentMethod, x.Paid, x.FinePercent, x.DailyInterestPercent, x.DailyDiscountPercent }).ToListAsync());
+});
+app.MapPut("/api/receivables/{id:int}/paid", async (int id, bool paid, BakeryDb db) =>
+{
+    var receivable = await db.Receivables.FindAsync(id); if (receivable is null) return Results.NotFound(); receivable.Paid = paid; await db.SaveChangesAsync(); return Results.Ok(new { receivable.Id, receivable.Paid });
+});
+app.MapGet("/api/sales", async (DateOnly? date, int? customerId, BakeryDb db) =>
+{
+    var from = (date ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+    var to = from.AddDays(1);
+    var query = db.Sales.Include(x => x.Customer).Include(x => x.Items).Where(x => x.CreatedAt >= from && x.CreatedAt < to);
+    if (customerId is not null) query = query.Where(x => x.CustomerId == customerId);
+    return Results.Ok(await query.OrderByDescending(x => x.CreatedAt).Select(x => new { x.Id, x.CreatedAt, Customer = x.Customer!.Name, x.Customer.City, Total = x.Items.Sum(i => i.Quantity * i.UnitPrice), Profit = x.Items.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), Items = x.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice, i.UnitCost, Profit = i.Quantity * (i.UnitPrice - i.UnitCost) }) }).ToListAsync());
+});
+app.MapGet("/api/reports/daily", async (DateOnly? date, BakeryDb db) =>
+{
+    var from = (date ?? DateOnly.FromDateTime(DateTime.Today)).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc); var to = from.AddDays(1);
+    var sales = await db.Sales.Include(x => x.Items).Where(x => x.CreatedAt >= from && x.CreatedAt < to).ToListAsync();
+    var items = sales.SelectMany(s => s.Items).GroupBy(i => i.ProductName).Select(g => new { Product = g.Key, Quantity = g.Sum(i => i.Quantity), Revenue = g.Sum(i => i.Quantity * i.UnitPrice), Cost = g.Sum(i => i.Quantity * i.UnitCost), Profit = g.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)) });
+    return Results.Ok(new { Date = DateOnly.FromDateTime(from), Revenue = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.UnitPrice), Profit = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), SaleCount = sales.Count, Products = items });
+});
 app.Run();
 
-static (int UserId,string Role,int? SellerId) Principal(HttpContext c)=>((int UserId,string Role,int? SellerId))c.Items["principal"]!;
-static bool IsAdmin(HttpContext c)=>Principal(c).Role=="Admin";
-static object OrderView(BakeryOrder o)=>new{ o.Id,o.CustomerId,customer=o.Customer?.Name,seller=o.Seller?.Name,o.Status,o.CreatedAt,o.PaymentConditionId,Total=o.Items.Sum(i=>i.RequestedQuantity*i.UnitPrice),items=o.Items.Select(i=>new{id=i.Id,i.ProductId,product=i.Product?.Name,requestedQuantity=i.RequestedQuantity,approvedQuantity=i.ApprovedQuantity,unitPrice=i.UnitPrice})};
-record LoginDto(string Email,string Password); record CreateCustomerDto(string PersonType,string Name,string? LegalName,string TaxId,string Phone,string Email,string Address,string City,string State,int VisitOrder); record AssignCustomerDto(int? SellerId,int VisitOrder); record CreateOrderDto(int CustomerId,int PaymentConditionId,string IdempotencyKey,List<OrderLineDto> Items); record OrderLineDto(int ProductId,decimal Quantity); record CutDto(List<CutLineDto> Items); record CutLineDto(int OrderItemId,decimal Quantity); record CoverageDto(string? City,string State); record PaymentConditionDto(string Name,decimal FinePercent,decimal DailyInterestPercent,decimal DailyDiscountPercent,List<PaymentRuleDto> Installments); record PaymentRuleDto(int Days,decimal Percent,string Method); record GroupDto(string Name); record ProductDto(string Name,string Description,int GroupId,string Unit,string Package,decimal Price); record LotDto(string LotNumber,decimal Quantity,DateOnly ExpiryDate); record StatusDto(string Status); record PaidDto(bool Paid); record SellerDto(string Name,string Email,string Password); record SellerUpdateDto(string Name,string Email,bool Active);
-record RegionOptionDto(int Id,string Name,string? City,string State);
-static class RegionCatalog { public static readonly RegionOptionDto[] Options=[new(1,"Campinas / SP","Campinas","SP"),new(2,"Jundiaí / SP","Jundiaí","SP"),new(3,"São Paulo / SP","São Paulo","SP"),new(4,"Sorocaba / SP","Sorocaba","SP"),new(5,"Ribeirão Preto / SP","Ribeirão Preto","SP"),new(6,"Estado de São Paulo",null,"SP"),new(7,"Curitiba / PR","Curitiba","PR"),new(8,"Florianópolis / SC","Florianópolis","SC")]; }
-static class Password { public static string Hash(string p){var salt=RandomNumberGenerator.GetBytes(16);var hash=Rfc2898DeriveBytes.Pbkdf2(p,salt,100000,HashAlgorithmName.SHA256,32);return Convert.ToBase64String(salt)+"."+Convert.ToBase64String(hash);} public static bool Verify(string p,string stored){try{var a=stored.Split('.');return CryptographicOperations.FixedTimeEquals(Convert.FromBase64String(a[1]),Rfc2898DeriveBytes.Pbkdf2(p,Convert.FromBase64String(a[0]),100000,HashAlgorithmName.SHA256,32));}catch{return false;}} }
-static class TaxId {public static bool Valid(string value){var d=new string(value.Where(char.IsDigit).ToArray());if(d.Length==11)return Cpf(d);if(d.Length==14)return Cnpj(d);return false;}static bool Cpf(string s){if(s.Distinct().Count()==1)return false;int[] w={10,9,8,7,6,5,4,3,2};int a=0;for(int i=0;i<9;i++)a+=(s[i]-48)*w[i];int r=a%11;int x=r<2?0:11-r;if(s[9]-48!=x)return false;a=0;for(int i=0;i<10;i++)a+=(s[i]-48)*(11-i);r=a%11;x=r<2?0:11-r;return s[10]-48==x;}static bool Cnpj(string s){int[] w1={5,4,3,2,9,8,7,6,5,4,3,2},w2={6,5,4,3,2,9,8,7,6,5,4,3,2};if(s.Distinct().Count()==1)return false;int a=0;for(int i=0;i<12;i++)a+=(s[i]-48)*w1[i];int r=a%11;int x=r<2?0:11-r;if(s[12]-48!=x)return false;a=0;for(int i=0;i<13;i++)a+=(s[i]-48)*w2[i];r=a%11;x=r<2?0:11-r;return s[13]-48==x;}}
-static class Seed {public static async Task Run(BakeryDb d){if(await d.Users.AnyAsync())return;var seller=new Seller{Name="Marina Costa",Email="vendedor@vanderbakery.com"};var groups=new[]{new ProductGroup{Name="Fermentos"},new ProductGroup{Name="Misturas"},new ProductGroup{Name="Gorduras"}};d.AddRange(seller,new User{Name="Marina Costa",Email=seller.Email,Role="Vendedor",Seller=seller,PasswordHash=Password.Hash("Vander123!")},new User{Name="Admin VanderBakery",Email="admin@vanderbakery.com",Role="Admin",PasswordHash=Password.Hash("Vander123!")},new Coverage{Seller=seller,City="Campinas",State="SP"},new Customer{Name="Padaria Pão Quente",TaxId="00000000000",City="Campinas",State="SP",VisitOrder=10,Seller=seller},new Customer{Name="Doce Forno",TaxId="00000000001",City="Campinas",State="SP",VisitOrder=15,Seller=seller},new PaymentMethod{Name="Boleto bancário"},new PaymentMethod{Name="PIX"});d.ProductGroups.AddRange(groups);await d.SaveChangesAsync();d.Products.AddRange(new Product{Name="Fermento biológico",Description="Fermento para panificação",GroupId=groups[0].Id,Unit="un",Package="500 g",Price=18.90m},new Product{Name="Mistura para bolos e salgados",Description="Mistura profissional",GroupId=groups[1].Id,Unit="un",Package="5 kg",Price=42.50m},new Product{Name="Margarina panificação",Description="Margarina para panificação",GroupId=groups[2].Id,Unit="un",Package="20 L",Price=189.90m});await d.SaveChangesAsync();foreach(var p in await d.Products.ToListAsync())d.Lots.Add(new ProductLot{ProductId=p.Id,LotNumber=$"LOTE-{p.Id:000}",Quantity=15,ExpiryDate=DateOnly.FromDateTime(DateTime.Today.AddMonths(4))});var c10=new PaymentCondition{Id=10,Name="7/14 dias",FinePercent=5,DailyInterestPercent=2,DailyDiscountPercent=1,Installments=[new(){Days=7,Percent=50,PaymentMethodName="Boleto bancário"},new(){Days=14,Percent=50,PaymentMethodName="Boleto bancário"}]};var c20=new PaymentCondition{Id=20,Name="7/14/21 dias",FinePercent=5,DailyInterestPercent=2,DailyDiscountPercent=1,Installments=[new(){Days=7,Percent=33.33m,PaymentMethodName="PIX"},new(){Days=14,Percent=33.33m,PaymentMethodName="Boleto bancário"},new(){Days=21,Percent=33.34m,PaymentMethodName="Boleto bancário"}]};d.PaymentConditions.AddRange(c10,c20);await d.SaveChangesAsync();}}
+static bool IsValidDocument(string value)
+{
+    var digits = new string(value.Where(char.IsDigit).ToArray());
+    if (digits.Length == 11 && digits.Distinct().Count() > 1)
+    {
+        var numbers = digits.Select(c => c - '0').ToArray();
+        var first = numbers.Take(9).Select((n, i) => n * (10 - i)).Sum() % 11;
+        var d1 = first < 2 ? 0 : 11 - first;
+        var second = numbers.Take(9).Append(d1).Select((n, i) => n * (11 - i)).Sum() % 11;
+        var d2 = second < 2 ? 0 : 11 - second;
+        if (numbers[9] == d1 && numbers[10] == d2) return true;
+    }
+    if (digits.Length == 14 && digits.Distinct().Count() > 1)
+    {
+        var numbers = digits.Select(c => c - '0').ToArray();
+        int Digit(int length, int[] weights)
+        {
+            var sum = Enumerable.Range(0, length).Sum(i => numbers[i] * weights[i]);
+            var remainder = sum % 11;
+            return remainder < 2 ? 0 : 11 - remainder;
+        }
+        var d1 = Digit(12, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+        var d2 = Digit(13, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+        if (numbers[12] == d1 && numbers[13] == d2) return true;
+    }
+    return false;
+}

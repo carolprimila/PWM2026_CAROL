@@ -1,104 +1,12 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="VanderBakery.Mobile.MainPage"
-             BackgroundColor="#F4F4ED"
-             Title="VanderBakery"
-             Shell.NavBarIsVisible="False">
-    <Grid RowDefinitions="Auto,*,Auto" RowSpacing="0">
-        <Border Grid.Row="0" BackgroundColor="#173E30" Padding="22,16" StrokeThickness="0">
-            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
-                <Border WidthRequest="42" HeightRequest="42" BackgroundColor="#285B43" StrokeThickness="0" StrokeShape="RoundRectangle 13" VerticalOptions="Center">
-                    <Label Text="VB" TextColor="#F4D19E" FontAttributes="Bold" FontSize="15" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                </Border>
-                <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
-                    <Label Text="VanderBakery" TextColor="#FFFDF7" FontAttributes="Bold" FontSize="19" />
-                    <Label Text="VENDAS · PANIFICAÇÃO" TextColor="#C6D5CA" FontSize="9" CharacterSpacing="1.2" />
-                </VerticalStackLayout>
-                <Border x:Name="SellerBadge" Grid.Column="2" IsVisible="False" BackgroundColor="#285B43" StrokeThickness="0" StrokeShape="RoundRectangle 14" Padding="10,6" VerticalOptions="Center">
-                    <Label x:Name="SellerInitials" Text="MC" TextColor="#FFFDF7" FontAttributes="Bold" FontSize="12" />
-                </Border>
-            </Grid>
-        </Border>
-
-        <ScrollView Grid.Row="1">
-            <VerticalStackLayout Padding="20,22,20,30" Spacing="18">
-                <Border x:Name="StatusPanel" BackgroundColor="#E9F0E7" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="13,11">
-                    <Label x:Name="StatusLabel" Text="Acesse sua carteira e monte um pedido." TextColor="#315C42" FontSize="13" />
-                </Border>
-
-                <VerticalStackLayout x:Name="LoginPanel" Spacing="0">
-                    <Label Text="BEM-VINDO À ROTA" TextColor="#A46C37" FontAttributes="Bold" FontSize="10" CharacterSpacing="1.5" />
-                    <Label Text="Venda com tudo\nna mão." TextColor="#1E4634" FontAttributes="Bold" FontSize="31" LineHeight="1.05" Margin="0,8,0,7" />
-                    <Label Text="Entre para consultar seus clientes, produtos e pedidos." TextColor="#77847A" FontSize="14" Margin="0,0,0,22" />
-                    <Border BackgroundColor="White" Stroke="#E4E8DF" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="18">
-                        <VerticalStackLayout Spacing="13">
-                            <Label Text="Acesso do vendedor" TextColor="#294A37" FontAttributes="Bold" FontSize="17" />
-                            <Entry x:Name="EmailEntry" Placeholder="E-mail" Keyboard="Email" Text="vendedor@vanderbakery.com" BackgroundColor="#F7F8F4" TextColor="#25392D" PlaceholderColor="#8B968D" HeightRequest="50" />
-                            <Entry x:Name="PasswordEntry" Placeholder="Senha" IsPassword="True" BackgroundColor="#F7F8F4" TextColor="#25392D" PlaceholderColor="#8B968D" HeightRequest="50" />
-                            <Button Text="Entrar na minha carteira" Clicked="LoginClicked" BackgroundColor="#276444" TextColor="White" HeightRequest="54" CornerRadius="12" FontAttributes="Bold" />
-                            <Label Text="Demonstração: vendedor@vanderbakery.com" TextColor="#89938B" FontSize="11" HorizontalTextAlignment="Center" />
-                        </VerticalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
-
-                <VerticalStackLayout x:Name="SalesPanel" IsVisible="False" Spacing="16">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <VerticalStackLayout Spacing="3">
-                            <Label Text="SEU DIA DE VENDAS" TextColor="#A46C37" FontAttributes="Bold" FontSize="10" CharacterSpacing="1.3" />
-                            <Label x:Name="WelcomeLabel" Text="Olá!" TextColor="#1E4634" FontAttributes="Bold" FontSize="25" />
-                        </VerticalStackLayout>
-                        <Button Grid.Column="1" Text="↻" Clicked="RefreshClicked" BackgroundColor="White" TextColor="#276444" BorderColor="#E1E7DE" BorderWidth="1" HeightRequest="46" WidthRequest="48" CornerRadius="13" FontSize="20" VerticalOptions="Center" />
-                    </Grid>
-
-                    <Border BackgroundColor="White" Stroke="#E4E8DF" StrokeThickness="1" StrokeShape="RoundRectangle 15" Padding="15">
-                        <VerticalStackLayout Spacing="10">
-                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                <Border WidthRequest="30" HeightRequest="30" BackgroundColor="#EAF2E8" StrokeThickness="0" StrokeShape="RoundRectangle 10"><Label Text="1" TextColor="#276444" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
-                                <VerticalStackLayout Grid.Column="1" Spacing="1"><Label Text="Sua carteira" TextColor="#294A37" FontAttributes="Bold" FontSize="16" /><Label Text="Clientes na ordem das visitas" TextColor="#879188" FontSize="12" /></VerticalStackLayout>
-                            </Grid>
-                            <Picker x:Name="CustomerPicker" Title="Escolha um cliente" ItemDisplayBinding="{Binding Display}" SelectedIndexChanged="CustomerSelected" BackgroundColor="#F7F8F4" TextColor="#294A37" />
-                            <Label x:Name="CustomerSummary" IsVisible="False" Padding="12" BackgroundColor="#F1F5EF" TextColor="#344C3D" FontSize="12" />
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="9">
-                                <Button Text="Ver pedidos" Clicked="LoadHistoryClicked" BackgroundColor="#EAF2E8" TextColor="#276444" HeightRequest="43" CornerRadius="10" FontSize="12" FontAttributes="Bold" />
-                                <Button Grid.Column="1" Text="+ Novo cliente" Clicked="ToggleCustomerForm" BackgroundColor="#EAF2E8" TextColor="#276444" HeightRequest="43" CornerRadius="10" FontSize="12" FontAttributes="Bold" />
-                            </Grid>
-                            <VerticalStackLayout x:Name="HistoryList" Spacing="8" />
-                            <Border x:Name="CustomerForm" IsVisible="False" BackgroundColor="#F7F8F4" Stroke="#E2E8DF" StrokeThickness="1" StrokeShape="RoundRectangle 12" Padding="12">
-                                <VerticalStackLayout Spacing="8">
-                                    <Label Text="Dados do novo cliente" TextColor="#294A37" FontAttributes="Bold" FontSize="14" />
-                                    <Entry x:Name="NewName" Placeholder="Nome / nome fantasia" />
-                                    <Entry x:Name="NewLegalName" Placeholder="Razão social (se empresa)" />
-                                    <Entry x:Name="NewTaxId" Placeholder="CPF ou CNPJ (somente números)" Keyboard="Numeric" />
-                                    <Entry x:Name="NewPhone" Placeholder="Telefone" Keyboard="Telephone" />
-                                    <Entry x:Name="NewEmail" Placeholder="E-mail" Keyboard="Email" />
-                                    <Entry x:Name="NewAddress" Placeholder="Endereço" />
-                                    <Grid ColumnDefinitions="*,70" ColumnSpacing="8"><Entry x:Name="NewCity" Placeholder="Cidade" /><Entry x:Name="NewState" Grid.Column="1" Placeholder="UF" MaxLength="2" /></Grid>
-                                    <Entry x:Name="NewVisitOrder" Placeholder="Ordem da visita (ex.: 20)" Keyboard="Numeric" />
-                                    <Button Text="Salvar cliente" Clicked="SaveCustomerClicked" BackgroundColor="#276444" TextColor="White" HeightRequest="48" CornerRadius="10" FontAttributes="Bold" />
-                                </VerticalStackLayout>
-                            </Border>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,3,0,0">
-                        <Border WidthRequest="30" HeightRequest="30" BackgroundColor="#F9EEDC" StrokeThickness="0" StrokeShape="RoundRectangle 10"><Label Text="2" TextColor="#A46C37" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
-                        <VerticalStackLayout Grid.Column="1" Spacing="1"><Label Text="Monte o pedido" TextColor="#294A37" FontAttributes="Bold" FontSize="16" /><Label Text="Consulte o catálogo e informe as quantidades" TextColor="#879188" FontSize="12" /></VerticalStackLayout>
-                    </Grid>
-                    <VerticalStackLayout x:Name="ProductsList" Spacing="9" />
-
-                    <Border BackgroundColor="White" Stroke="#E4E8DF" StrokeThickness="1" StrokeShape="RoundRectangle 14" Padding="13">
-                        <VerticalStackLayout Spacing="6"><Label Text="Condição de pagamento" TextColor="#294A37" FontAttributes="Bold" FontSize="13" /><Picker x:Name="ConditionPicker" Title="Selecione a condição" BackgroundColor="#F7F8F4" TextColor="#294A37" /></VerticalStackLayout>
-                    </Border>
-                </VerticalStackLayout>
-            </VerticalStackLayout>
-        </ScrollView>
-
-        <Border x:Name="OrderFooter" Grid.Row="2" IsVisible="False" BackgroundColor="White" Stroke="#E4E8DF" StrokeThickness="1" Padding="16,12">
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
-                <VerticalStackLayout Spacing="1" VerticalOptions="Center"><Label Text="TOTAL PREVISTO" TextColor="#879188" FontSize="10" CharacterSpacing="1" FontAttributes="Bold" /><Label x:Name="OrderTotalLabel" Text="R$ 0,00" TextColor="#204B37" FontSize="19" FontAttributes="Bold" /></VerticalStackLayout>
-                <Button Grid.Column="1" Text="Enviar pedido  →" Clicked="SendOrderClicked" BackgroundColor="#276444" TextColor="White" HeightRequest="52" CornerRadius="12" Padding="17,0" FontSize="13" FontAttributes="Bold" />
-            </Grid>
-        </Border>
-    </Grid>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" x:Class="VanderBakery.Mobile.MainPage" BackgroundColor="#FFF8FA" Shell.NavBarIsVisible="False">
+ <Grid RowDefinitions="Auto,*">
+  <Grid Grid.Row="0" BackgroundColor="#FFFFFF" Padding="18,13" ColumnDefinitions="Auto,*,Auto"><Border BackgroundColor="#E77B9E" StrokeThickness="0" StrokeShape="RoundRectangle 13" WidthRequest="42" HeightRequest="42"><Label Text="♡" TextColor="White" FontSize="23" HorizontalTextAlignment="Center" VerticalTextAlignment="Center"/></Border><VerticalStackLayout Grid.Column="1" Margin="11,0" VerticalOptions="Center" Spacing="0"><Label Text="VanderBakery" FontSize="18" FontAttributes="Bold" TextColor="#503742"/><Label Text="SEDE · FOZ DO IGUAÇU" FontSize="9" CharacterSpacing="1" TextColor="#C16988"/></VerticalStackLayout><Button Grid.Column="2" Text="↻" Clicked="RefreshClicked" BackgroundColor="#FFF0F5" TextColor="#C16988" CornerRadius="12" WidthRequest="42"/></Grid>
+  <ScrollView Grid.Row="1"><VerticalStackLayout Padding="17,19,17,32" Spacing="16">
+   <Border BackgroundColor="#FCE8EE" StrokeThickness="0" StrokeShape="RoundRectangle 20" Padding="20"><VerticalStackLayout Spacing="4"><Label Text="SUA ROTA, SEU DIA" TextColor="#C16988" FontSize="10" FontAttributes="Bold" CharacterSpacing="1.5"/><Label Text="Venda com carinho." TextColor="#503742" FontSize="26" FontAttributes="Bold"/><Label Text="Foz do Iguaçu · Santa Terezinha" TextColor="#967D87" FontSize="12"/></VerticalStackLayout></Border>
+   <Border BackgroundColor="White" Stroke="#F2E7EB" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="15"><VerticalStackLayout Spacing="10"><Grid ColumnDefinitions="*,Auto"><Label Text="Roteiro de visitas" TextColor="#503742" FontSize="17" FontAttributes="Bold"/><Picker x:Name="DayPicker" Grid.Column="1" Title="Dia" WidthRequest="145" SelectedIndexChanged="DayChanged"/></Grid><VerticalStackLayout x:Name="RouteList" Spacing="8"/></VerticalStackLayout></Border>
+   <Border BackgroundColor="White" Stroke="#F2E7EB" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="15"><VerticalStackLayout Spacing="10"><Grid ColumnDefinitions="*,Auto"><VerticalStackLayout><Label Text="Registrar venda" TextColor="#503742" FontSize="17" FontAttributes="Bold"/><Label Text="O estoque é validado antes de concluir." TextColor="#A18A93" FontSize="11"/></VerticalStackLayout><Button Grid.Column="1" Text="Concluir venda" Clicked="SellClicked" BackgroundColor="#D87596" TextColor="White" CornerRadius="11" FontAttributes="Bold" Padding="14,0"/></Grid><Picker x:Name="CustomerPicker" Title="Selecione o cliente"/><Picker x:Name="PaymentPicker" Title="Condição de pagamento"/><VerticalStackLayout x:Name="ProductList" Spacing="8"/></VerticalStackLayout></Border>
+   <Border BackgroundColor="White" Stroke="#F2E7EB" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="15"><VerticalStackLayout Spacing="10"><Grid ColumnDefinitions="*,Auto"><VerticalStackLayout><Label Text="Clientes" TextColor="#503742" FontSize="17" FontAttributes="Bold"/><Label Text="Histórico de compras e cadastro" TextColor="#A18A93" FontSize="11"/></VerticalStackLayout><Button Grid.Column="1" Text="＋ Novo" Clicked="ToggleCustomerForm" BackgroundColor="#FFF0F5" TextColor="#C16988" CornerRadius="10"/></Grid><VerticalStackLayout x:Name="CustomerForm" IsVisible="False" Spacing="8"><Entry x:Name="NameEntry" Placeholder="Nome completo *"/><Entry x:Name="TradeEntry" Placeholder="Nome fantasia (opcional)"/><Entry x:Name="TaxIdEntry" Placeholder="CPF ou CNPJ *"/><Entry x:Name="EmailEntry" Placeholder="E-mail *" Keyboard="Email"/><Picker x:Name="CityPicker" Title="Cidade" SelectedIndexChanged="CityChanged"/><Picker x:Name="NeighborhoodPicker" Title="Bairro"/><Button Text="Salvar cliente" Clicked="SaveCustomerClicked" BackgroundColor="#D87596" TextColor="White" CornerRadius="10"/></VerticalStackLayout><Picker x:Name="HistoryCustomerPicker" Title="Ver histórico do cliente" SelectedIndexChanged="HistoryCustomerChanged"/><VerticalStackLayout x:Name="HistoryList" Spacing="7"/></VerticalStackLayout></Border>
+   <Border BackgroundColor="#FFF0F5" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="12"><Label x:Name="StatusLabel" Text="Bom dia! Selecione um dia para ver sua rota." TextColor="#A95774" FontSize="12"/></Border>
+  </VerticalStackLayout></ScrollView>
+ </Grid>
 </ContentPage>
