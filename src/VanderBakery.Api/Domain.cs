@@ -122,5 +122,5 @@ public sealed class Receivable
 public sealed record CustomerInput(string Name, string? TradeName, string TaxId, string Email, string City, string Neighborhood);
 public sealed record RouteInput(string Day, int Position);
 public sealed record ProductInput(string Name, string Group, string Unit, decimal Price, decimal Cost, decimal Stock, DateOnly? ExpiryDate);
-public sealed record SaleInput(int CustomerId, List<SaleLineInput> Items, int PaymentConditionId = 1);
+public sealed record SaleInput(int CustomerId, List<SaleLineInput> Items, int PaymentConditionId = 1, string PaymentMethod = "Boleto bancário");
 public sealed record SaleLineInput(int ProductId, decimal Quantity);

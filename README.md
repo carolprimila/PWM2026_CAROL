@@ -45,7 +45,9 @@ No emulador, o app usa `http://10.0.2.2:5293` para acessar a API do computador. 
 - Venda registrada com preço e custo unitários preservados; o estoque é baixado no banco na mesma transação.
 - A API rejeita quantidades acima do estoque, não permite saldo negativo e não confia em preço enviado pelo app.
 - Consulta do histórico de compras do cliente no aplicativo.
-- Condições de pagamento 10 (7/14 dias) e 20 (7/14/21 dias), com parcelas que fecham exatamente o total da venda, vencimentos, PIX/boleto e parâmetros de multa, juros e desconto.
+- Formas de pagamento boleto, PIX, cartão de crédito e débito; opção à vista ou em 2 e 3 parcelas. A forma escolhida fica registrada em cada parcela.
+- Condições 10 (7/14 dias) e 20 (7/14/21 dias), com parcelas que fecham exatamente o total da venda e multa de 5%, juros de 2% ao dia e desconto de 1% ao dia. A condição à vista fica disponível como 1 parcela.
+- O histórico informa se cada venda está em aberto, parcialmente quitada, atrasada ou quitada, além do status de cada parcela.
 - Contas a receber por cliente; o fornecedor pode marcar parcelas como recebidas.
 - Relatório histórico por data com faturamento, custo e lucro bruto; o lucro também aparece por produto e por venda.
 
@@ -60,6 +62,7 @@ No emulador, o app usa `http://10.0.2.2:5293` para acessar a API do computador. 
 - `GET|POST /api/products`
 - `PUT /api/products/{id}/stock?quantity=12`
 - `GET /api/payment-conditions`
+- `GET /api/payment-methods`
 - `GET|POST /api/sales`
 - `GET /api/receivables`
 - `PUT /api/receivables/{id}/paid?paid=true`

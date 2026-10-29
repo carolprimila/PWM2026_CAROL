@@ -26,7 +26,7 @@ public partial class MainPage : ContentPage
         HistoryCustomerPicker.ItemsSource = _customers;
         CustomerPicker.ItemDisplayBinding = new Binding(nameof(CustomerModel.Name));
         HistoryCustomerPicker.ItemDisplayBinding = new Binding(nameof(CustomerModel.Name));
-        PaymentPicker.ItemDisplayBinding = new Binding(nameof(PaymentConditionModel.Name));
+        PaymentConditionPicker.ItemDisplayBinding = new Binding(nameof(PaymentConditionModel.Name));
         _ = RefreshDataAsync();
     }
 
@@ -40,8 +40,11 @@ public partial class MainPage : ContentPage
             _customers.Clear(); foreach (var customer in customers) _customers.Add(customer);
             _products.Clear(); _products.AddRange(await _api.GetFromJsonAsync<List<ProductModel>>("api/products", Json) ?? []);
             _paymentConditions.Clear(); _paymentConditions.AddRange(await _api.GetFromJsonAsync<List<PaymentConditionModel>>("api/payment-conditions", Json) ?? []);
-            PaymentPicker.ItemsSource = _paymentConditions;
-            if (PaymentPicker.SelectedItem is null && _paymentConditions.Count > 0) PaymentPicker.SelectedItem = _paymentConditions[0];
+            PaymentConditionPicker.ItemsSource = _paymentConditions;
+            PaymentMethodPicker.ItemsSource = await _api.GetFromJsonAsync<List<string>>("api/payment-methods", Json) ?? [];
+            if (PaymentMethodPicker.SelectedItem is null) PaymentMethodPicker.SelectedItem = "Boleto bancário";
+            if (PaymentConditionPicker.SelectedItem is null) PaymentConditionPicker.SelectedItem = _paymentConditions.FirstOrDefault(x => x.Code == 10);
+            UpdatePaymentTerms();
             RenderProducts(); await LoadRouteAsync();
             StatusLabel.Text = "Dados atualizados · VanderBakery, sede Foz do Iguaçu.";
         }
@@ -50,6 +53,13 @@ public partial class MainPage : ContentPage
 
     private async void RefreshClicked(object? sender, EventArgs e) => await RefreshDataAsync();
     private async void DayChanged(object? sender, EventArgs e) => await LoadRouteAsync();
+    private void PaymentConditionChanged(object? sender, EventArgs e) => UpdatePaymentTerms();
+
+    private void UpdatePaymentTerms()
+    {
+        if (PaymentConditionPicker.SelectedItem is PaymentConditionModel condition)
+            PaymentTermsLabel.Text = $"Multa {condition.FinePercent:0.##}% · Juros {condition.DailyInterestPercent:0.##}% ao dia · Desconto {condition.DailyDiscountPercent:0.##}% ao dia";
+    }
 
     private async Task LoadRouteAsync()
     {
@@ -101,8 +111,9 @@ public partial class MainPage : ContentPage
         if (lines.Count == 0) { StatusLabel.Text = "Informe a quantidade de pelo menos um produto."; return; }
         try
         {
-            if (PaymentPicker.SelectedItem is not PaymentConditionModel condition) { StatusLabel.Text = "Selecione a condição de pagamento."; return; }
-            var response = await _api.PostAsJsonAsync("api/sales", new { customerId = customer.Id, items = lines, paymentConditionId = condition.Id }, Json);
+            if (PaymentConditionPicker.SelectedItem is not PaymentConditionModel condition) { StatusLabel.Text = "Selecione o parcelamento."; return; }
+            if (PaymentMethodPicker.SelectedItem is not string paymentMethod) { StatusLabel.Text = "Selecione a forma de pagamento."; return; }
+            var response = await _api.PostAsJsonAsync("api/sales", new { customerId = customer.Id, items = lines, paymentConditionId = condition.Id, paymentMethod }, Json);
             if (!response.IsSuccessStatusCode) { var error = await response.Content.ReadFromJsonAsync<ApiError>(Json); StatusLabel.Text = error?.Message ?? "Venda não concluída."; return; }
             var sale = await response.Content.ReadFromJsonAsync<SaleResult>(Json); StatusLabel.Text = $"Venda #{sale?.Id:0000} registrada · total {sale?.Total:C} · lucro {sale?.Profit:C}.";
             foreach (var entry in _quantities.Values) entry.Text = "";
@@ -142,7 +153,7 @@ public partial class MainPage : ContentPage
             if (info?.Purchases.Count == 0) { HistoryList.Children.Add(new Label { Text = "Este cliente ainda não tem compras.", TextColor = Color.FromArgb("#A18A93"), FontSize = 11 }); return; }
             foreach (var purchase in info!.Purchases)
             {
-                HistoryList.Children.Add(new Border { BackgroundColor = Color.FromArgb("#FFF8FA"), StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 10, Content = new VerticalStackLayout { Spacing = 3, Children = { new Label { Text = $"Compra #{purchase.Id:0000} · {purchase.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}", TextColor = Color.FromArgb("#503742"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = string.Join(" · ", purchase.Items.Select(i => $"{i.Quantity:0.##} {i.ProductName} ({i.UnitPrice:C})")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 }, new Label { Text = $"Total {purchase.Total:C}", TextColor = Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = string.Join(" · ", purchase.Receivables.Select(r => $"Parcela {r.InstallmentNumber}: {r.Amount:C} em {r.DueDate:dd/MM} ({r.PaymentMethod}){(r.Paid ? " · paga" : " · em aberto")}")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 } } } });
+                HistoryList.Children.Add(new Border { BackgroundColor = Color.FromArgb("#FFF8FA"), StrokeThickness = 0, StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 10 }, Padding = 10, Content = new VerticalStackLayout { Spacing = 3, Children = { new Label { Text = $"Compra #{purchase.Id:0000} · {purchase.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}", TextColor = Color.FromArgb("#503742"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = $"{purchase.PaymentStatus} · {purchase.PaymentMethod}", TextColor = purchase.PaymentStatus == "Quitado" ? Color.FromArgb("#54876B") : Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 11 }, new Label { Text = string.Join(" · ", purchase.Items.Select(i => $"{i.Quantity:0.##} {i.ProductName} ({i.UnitPrice:C})")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 }, new Label { Text = $"Total {purchase.Total:C}", TextColor = Color.FromArgb("#C16988"), FontAttributes = FontAttributes.Bold, FontSize = 12 }, new Label { Text = string.Join(" · ", purchase.Receivables.Select(r => $"Parcela {r.InstallmentNumber}: {r.Amount:C}{(!r.Paid && r.CurrentAmount != r.Amount ? $" (hoje {r.CurrentAmount:C})" : "")} em {r.DueDate:dd/MM} ({r.PaymentMethod}) · {(r.Paid ? "quitada" : "em aberto")}")), TextColor = Color.FromArgb("#927B84"), FontSize = 10 }, new Label { Text = "Multa 5% · juros 2% a.d. · desconto 1% a.d.", TextColor = Color.FromArgb("#A18A93"), FontSize = 9 } } } });
             }
         }
         catch { StatusLabel.Text = "Não foi possível carregar o histórico."; }
@@ -151,11 +162,11 @@ public partial class MainPage : ContentPage
     private sealed record CustomerModel(int Id, string Name, string? TradeName, string TaxId, string Email, string City, string Neighborhood);
     private sealed record RouteModel(int Id, string Day, int Position, int CustomerId, string Name, string? TradeName, string City, string Neighborhood);
     private sealed record ProductModel(int Id, string Name, string Group, string Unit, decimal Price, decimal Cost, decimal Stock, DateOnly? ExpiryDate);
-    private sealed record PaymentConditionModel(int Id, int Code, string Name);
+    private sealed record PaymentConditionModel(int Id, int Code, string Name, decimal FinePercent, decimal DailyInterestPercent, decimal DailyDiscountPercent);
     private sealed record ApiError(string? Message);
     private sealed record SaleResult(int Id, DateTime CreatedAt, decimal Total, decimal Profit);
     private sealed record CustomerHistory(decimal OpenBalance, List<Purchase> Purchases);
-    private sealed record Purchase(int Id, DateTime CreatedAt, decimal Total, List<PurchaseItem> Items, List<Installment> Receivables);
+    private sealed record Purchase(int Id, DateTime CreatedAt, decimal Total, string PaymentMethod, string PaymentStatus, List<PurchaseItem> Items, List<Installment> Receivables);
     private sealed record PurchaseItem(string ProductName, decimal Quantity, decimal UnitPrice);
-    private sealed record Installment(int InstallmentNumber, DateOnly DueDate, decimal Amount, string PaymentMethod, bool Paid);
+    private sealed record Installment(int InstallmentNumber, DateOnly DueDate, decimal Amount, decimal CurrentAmount, string PaymentMethod, bool Paid);
 }

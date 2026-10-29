@@ -10,6 +10,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.Al
 builder.Services.AddOpenApi();
 var app = builder.Build();
 var days = new[] { "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo" };
+var paymentMethods = new[] { "Boleto bancário", "PIX", "Cartão de crédito", "Cartão de débito" };
 var locations = new Dictionary<string, string[]>
 {
     ["Foz do Iguaçu"] = ["Alvorada", "América", "Bourbon", "Campos do Iguaçu", "Carimã", "Cataratas", "Centro", "Centro Cívico", "Cidade Nova", "Cognópolis", "Itaipu A", "Itaipu B", "Itaipu C", "Itaipu Binacional", "Ipê", "KLP", "Lancaster", "Lote Grande", "Maracanã", "Mata Verde", "Monjolo", "Morumbi", "Náutica", "Panorama", "Parque Nacional", "Polo Centro", "Polo Universitário", "Portes", "Portal", "Porto Belo", "Porto Meira", "Remanso", "São Roque", "Três Bandeiras", "Três Fronteiras", "Três Lagoas", "Yolanda", "Área Rural", "Vila A", "Vila B", "Vila C", "Jardim América", "Jardim Central", "Jardim das Flores", "Jardim Europa", "Jardim Lancaster", "Jardim São Paulo", "Jardim Social", "Portal da Foz", "Vila Portes", "Vila Yolanda", "Parque Presidente", "Profilurb I", "Profilurb II", "Conjunto Libra", "Cohapar III", "Arroio Dourado", "Remanso Grande", "Alto da Boa Vista", "Loteamento Bourbon", "Parque Ouro Verde"],
@@ -27,12 +28,9 @@ using (var scope = app.Services.CreateScope())
         new Product { Name = "Mistura para bolo", Group = "Misturas", Unit = "pct 5 kg", Price = 42.50m, Cost = 28m, Stock = 22, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(6)) },
         new Product { Name = "Margarina para panificação", Group = "Gorduras", Unit = "balde 20 L", Price = 189m, Cost = 137m, Stock = 9, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(5)) },
         new Product { Name = "Pré-mistura para pão", Group = "Misturas", Unit = "saco 25 kg", Price = 129.90m, Cost = 94m, Stock = 16, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(7)) });
-    if (!db.PaymentConditions.Any())
-    {
-        var weekly = new PaymentCondition { Code = 10, Name = "7/14 dias · Boleto", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 50m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 14, Percent = 50m, PaymentMethod = "Boleto bancário" }] };
-        var threeWeeks = new PaymentCondition { Code = 20, Name = "7/14/21 dias · PIX e boleto", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 33.33m, PaymentMethod = "PIX" }, new PaymentRule { Days = 14, Percent = 33.33m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 21, Percent = 33.34m, PaymentMethod = "Boleto bancário" }] };
-        db.PaymentConditions.AddRange(weekly, threeWeeks);
-    }
+    if (!db.PaymentConditions.Any(x => x.Code == 10)) db.PaymentConditions.Add(new PaymentCondition { Code = 10, Name = "2 parcelas · 7/14 dias", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 50m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 14, Percent = 50m, PaymentMethod = "Boleto bancário" }] });
+    if (!db.PaymentConditions.Any(x => x.Code == 20)) db.PaymentConditions.Add(new PaymentCondition { Code = 20, Name = "3 parcelas · 7/14/21 dias", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 7, Percent = 33.33m, PaymentMethod = "PIX" }, new PaymentRule { Days = 14, Percent = 33.33m, PaymentMethod = "Boleto bancário" }, new PaymentRule { Days = 21, Percent = 33.34m, PaymentMethod = "Boleto bancário" }] });
+    if (!db.PaymentConditions.Any(x => x.Code == 30)) db.PaymentConditions.Add(new PaymentCondition { Code = 30, Name = "À vista · 1 parcela", FinePercent = 5m, DailyInterestPercent = 2m, DailyDiscountPercent = 1m, Rules = [new PaymentRule { Days = 0, Percent = 100m, PaymentMethod = "PIX" }] });
     if (!db.Customers.Any())
     {
         var michel = new Customer { Name = "Michel Padaria", TradeName = "Pão do Michel", TaxId = "12345678909", Email = "michel@exemplo.com", City = "Foz do Iguaçu", Neighborhood = "Centro" };
@@ -48,13 +46,28 @@ using (var scope = app.Services.CreateScope())
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", sede = "Foz do Iguaçu" }));
 app.MapGet("/api/locations", () => Results.Ok(locations));
-app.MapGet("/api/customers", async (BakeryDb db) => Results.Ok(await db.Customers.Include(x => x.RouteStops).OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.TradeName, x.TaxId, x.Email, x.City, x.Neighborhood, x.Active, OpenBalance = db.Receivables.Where(r => !r.Paid && r.Sale!.CustomerId == x.Id).Sum(r => (decimal?)r.Amount) ?? 0m, Route = x.RouteStops.OrderBy(r => r.Day).ThenBy(r => r.Position).Select(r => new { r.Day, r.Position }) }).ToListAsync()));
+app.MapGet("/api/customers", async (BakeryDb db) =>
+{
+    var customers = await db.Customers.Include(x => x.RouteStops).OrderBy(x => x.Name).ToListAsync();
+    var balances = await db.Receivables.Include(r => r.Sale).Where(r => !r.Paid).ToListAsync();
+    return Results.Ok(customers.Select(x => new { x.Id, x.Name, x.TradeName, x.TaxId, x.Email, x.City, x.Neighborhood, x.Active, OpenBalance = balances.Where(r => r.Sale!.CustomerId == x.Id).Sum(r => GetCurrentAmount(r)), Route = x.RouteStops.OrderBy(r => r.Day).ThenBy(r => r.Position).Select(r => new { r.Day, r.Position }) }));
+});
 app.MapGet("/api/customers/{id:int}", async (int id, BakeryDb db) =>
 {
     var customer = await db.Customers.Include(x => x.RouteStops).FirstOrDefaultAsync(x => x.Id == id);
     if (customer is null) return Results.NotFound();
     var sales = await db.Sales.Where(x => x.CustomerId == id).Include(x => x.Items).Include(x => x.Receivables).OrderByDescending(x => x.CreatedAt).ToListAsync();
-    return Results.Ok(new { customer.Id, customer.Name, customer.TradeName, customer.TaxId, customer.Email, customer.City, customer.Neighborhood, customer.Active, Route = customer.RouteStops.Select(r => new { r.Day, r.Position }), OpenBalance = sales.SelectMany(s => s.Receivables).Where(r => !r.Paid).Sum(r => r.Amount), Purchases = sales.Select(s => new { s.Id, s.CreatedAt, Total = s.Items.Sum(i => i.Quantity * i.UnitPrice), Receivables = s.Receivables.Select(r => new { r.InstallmentNumber, r.DueDate, r.Amount, r.PaymentMethod, r.Paid }), Items = s.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice }) }) });
+    var purchases = sales.Select(s => new
+    {
+        s.Id,
+        s.CreatedAt,
+        Total = s.Items.Sum(i => i.Quantity * i.UnitPrice),
+        PaymentMethod = s.Receivables.OrderBy(r => r.InstallmentNumber).Select(r => r.PaymentMethod).FirstOrDefault() ?? "—",
+        PaymentStatus = GetPaymentStatus(s.Receivables),
+        Receivables = s.Receivables.OrderBy(r => r.InstallmentNumber).Select(r => new { r.InstallmentNumber, r.DueDate, r.Amount, CurrentAmount = GetCurrentAmount(r), r.PaymentMethod, r.Paid, r.FinePercent, r.DailyInterestPercent, r.DailyDiscountPercent }),
+        Items = s.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice })
+    }).ToList();
+    return Results.Ok(new { customer.Id, customer.Name, customer.TradeName, customer.TaxId, customer.Email, customer.City, customer.Neighborhood, customer.Active, Route = customer.RouteStops.Select(r => new { r.Day, r.Position }), OpenBalance = sales.SelectMany(s => s.Receivables).Where(r => !r.Paid).Sum(r => GetCurrentAmount(r)), Purchases = purchases });
 });
 app.MapPost("/api/customers", async (CustomerInput input, BakeryDb db) =>
 {
@@ -95,6 +108,7 @@ app.MapPut("/api/products/{id:int}/stock", async (int id, decimal quantity, Bake
 app.MapPost("/api/sales", async (SaleInput input, BakeryDb db) =>
 {
     if (input.Items.Count == 0 || input.Items.Any(i => i.Quantity <= 0)) return Results.BadRequest(new { message = "Adicione produtos e quantidades maiores que zero." });
+    if (!paymentMethods.Contains(input.PaymentMethod)) return Results.BadRequest(new { message = "Selecione uma forma de pagamento válida." });
     var customer = await db.Customers.FindAsync(input.CustomerId); if (customer is null || !customer.Active) return Results.BadRequest(new { message = "Cliente não disponível." });
     var condition = await db.PaymentConditions.Include(x => x.Rules).FirstOrDefaultAsync(x => x.Id == input.PaymentConditionId && x.Active);
     if (condition is null) return Results.BadRequest(new { message = "Selecione uma condição de pagamento ativa." });
@@ -116,18 +130,20 @@ app.MapPost("/api/sales", async (SaleInput input, BakeryDb db) =>
         var rule = condition.Rules.OrderBy(r => r.Days).ElementAt(index);
         var amount = index == condition.Rules.Count - 1 ? total - allocated : decimal.Round(total * rule.Percent / 100m, 2, MidpointRounding.AwayFromZero);
         allocated += amount;
-        sale.Receivables.Add(new Receivable { InstallmentNumber = index + 1, DueDate = dueDate.AddDays(rule.Days), Amount = amount, PaymentMethod = rule.PaymentMethod, FinePercent = condition.FinePercent, DailyInterestPercent = condition.DailyInterestPercent, DailyDiscountPercent = condition.DailyDiscountPercent });
+        sale.Receivables.Add(new Receivable { InstallmentNumber = index + 1, DueDate = dueDate.AddDays(rule.Days), Amount = amount, PaymentMethod = input.PaymentMethod, FinePercent = condition.FinePercent, DailyInterestPercent = condition.DailyInterestPercent, DailyDiscountPercent = condition.DailyDiscountPercent });
     }
     db.Sales.Add(sale); await db.SaveChangesAsync(); await transaction.CommitAsync();
     return Results.Created($"/api/sales/{sale.Id}", new { sale.Id, sale.CreatedAt, Total = total, Profit = sale.Items.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), Receivables = sale.Receivables.Select(r => new { r.InstallmentNumber, r.DueDate, r.Amount, r.PaymentMethod }) });
 });
 app.MapGet("/api/payment-conditions", async (BakeryDb db) => Results.Ok(await db.PaymentConditions.Include(x => x.Rules).Where(x => x.Active).OrderBy(x => x.Code).Select(x => new { x.Id, x.Code, x.Name, x.FinePercent, x.DailyInterestPercent, x.DailyDiscountPercent, Rules = x.Rules.OrderBy(r => r.Days).Select(r => new { r.Days, r.Percent, r.PaymentMethod }) }).ToListAsync()));
+app.MapGet("/api/payment-methods", () => Results.Ok(paymentMethods));
 app.MapGet("/api/receivables", async (DateOnly? date, bool? paid, BakeryDb db) =>
 {
     var query = db.Receivables.Include(x => x.Sale).ThenInclude(s => s!.Customer).AsQueryable();
     if (date is not null) query = query.Where(x => x.DueDate == date);
     if (paid is not null) query = query.Where(x => x.Paid == paid);
-    return Results.Ok(await query.OrderBy(x => x.DueDate).Select(x => new { x.Id, x.SaleId, Customer = x.Sale!.Customer!.Name, x.InstallmentNumber, x.DueDate, x.Amount, x.PaymentMethod, x.Paid, x.FinePercent, x.DailyInterestPercent, x.DailyDiscountPercent }).ToListAsync());
+    var receivables = await query.OrderBy(x => x.DueDate).ToListAsync();
+    return Results.Ok(receivables.Select(x => new { x.Id, x.SaleId, Customer = x.Sale!.Customer!.Name, x.InstallmentNumber, x.DueDate, x.Amount, CurrentAmount = GetCurrentAmount(x), x.PaymentMethod, x.Paid, x.FinePercent, x.DailyInterestPercent, x.DailyDiscountPercent }));
 });
 app.MapPut("/api/receivables/{id:int}/paid", async (int id, bool paid, BakeryDb db) =>
 {
@@ -139,7 +155,8 @@ app.MapGet("/api/sales", async (DateOnly? date, int? customerId, BakeryDb db) =>
     var to = from.AddDays(1);
     var query = db.Sales.Include(x => x.Customer).Include(x => x.Items).Where(x => x.CreatedAt >= from && x.CreatedAt < to);
     if (customerId is not null) query = query.Where(x => x.CustomerId == customerId);
-    return Results.Ok(await query.OrderByDescending(x => x.CreatedAt).Select(x => new { x.Id, x.CreatedAt, Customer = x.Customer!.Name, x.Customer.City, Total = x.Items.Sum(i => i.Quantity * i.UnitPrice), Profit = x.Items.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), Items = x.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice, i.UnitCost, Profit = i.Quantity * (i.UnitPrice - i.UnitCost) }) }).ToListAsync());
+    var sales = await query.Include(x => x.Receivables).OrderByDescending(x => x.CreatedAt).ToListAsync();
+    return Results.Ok(sales.Select(x => new { x.Id, x.CreatedAt, Customer = x.Customer!.Name, x.Customer.City, Total = x.Items.Sum(i => i.Quantity * i.UnitPrice), Profit = x.Items.Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), PaymentMethod = x.Receivables.OrderBy(r => r.InstallmentNumber).Select(r => r.PaymentMethod).FirstOrDefault() ?? "—", PaymentStatus = GetPaymentStatus(x.Receivables), Items = x.Items.Select(i => new { i.ProductName, i.Quantity, i.UnitPrice, i.UnitCost, Profit = i.Quantity * (i.UnitPrice - i.UnitCost) }) }));
 });
 app.MapGet("/api/reports/daily", async (DateOnly? date, BakeryDb db) =>
 {
@@ -149,6 +166,35 @@ app.MapGet("/api/reports/daily", async (DateOnly? date, BakeryDb db) =>
     return Results.Ok(new { Date = DateOnly.FromDateTime(from), Revenue = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.UnitPrice), Profit = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), SaleCount = sales.Count, Products = items });
 });
 app.Run();
+
+static string GetPaymentStatus(IEnumerable<Receivable> receivables)
+{
+    var installments = receivables.ToList();
+    if (installments.Count == 0) return "Sem parcelas";
+    if (installments.All(x => x.Paid)) return "Quitado";
+    if (installments.Any(x => x.Paid)) return "Parcialmente quitado";
+    if (installments.Any(x => !x.Paid && x.DueDate < DateOnly.FromDateTime(DateTime.Today))) return "Em atraso";
+    return "Em aberto";
+}
+
+static decimal GetCurrentAmount(Receivable receivable)
+{
+    if (receivable.Paid) return 0m;
+    var today = DateOnly.FromDateTime(DateTime.Today);
+    if (today > receivable.DueDate)
+    {
+        var overdueDays = today.DayNumber - receivable.DueDate.DayNumber;
+        var charges = receivable.FinePercent + receivable.DailyInterestPercent * overdueDays;
+        return decimal.Round(receivable.Amount * (1m + charges / 100m), 2, MidpointRounding.AwayFromZero);
+    }
+    if (today < receivable.DueDate)
+    {
+        var earlyDays = receivable.DueDate.DayNumber - today.DayNumber;
+        var discount = Math.Min(100m, receivable.DailyDiscountPercent * earlyDays);
+        return decimal.Round(receivable.Amount * (1m - discount / 100m), 2, MidpointRounding.AwayFromZero);
+    }
+    return receivable.Amount;
+}
 
 static bool IsValidDocument(string value)
 {
