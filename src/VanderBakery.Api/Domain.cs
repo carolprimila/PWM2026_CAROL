@@ -12,6 +12,7 @@ public sealed class BakeryDb(DbContextOptions<BakeryDb> options) : DbContext(opt
     public DbSet<PaymentCondition> PaymentConditions => Set<PaymentCondition>();
     public DbSet<PaymentRule> PaymentRules => Set<PaymentRule>();
     public DbSet<Receivable> Receivables => Set<Receivable>();
+    public DbSet<AppUser> Users => Set<AppUser>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -34,6 +35,17 @@ public sealed class Customer
     public string Neighborhood { get; set; } = "";
     public bool Active { get; set; } = true;
     public List<RouteStop> RouteStops { get; set; } = [];
+}
+
+public sealed class AppUser
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+    public string PasswordSalt { get; set; } = "";
+    public string PasswordHash { get; set; } = "";
+    public string Role { get; set; } = "Seller";
+    public bool Active { get; set; } = true;
 }
 
 public sealed class RouteStop
@@ -120,6 +132,8 @@ public sealed class Receivable
 }
 
 public sealed record CustomerInput(string Name, string? TradeName, string TaxId, string Email, string City, string Neighborhood);
+public sealed record LoginInput(string Email, string Password);
+public sealed record RegisterInput(string Name, string Email, string Password);
 public sealed record RouteInput(string Day, int Position);
 public sealed record ProductInput(string Name, string Group, string Unit, decimal Price, decimal Cost, decimal Stock, DateOnly? ExpiryDate);
 public sealed record SaleInput(int CustomerId, List<SaleLineInput> Items, int PaymentConditionId = 1, string PaymentMethod = "Boleto bancário");

@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.Sqlite;
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using VanderBakery.Api;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,6 +11,7 @@ builder.Services.AddDbContext<BakeryDb>(options => options.UseSqlite(sqlite.Conn
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
 builder.Services.AddOpenApi();
 var app = builder.Build();
+var sessions = new ConcurrentDictionary<string, (string Name, string Role)>();
 var days = new[] { "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo" };
 var paymentMethods = new[] { "Boleto bancário", "PIX", "Cartão de crédito", "Cartão de débito" };
 var locations = new Dictionary<string, string[]>
@@ -17,12 +20,29 @@ var locations = new Dictionary<string, string[]>
     ["Santa Terezinha de Itaipu"] = ["Ascari", "Área Industrial I", "Área Industrial II", "Área Industrial III", "Bairro Empresarial e Logístico I", "Bairro Empresarial e Logístico II", "BNH", "Bela Vista", "Centro", "Chácara 128", "Chácaras Costa Oeste", "Conjunto Horizonte", "Conjunto José Milioli", "Conjunto Panorama", "Conjunto Primavera", "Conjunto Residencial Leomag I", "Conjunto Residencial Leonila Ávila Arenhart", "Conjunto Residencial Luiz Bruno Arenhart", "Conjunto Residencial Santos Ascari", "Conjunto Santa Felicidade", "Cruzeiro do Sul", "Delta Parque", "Dona Elona", "Gralha Azul", "Ipê", "Jardim Ascari", "Jardim Canadá", "Jardim Curitibano", "Jardim das Palmeiras", "Jardim Dona Gilda", "Jardim Iguaçu", "Jardim Santa Mônica", "Jardim Serra Azul", "Jardim Valparaíso", "Maria Nagasaki", "Montreal", "Nossa Senhora do Carmo", "Nova Jerusalém", "Parque das Araucárias", "Parque das Laranjeiras", "Parque dos Estados", "Parque Nacional", "Parque São Lourenço", "Planalto", "Região dos Conjuntos", "Residencial Alvorada", "Residencial Brasília", "Residencial Cataratas", "Residencial Curitiba", "Residencial Dona Elona", "Residencial Montreal", "Residencial Planalto", "Residencial Sol de Verão", "Santa Catarina I", "Santa Catarina II", "Santa Inês", "Santa Lúcia", "Santa Mônica", "Tarumã", "Valle do Sol", "Vila Aparecidinha", "Área Rural", "Condomínio Ipê", "Condomínio Pôr do Sol I", "Condomínio Pôr do Sol II", "Condomínio do Lago", "Jardim Residencial Parque das Laranjeiras", "Região Apepu", "Região Fazenda Santa Maria", "Região São José", "Região São Vendelino", "Região Três Fazendas"]
 };
 app.UseCors();
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path is "/api/health" or "/api/locations" || path.StartsWith("/api/auth/", StringComparison.OrdinalIgnoreCase)) { await next(); return; }
+    var token = context.Request.Headers.Authorization.ToString().Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase);
+    if (!sessions.TryGetValue(token, out var user)) { context.Response.StatusCode = 401; return; }
+    if (user.Role != "Admin" && (path.StartsWith("/api/products", StringComparison.OrdinalIgnoreCase) || path.StartsWith("/api/receivables", StringComparison.OrdinalIgnoreCase) || path.Contains("/route", StringComparison.OrdinalIgnoreCase))) { context.Response.StatusCode = 403; return; }
+    await next();
+});
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<BakeryDb>();
     db.Database.EnsureCreated();
+    db.Database.ExecuteSqlRaw("CREATE TABLE IF NOT EXISTS Users (Id INTEGER NOT NULL CONSTRAINT PK_Users PRIMARY KEY AUTOINCREMENT, Name TEXT NOT NULL, Email TEXT NOT NULL, PasswordSalt TEXT NOT NULL, PasswordHash TEXT NOT NULL, Role TEXT NOT NULL, Active INTEGER NOT NULL);");
+    db.Database.ExecuteSqlRaw("CREATE UNIQUE INDEX IF NOT EXISTS IX_Users_Email ON Users (Email);");
+    if (!db.Users.Any())
+    {
+        db.Users.Add(MakeUser("Gabriel", "vendedor@vanderbakery.com", "Vander123!", "Seller"));
+        db.Users.Add(MakeUser("Administrador", "admin@vanderbakery.com", "Vander123!", "Admin"));
+        db.SaveChanges();
+    }
     if (!db.Products.Any()) db.Products.AddRange(
         new Product { Name = "Fermento biológico seco", Group = "Fermentos", Unit = "pct 500 g", Price = 18.90m, Cost = 11.20m, Stock = 48, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(8)) },
         new Product { Name = "Mistura para bolo", Group = "Misturas", Unit = "pct 5 kg", Price = 42.50m, Cost = 28m, Stock = 22, ExpiryDate = DateOnly.FromDateTime(DateTime.Today.AddMonths(6)) },
@@ -42,10 +62,39 @@ using (var scope = app.Services.CreateScope())
         db.RouteStops.AddRange(new RouteStop { CustomerId = michel.Id, Day = "Segunda-feira", Position = 1 }, new RouteStop { CustomerId = marcos.Id, Day = "Segunda-feira", Position = 2 }, new RouteStop { CustomerId = maria.Id, Day = "Quarta-feira", Position = 1 }, new RouteStop { CustomerId = ana.Id, Day = "Quarta-feira", Position = 3 });
     }
     db.SaveChanges();
+    // Dois exemplos prontos para demonstrar o histórico: um quitado e outro com uma parcela em aberto.
+    {
+        var demoCustomers = db.Customers.Where(x => x.Name == "Michel Padaria" || x.Name == "Marcos Alimentos").OrderBy(x => x.Name).ToList();
+        var demoProduct = db.Products.OrderBy(x => x.Id).First();
+        var condition = db.PaymentConditions.Include(x => x.Rules).First(x => x.Code == 10);
+        foreach (var customer in demoCustomers)
+        {
+            if (db.Sales.Any(s => s.CustomerId == customer.Id)) continue;
+            var isPaid = customer.Name == "Michel Padaria";
+            var sale = new Sale { CustomerId = customer.Id, CreatedAt = DateTime.UtcNow, PaymentConditionId = condition.Id };
+            var quantity = isPaid ? 2m : 3m;
+            sale.Items.Add(new SaleItem { ProductId = demoProduct.Id, ProductName = demoProduct.Name, Quantity = quantity, UnitPrice = demoProduct.Price, UnitCost = demoProduct.Cost });
+            var total = quantity * demoProduct.Price;
+            for (var installment = 0; installment < 2; installment++)
+                sale.Receivables.Add(new Receivable { InstallmentNumber = installment + 1, DueDate = DateOnly.FromDateTime(DateTime.Today.AddDays(7 * (installment + 1))), Amount = decimal.Round(total / 2, 2), PaymentMethod = "Boleto bancário", FinePercent = 5, DailyInterestPercent = 2, DailyDiscountPercent = 1, Paid = isPaid || installment == 0 });
+            db.Sales.Add(sale);
+        }
+        if (db.ChangeTracker.HasChanges())
+            db.SaveChanges();
+    }
 }
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", sede = "Foz do Iguaçu" }));
 app.MapGet("/api/locations", () => Results.Ok(locations));
+app.MapPost("/api/auth/login", async (LoginInput input, BakeryDb db) =>
+{
+    var user = await db.Users.FirstOrDefaultAsync(x => x.Email == input.Email.Trim().ToLowerInvariant() && x.Active);
+    if (user is null || !VerifyPassword(input.Password, user.PasswordSalt, user.PasswordHash)) return Results.Unauthorized();
+    var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)); sessions[token] = (user.Name, user.Role);
+    return Results.Ok(new { token, user.Name, user.Role });
+});
+app.MapPost("/api/auth/register/seller", async (RegisterInput input, BakeryDb db) => await RegisterUser(input, "Seller", db, sessions));
+app.MapPost("/api/auth/register/admin", async (RegisterInput input, BakeryDb db) => await RegisterUser(input, "Admin", db, sessions));
 app.MapGet("/api/customers", async (BakeryDb db) =>
 {
     var customers = await db.Customers.Include(x => x.RouteStops).OrderBy(x => x.Name).ToListAsync();
@@ -166,6 +215,30 @@ app.MapGet("/api/reports/daily", async (DateOnly? date, BakeryDb db) =>
     return Results.Ok(new { Date = DateOnly.FromDateTime(from), Revenue = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * i.UnitPrice), Profit = sales.SelectMany(s => s.Items).Sum(i => i.Quantity * (i.UnitPrice - i.UnitCost)), SaleCount = sales.Count, Products = items });
 });
 app.Run();
+
+static AppUser MakeUser(string name, string email, string password, string role)
+{
+    var salt = RandomNumberGenerator.GetBytes(16);
+    return new AppUser { Name = name, Email = email.ToLowerInvariant(), PasswordSalt = Convert.ToBase64String(salt), PasswordHash = Convert.ToBase64String(Rfc2898DeriveBytes.Pbkdf2(password, salt, 120_000, HashAlgorithmName.SHA256, 32)), Role = role };
+}
+
+static bool VerifyPassword(string password, string salt, string hash)
+{
+    try { return CryptographicOperations.FixedTimeEquals(Rfc2898DeriveBytes.Pbkdf2(password, Convert.FromBase64String(salt), 120_000, HashAlgorithmName.SHA256, 32), Convert.FromBase64String(hash)); }
+    catch { return false; }
+}
+
+static async Task<IResult> RegisterUser(RegisterInput input, string role, BakeryDb db, ConcurrentDictionary<string, (string Name, string Role)> sessions)
+{
+    if (string.IsNullOrWhiteSpace(input.Name) || string.IsNullOrWhiteSpace(input.Email) || input.Password.Length < 8)
+        return Results.BadRequest(new { message = "Informe nome, e-mail e senha com pelo menos 8 caracteres." });
+    var email = input.Email.Trim().ToLowerInvariant();
+    if (await db.Users.AnyAsync(x => x.Email == email)) return Results.Conflict(new { message = "Este e-mail já está cadastrado." });
+    var user = MakeUser(input.Name.Trim(), email, input.Password, role);
+    db.Users.Add(user); await db.SaveChangesAsync();
+    var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)); sessions[token] = (user.Name, user.Role);
+    return Results.Ok(new { token, user.Name, user.Role });
+}
 
 static string GetPaymentStatus(IEnumerable<Receivable> receivables)
 {

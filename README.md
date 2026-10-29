@@ -25,6 +25,8 @@ dotnet run --project .\src\VanderBakery.Web --urls http://localhost:5168
 
 Acesse `http://localhost:5168`. O portal consulta a API em `http://localhost:5293`.
 
+O portal web abre na tela de acesso do **administrador**; o aplicativo MAUI abre no acesso do **vendedor**. Contas de demonstração: `admin@vanderbakery.com` e `vendedor@vanderbakery.com`, ambas com senha `Vander123!`. As duas telas também permitem cadastro do respectivo perfil. A API guarda senhas com hash e sal, e protege as rotas de dados com token de sessão (as sessões em memória expiram quando a API é reiniciada).
+
 ## Executar Android
 
 Requer a carga de trabalho MAUI/Android e um emulador Android:
@@ -48,6 +50,7 @@ No emulador, o app usa `http://10.0.2.2:5293` para acessar a API do computador. 
 - Formas de pagamento boleto, PIX, cartão de crédito e débito; opção à vista ou em 2 e 3 parcelas. A forma escolhida fica registrada em cada parcela.
 - Condições 10 (7/14 dias) e 20 (7/14/21 dias), com parcelas que fecham exatamente o total da venda e multa de 5%, juros de 2% ao dia e desconto de 1% ao dia. A condição à vista fica disponível como 1 parcela.
 - O histórico informa se cada venda está em aberto, parcialmente quitada, atrasada ou quitada, além do status de cada parcela.
+- A demonstração inclui compra de Michel Padaria com as parcelas quitadas e compra de Marcos Alimentos com uma parcela quitada e outra em aberto.
 - Contas a receber por cliente; o fornecedor pode marcar parcelas como recebidas.
 - Relatório histórico por data com faturamento, custo e lucro bruto; o lucro também aparece por produto e por venda.
 
@@ -72,4 +75,4 @@ Swagger/OpenAPI está disponível em `/openapi/v1.json` no ambiente de desenvolv
 
 ## Observações
 
-Esta reconstrução mantém o fluxo direto de venda com validação obrigatória de estoque. O MVP não tem autenticação, sincronização offline ou hospedagem configurada. Use apenas dados fictícios para demonstração e não publique a API aberta na internet sem implementar autenticação e HTTPS. O projeto de API pode exibir um alerta do NuGet relacionado a `SQLitePCLRaw.lib.e_sqlite3` 2.1.11, dependência transitiva do provedor SQLite.
+Esta reconstrução mantém o fluxo direto de venda com validação obrigatória de estoque. O MVP não tem sincronização offline ou hospedagem configurada. Cadastro aberto de administrador e tokens em memória servem para demonstração local; antes de publicar, restrinja a criação de administradores e configure HTTPS e gestão persistente de sessões. O projeto de API pode exibir um alerta do NuGet relacionado a `SQLitePCLRaw.lib.e_sqlite3` 2.1.11, dependência transitiva do provedor SQLite.

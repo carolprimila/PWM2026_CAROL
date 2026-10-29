@@ -27,7 +27,43 @@ public partial class MainPage : ContentPage
         CustomerPicker.ItemDisplayBinding = new Binding(nameof(CustomerModel.Name));
         HistoryCustomerPicker.ItemDisplayBinding = new Binding(nameof(CustomerModel.Name));
         PaymentConditionPicker.ItemDisplayBinding = new Binding(nameof(PaymentConditionModel.Name));
-        _ = RefreshDataAsync();
+        AuthPanel.IsVisible = true;
+    }
+
+    private bool _registering;
+    private void AuthToggleClicked(object? sender, EventArgs e)
+    {
+        _registering = !_registering;
+        AuthNameEntry.IsVisible = _registering;
+        AuthTitle.Text = _registering ? "Cadastro de vendedor" : "Entrar como vendedor";
+        AuthSubmitButton.Text = _registering ? "Criar cadastro" : "Entrar";
+        AuthToggleButton.Text = _registering ? "Já tenho cadastro · entrar" : "Criar cadastro de vendedor";
+        AuthMessageLabel.Text = "";
+    }
+
+    private async void AuthSubmitClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var endpoint = _registering ? "api/auth/register/seller" : "api/auth/login";
+            var payload = _registering ? (object)new { name = AuthNameEntry.Text, email = AuthEmailEntry.Text, password = AuthPasswordEntry.Text } : new { email = AuthEmailEntry.Text, password = AuthPasswordEntry.Text };
+            var response = await _api.PostAsJsonAsync(endpoint, payload, Json);
+            if (!response.IsSuccessStatusCode) { AuthMessageLabel.Text = "Confira seus dados. A senha precisa ter pelo menos 8 caracteres."; return; }
+            var session = await response.Content.ReadFromJsonAsync<AuthResult>(Json);
+            if (session is null || session.Role != "Seller") { AuthMessageLabel.Text = "Este acesso é exclusivo do vendedor."; return; }
+            _api.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", session.Token);
+            var period = DateTime.Now.Hour < 12 ? "Bom dia" : DateTime.Now.Hour < 18 ? "Boa tarde" : "Boa noite";
+            GreetingLabel.Text = $"{period}, {session.Name.Split(' ')[0]}";
+            AuthPanel.IsVisible = false; AppPanel.IsVisible = true;
+            await RefreshDataAsync();
+        }
+        catch { AuthMessageLabel.Text = "Não foi possível conectar ao sistema da distribuidora."; }
+    }
+
+    private void LogoutClicked(object? sender, EventArgs e)
+    {
+        _api.DefaultRequestHeaders.Authorization = null;
+        AppPanel.IsVisible = false; AuthPanel.IsVisible = true;
     }
 
     private async Task RefreshDataAsync()
@@ -160,6 +196,7 @@ public partial class MainPage : ContentPage
     }
 
     private sealed record CustomerModel(int Id, string Name, string? TradeName, string TaxId, string Email, string City, string Neighborhood);
+    private sealed record AuthResult(string Token, string Name, string Role);
     private sealed record RouteModel(int Id, string Day, int Position, int CustomerId, string Name, string? TradeName, string City, string Neighborhood);
     private sealed record ProductModel(int Id, string Name, string Group, string Unit, decimal Price, decimal Cost, decimal Stock, DateOnly? ExpiryDate);
     private sealed record PaymentConditionModel(int Id, int Code, string Name, decimal FinePercent, decimal DailyInterestPercent, decimal DailyDiscountPercent);
