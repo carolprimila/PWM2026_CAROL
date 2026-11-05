@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VanderBakery.Api/VanderBakery.Api.csproj" />
+    <Project Path="src/VanderBakery.Mobile/VanderBakery.Mobile.csproj" />
+    <Project Path="src/VanderBakery.Web/VanderBakery.Web.csproj" />
+  </Folder>
+</Solution>
