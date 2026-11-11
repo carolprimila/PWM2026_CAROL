@@ -170,6 +170,7 @@ public partial class MainPage : ContentPage
     {
         AuthPanel.IsVisible = false;
         AppPanel.IsVisible = true;
+        MostrarAba("Inicio");
         await CarregarAsync();
     }
 
@@ -195,6 +196,7 @@ public partial class MainPage : ContentPage
 
             await CarregarCarteirinhasAsync();
             FinanceiroCartao.IsVisible = _perfil.Tipo == "Associado";
+            FinanceiroDependenteCartao.IsVisible = !FinanceiroCartao.IsVisible;
             if (FinanceiroCartao.IsVisible) await CarregarFinanceiroAsync();
             await CarregarAvisosAsync();
             await CarregarComunicadosAsync();
@@ -265,41 +267,153 @@ public partial class MainPage : ContentPage
         catch { /* sem conexão: o cartão aparece sem QR até atualizar */ }
     }
 
+    // ------------------------------------------------------------------ abas
+
+    private static readonly Dictionary<string, string> TitulosAbas = new()
+    {
+        ["Inicio"] = "Início", ["Eventos"] = "Eventos", ["Reservas"] = "Reservas", ["Financeiro"] = "Financeiro", ["Perfil"] = "Meu perfil",
+    };
+
+    private void AbaClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: string aba }) MostrarAba(aba);
+    }
+
+    private void MostrarAba(string aba)
+    {
+        var abas = new (string Nome, View Conteudo, Button Botao, BoxView Barra)[]
+        {
+            ("Inicio", AbaInicio, AbaInicioBotao, BarraInicio),
+            ("Eventos", AbaEventos, AbaEventosBotao, BarraEventos),
+            ("Reservas", AbaReservas, AbaReservasBotao, BarraReservas),
+            ("Financeiro", AbaFinanceiro, AbaFinanceiroBotao, BarraFinanceiro),
+            ("Perfil", AbaPerfil, AbaPerfilBotao, BarraPerfil),
+        };
+        foreach (var (nome, conteudo, botao, barra) in abas)
+        {
+            var ativa = nome == aba;
+            conteudo.IsVisible = ativa;
+            botao.TextColor = Color.FromArgb(ativa ? _corClube : "#8A909C");
+            botao.FontAttributes = ativa ? FontAttributes.Bold : FontAttributes.None;
+            barra.Color = ativa ? Color.FromArgb(_corClube) : Colors.Transparent;
+        }
+        AbaTituloLabel.Text = TitulosAbas[aba];
+        _ = Rolagem.ScrollToAsync(0, 0, false);
+    }
+
     // ------------------------------------------------------------------ eventos
 
     private async Task CarregarEventosAsync()
     {
         var eventos = await GetAsync<List<PortalEvento>>("api/v1/portal/eventos");
+        // Quem pode ir: a própria pessoa e, se for o titular, os dependentes ativos.
+        var familia = new List<Familiar> { new(_perfil!.Pessoa.Id, _perfil.Pessoa.NomeCompleto, false) };
+        if (_perfil.PodeGerenciarDependentes)
+            familia.AddRange((await GetAsync<List<Dependente>>("api/v1/portal/dependentes"))
+                .Where(d => d.Situacao == "Ativo" && d.PessoaId != Guid.Empty).Select(d => new Familiar(d.PessoaId, d.Nome, true)));
         EventosLista.Children.Clear();
-        if (eventos.Count == 0) { EventosLista.Children.Add(Linha("Nenhum evento programado.")); return; }
-        var pt = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
-        foreach (var pe in eventos.Take(10))
+        if (eventos.Count == 0) { EventosLista.Children.Add(Cartao(Linha("Nenhum evento programado."))); return; }
+        foreach (var pe in eventos.Take(10)) EventosLista.Children.Add(CartaoEvento(pe, familia));
+    }
+
+    private Border Cartao(View conteudo) => new() { Style = (Style)Resources["Cartao"], Content = conteudo };
+
+    private Button BotaoPequeno(string texto, bool principal, Func<Task> acao)
+    {
+        var b = new Button
         {
-            var e = pe.Evento;
-            var minha = pe.MinhasInscricoes.FirstOrDefault(i => i.PessoaId == _perfil!.Pessoa.Id);
-            var bloco = new VerticalStackLayout { Spacing = 2, Padding = new Thickness(0, 4) };
-            bloco.Add(new Label { Text = e.Nome, FontSize = 16, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1D2127") });
-            bloco.Add(Linha($"{e.Inicio.ToLocalTime().ToString("dd/MM", pt)} às {e.Inicio.ToLocalTime():HH:mm} · {e.Espaco ?? e.Local ?? "Local a definir"}"));
-            var vagas = e.Capacidade is { } c ? $"{Math.Max(0, c - e.LugaresOcupados)} vaga(s)" : "vagas livres";
-            bloco.Add(Linha($"{(e.Valor > 0 ? e.Valor.ToString("C", pt) + " · " : "")}{vagas}"));
-            if (e.Situacao == "Cancelado") bloco.Add(Situacao("Cancelado"));
-            else if (minha is not null)
-            {
-                var linha = new HorizontalStackLayout { Spacing = 8 };
-                linha.Add(Situacao(minha.Situacao == "ListaEspera" ? "Lista de espera" : "Inscrito"));
-                var cancelar = new Button { Text = "Cancelar inscrição", FontSize = 12, Padding = new Thickness(10, 0), HeightRequest = 32, BackgroundColor = Color.FromArgb("#F1F2F5"), TextColor = Color.FromArgb("#3F4550"), CornerRadius = 8 };
-                cancelar.Clicked += async (_, _) => await AcaoAsync(HttpMethod.Delete, $"api/v1/eventos/inscricoes/{minha.Id}", null, "Inscrição cancelada.");
-                linha.Add(cancelar);
-                bloco.Add(linha);
-            }
-            else if (e.Situacao == "InscricoesAbertas")
-            {
-                var participar = new Button { Text = "Quero participar", FontSize = 13, HeightRequest = 36, BackgroundColor = Color.FromArgb(_corClube), TextColor = Colors.White, CornerRadius = 10, HorizontalOptions = LayoutOptions.Start };
-                participar.Clicked += async (_, _) => await AcaoAsync(HttpMethod.Post, $"api/v1/portal/eventos/{e.Id}/inscricoes", new { acompanhantes = 0 }, "Inscrição feita!");
-                bloco.Add(participar);
-            }
-            EventosLista.Children.Add(bloco);
+            Text = texto, FontSize = 12, Padding = new Thickness(12, 0), HeightRequest = 34, CornerRadius = 8, VerticalOptions = LayoutOptions.Center,
+            BackgroundColor = principal ? Color.FromArgb(_corClube) : Color.FromArgb("#F1F2F5"),
+            TextColor = principal ? Colors.White : Color.FromArgb("#3F4550"),
+        };
+        b.Clicked += async (_, _) => await acao();
+        return b;
+    }
+
+    private View CartaoEvento(PortalEvento pe, List<Familiar> familia)
+    {
+        var e = pe.Evento;
+        var pt = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+        var bloco = new VerticalStackLayout { Spacing = 3 };
+        bloco.Add(new Label { Text = e.Nome, FontSize = 17, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1D2127") });
+        var locais = e.Locais is { Count: > 0 } l ? string.Join(", ", l.Select(x => x.Nome)) : e.Espaco ?? e.Local ?? "Local a definir";
+        bloco.Add(Linha($"{e.Inicio.ToLocalTime().ToString("dd/MM", pt)} às {e.Inicio.ToLocalTime():HH:mm} · {locais}"));
+        var vagas = e.Capacidade is { } c ? $"{Math.Max(0, c - e.LugaresOcupados)} vaga(s)" : "vagas livres";
+        var convidados = e.MaximoAcompanhantes > 0 ? $" · até {e.MaximoAcompanhantes} convidado(s) por pessoa" : "";
+        bloco.Add(Linha($"{(e.Valor > 0 ? e.Valor.ToString("C", pt) + " por pessoa · " : "Gratuito · ")}{vagas}{convidados}"));
+        if (e.Situacao == "Cancelado") { bloco.Add(Situacao("Cancelado")); return Cartao(bloco); }
+
+        var abertas = e.Situacao == "InscricoesAbertas";
+        var podem = e.Publico == "Associados" ? familia.Where(f => !f.Dependente).ToList() : familia;
+        bloco.Add(new BoxView { HeightRequest = 1, Color = Color.FromArgb("#EEF0F3"), Margin = new Thickness(0, 8, 0, 4) });
+        bloco.Add(new Label { Text = podem.Count > 1 ? "Quem vai" : "Sua inscrição", FontSize = 13, FontAttributes = FontAttributes.Bold, TextColor = Color.FromArgb("#1D2127") });
+        foreach (var f in podem)
+        {
+            var insc = pe.MinhasInscricoes.FirstOrDefault(i => i.PessoaId == f.PessoaId);
+            var linha = new Grid { ColumnDefinitions = [new ColumnDefinition(GridLength.Star), new ColumnDefinition(GridLength.Auto)], ColumnSpacing = 8, Padding = new Thickness(0, 3) };
+            var info = new VerticalStackLayout();
+            var voce = f.PessoaId == _perfil!.Pessoa.Id;
+            info.Add(new Label { Text = voce ? $"{f.Nome.Split(' ')[0]} (você)" : f.Nome, FontSize = 14, TextColor = Color.FromArgb("#1D2127") });
+            var estado = insc is null
+                ? (abertas ? "Não inscrito" : "Inscrições encerradas")
+                : (insc.Situacao == "ListaEspera" ? "Na lista de espera" : "Inscrito") + (insc.Acompanhantes > 0 ? $" · +{insc.Acompanhantes} convidado(s)" : "");
+            var estadoLabel = Linha(estado);
+            if (insc is not null) estadoLabel.TextColor = Color.FromArgb(insc.Situacao == "ListaEspera" ? "#9A6700" : "#2F7D4F");
+            info.Add(estadoLabel);
+            linha.Add(info);
+            if (insc is not null)
+                linha.Add(BotaoPequeno("Cancelar", false, () => AcaoAsync(HttpMethod.Delete, $"api/v1/eventos/inscricoes/{insc.Id}", null,
+                    $"Inscrição de {f.Nome.Split(' ')[0]} cancelada.")), 1);
+            else if (abertas)
+                linha.Add(BotaoPequeno("Inscrever", true, () => InscreverNoEventoAsync(e, f)), 1);
+            bloco.Add(linha);
         }
+        var faltam = podem.Where(f => pe.MinhasInscricoes.All(i => i.PessoaId != f.PessoaId)).ToList();
+        if (abertas && faltam.Count > 1)
+        {
+            var todos = BotaoPequeno($"Inscrever todos ({faltam.Count})", true, () => InscreverFamiliaAsync(e, faltam));
+            todos.HorizontalOptions = LayoutOptions.Fill;
+            todos.Margin = new Thickness(0, 6, 0, 0);
+            bloco.Add(todos);
+        }
+        if (e.Publico == "Associados" && familia.Count > podem.Count) bloco.Add(Linha("Evento só para associados titulares."));
+        return Cartao(bloco);
+    }
+
+    /// <summary>Pergunta quantos convidados de fora do clube a pessoa leva (quando o evento permite).</summary>
+    private async Task<int?> PerguntarConvidadosAsync(EventoApp e, string nome)
+    {
+        if (e.MaximoAcompanhantes == 0) return 0;
+        var opcoes = Enumerable.Range(0, e.MaximoAcompanhantes + 1).Select(n => n == 0 ? "Sem convidados" : $"+{n} convidado(s)").ToArray();
+        var escolha = await DisplayActionSheetAsync($"{nome.Split(' ')[0]} vai levar convidados de fora do clube?", "Cancelar", null, opcoes);
+        var i = Array.IndexOf(opcoes, escolha);
+        return i < 0 ? null : i;
+    }
+
+    private async Task InscreverNoEventoAsync(EventoApp e, Familiar f)
+    {
+        if (await PerguntarConvidadosAsync(e, f.Nome) is not { } acompanhantes) return;
+        await AcaoAsync(HttpMethod.Post, $"api/v1/portal/eventos/{e.Id}/inscricoes", new { pessoaId = f.PessoaId, acompanhantes },
+            $"{f.Nome.Split(' ')[0]} inscrito(a) em {e.Nome}.");
+    }
+
+    private async Task InscreverFamiliaAsync(EventoApp e, List<Familiar> pessoas)
+    {
+        var feitas = new List<string>();
+        var erros = new List<string>();
+        try
+        {
+            foreach (var p in pessoas)
+            {
+                using var r = await EnviarAsync(HttpMethod.Post, $"api/v1/portal/eventos/{e.Id}/inscricoes", new { pessoaId = p.PessoaId, acompanhantes = 0 });
+                if (r.IsSuccessStatusCode) feitas.Add(p.Nome.Split(' ')[0]);
+                else erros.Add($"{p.Nome.Split(' ')[0]}: {await MensagemErroAsync(r)}");
+            }
+        }
+        catch (Exception ex) { erros.Add(ex.Message); }
+        await CarregarAsync();
+        StatusLabel.Text = feitas.Count > 0 ? $"Inscritos em {e.Nome}: {string.Join(", ", feitas)}." : "Nenhuma inscrição feita.";
+        if (erros.Count > 0) await DisplayAlertAsync("Algumas inscrições não foram feitas", string.Join("\n", erros), "OK");
     }
 
     // ------------------------------------------------------------------ avisos e comunicados
@@ -775,8 +889,10 @@ public partial class MainPage : ContentPage
     private sealed record Carteirinha(Guid PessoaId, string Tipo, string Nome, string NumeroIdentificacao, string Situacao,
         string? Categoria, string? TitularNome, string? Parentesco, Clube Clube);
     private sealed record EventoApp(Guid Id, string Nome, string? Local, string? Espaco, DateTimeOffset Inicio, int? Capacidade,
-        int LugaresOcupados, decimal Valor, string Situacao);
-    private sealed record InscricaoApp(Guid Id, Guid PessoaId, string Situacao);
+        int LugaresOcupados, decimal Valor, string Situacao, string Publico = "", int MaximoAcompanhantes = 0, List<LocalApp>? Locais = null);
+    private sealed record LocalApp(Guid EspacoId, string Nome);
+    private sealed record InscricaoApp(Guid Id, Guid PessoaId, string Situacao, string Nome = "", int Acompanhantes = 0);
+    private sealed record Familiar(Guid PessoaId, string Nome, bool Dependente);
     private sealed record PortalEvento(EventoApp Evento, List<InscricaoApp> MinhasInscricoes);
     private sealed record EspacoApp(Guid Id, string Nome, decimal ValorLocacao, decimal TaxaAdicional);
     private sealed record ReservaApp(Guid Id, string Espaco, DateTimeOffset Inicio, DateTimeOffset Fim, string Situacao, string? Motivo);
@@ -787,5 +903,6 @@ public partial class MainPage : ContentPage
     private sealed record Mensalidade(string Competencia, DateOnly Vencimento, decimal ValorAtualizado, string Situacao, PagamentoResumo? Pagamento,
         decimal Valor = 0, decimal Multa = 0, decimal Juros = 0, string? Contrato = null);
     private sealed record SituacaoFinanceira(bool Adimplente, int EmAberto, int Vencidas, decimal TotalDevido, List<Mensalidade> Mensalidades);
-    private sealed record Dependente(Guid Id, string Nome, int? Idade, string Parentesco, string NumeroIdentificacao, string Situacao);
+    private sealed record Dependente(Guid Id, string Nome, int? Idade, string Parentesco, string NumeroIdentificacao, string Situacao,
+        Guid PessoaId = default);
 }
