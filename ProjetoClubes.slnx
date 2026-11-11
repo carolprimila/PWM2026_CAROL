@@ -1,18 +1,11 @@
 <Solution>
-  <Folder Name="/Backend/">
-    <Project Path="src/Backend/ProjetoClubes.API/ProjetoClubes.API.csproj" />
-    <Project Path="src/Backend/ProjetoClubes.Application/ProjetoClubes.Application.csproj" />
-    <Project Path="src/Backend/ProjetoClubes.Domain/ProjetoClubes.Domain.csproj" />
-    <Project Path="src/Backend/ProjetoClubes.Infrastructure/ProjetoClubes.Infrastructure.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/ProjetoClubes.Api/ProjetoClubes.Api.csproj" />
+    <Project Path="src/ProjetoClubes.Web/ProjetoClubes.Web.csproj" />
+    <Project Path="src/ProjetoClubes.Mobile/ProjetoClubes.Mobile.csproj" />
   </Folder>
-  <Folder Name="/Mobile/">
-    <Project Path="src/Mobile/ProjetoClubes.Mobile/ProjetoClubes.Mobile.csproj" />
-  </Folder>
-  <Folder Name="/Testes/">
-    <Project Path="tests/ProjetoClubes.IntegrationTests/ProjetoClubes.IntegrationTests.csproj" />
+  <Folder Name="/tests/">
     <Project Path="tests/ProjetoClubes.UnitTests/ProjetoClubes.UnitTests.csproj" />
-  </Folder>
-  <Folder Name="/Web/">
-    <Project Path="src/Web/ProjetoClubes.Web/ProjetoClubes.Web.csproj" />
+    <Project Path="tests/ProjetoClubes.IntegrationTests/ProjetoClubes.IntegrationTests.csproj" />
   </Folder>
 </Solution>

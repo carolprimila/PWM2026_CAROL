@@ -8,14 +8,14 @@ banco **SQLite**, Web administrativo em **Blazor** e aplicativo do associado em 
 ## Estrutura
 
 ```
-src/Backend/   ProjetoClubes.API (REST) · Domain · Application · Infrastructure (Clean Architecture)
-src/Web/       ProjetoClubes.Web — Web administrativo (Blazor), consome a API
-src/Mobile/    ProjetoClubes.Mobile — app do associado (.NET MAUI), consome a API
+src/ProjetoClubes.Api      API REST — pastas Domain/, Application/, Infrastructure/, Controllers/
+src/ProjetoClubes.Web      Web administrativo (Blazor), consome a API
+src/ProjetoClubes.Mobile   app do associado (.NET MAUI), consome a API
 tests/         Testes unitários e de integração (API real com SQLite)
 docs/          Arquitetura, decisões técnicas, endpoints, diagrama ER, produção
 ```
 
-O banco é um arquivo, `src/Backend/ProjetoClubes.API/projetoclubes.db`, **criado sozinho na primeira execução** com dados
+O banco é um arquivo, `src/ProjetoClubes.Api/projetoclubes.db`, **criado sozinho na primeira execução** com dados
 de demonstração. Não há banco para instalar nem segredo para configurar.
 
 ## Requisitos
@@ -23,6 +23,9 @@ de demonstração. Não há banco para instalar nem segredo para configurar.
 - Para o app: carga **.NET Multi-platform App UI (MAUI)** — só é necessária para abrir/rodar o `ProjetoClubes.Mobile`.
 
 ## Rodar no Visual Studio
+Cada pasta de `src/` é um projeto completo: dá para abrir só o `.csproj` (por exemplo `src/ProjetoClubes.Api/ProjetoClubes.Api.csproj`)
+e compilar. Para rodar a API junto com o Web ou o app, use a solução:
+
 1. Abra `ProjetoClubes.slnx`.
 2. Na barra de ferramentas, ao lado do botão ▶, escolha o perfil de inicialização:
    - **API + Web administrativo** — abre o navegador em `http://localhost:5278`;
@@ -31,26 +34,26 @@ de demonstração. Não há banco para instalar nem segredo para configurar.
 3. Aperte **F5**.
 
 Se o seu Visual Studio não mostrar esses perfis: botão direito na solução → **Configurar projetos de inicialização** →
-**Vários projetos de inicialização** → marque `ProjetoClubes.API` e `ProjetoClubes.Web` (ou `ProjetoClubes.Mobile`) como
+**Vários projetos de inicialização** → marque `ProjetoClubes.Api` e `ProjetoClubes.Web` (ou `ProjetoClubes.Mobile`) como
 **Iniciar**, com a API primeiro.
 
 ## Rodar pelo terminal
 Em dois terminais, na pasta do projeto:
 
 ```powershell
-dotnet run --project src/Backend/ProjetoClubes.API --launch-profile http
+dotnet run --project src/ProjetoClubes.Api --launch-profile http
 ```
 
 ```powershell
-dotnet run --project src/Web/ProjetoClubes.Web --launch-profile http
+dotnet run --project src/ProjetoClubes.Web --launch-profile http
 ```
 
 Acesse `http://localhost:5278`. A API fica em `http://localhost:5080` (documentação em `/swagger`).
 
-App no Windows: `dotnet build src/Mobile/ProjetoClubes.Mobile -t:Run -f net10.0-windows10.0.19041.0`.
-Android (emulador): `dotnet build src/Mobile/ProjetoClubes.Mobile -t:Run -f net10.0-android` — o app usa
+App no Windows: `dotnet build src/ProjetoClubes.Mobile -t:Run -f net10.0-windows10.0.19041.0`.
+Android (emulador): `dotnet build src/ProjetoClubes.Mobile -t:Run -f net10.0-android` — o app usa
 `http://10.0.2.2:5080` para chegar à API do computador. Para celular físico, troque o endereço em
-`src/Mobile/ProjetoClubes.Mobile/Configuracao.cs` pelo IP do computador.
+`src/ProjetoClubes.Mobile/Configuracao.cs` pelo IP do computador.
 
 ## Contas de demonstração
 Todas com a senha **`Clubes2026!`** (definida em `appsettings.Development.json`):
@@ -66,7 +69,7 @@ Todas com a senha **`Clubes2026!`** (definida em `appsettings.Development.json`)
 Os dados (associados, dependentes, mensalidades, eventos, espaços, comunicados, funcionários, patrimônio, estoque e uma
 assembleia convocada) são fictícios, com CPFs sintéticos.
 
-**Começar do zero:** pare a API e apague `src/Backend/ProjetoClubes.API/projetoclubes.db` (e os arquivos `-wal`/`-shm`).
+**Começar do zero:** pare a API e apague `src/ProjetoClubes.Api/projetoclubes.db` (e os arquivos `-wal`/`-shm`).
 
 ## Testes
 
@@ -80,8 +83,8 @@ aceitação completo (`AceitacaoTests`). Levam cerca de 1 minuto.
 ## Migrations
 
 ```powershell
-dotnet tool restore
-dotnet ef migrations add <Nome> --project src/Backend/ProjetoClubes.Infrastructure --startup-project src/Backend/ProjetoClubes.API --output-dir Persistence/Migrations
+dotnet tool install -g dotnet-ef   # uma vez por máquina
+dotnet ef migrations add <Nome> --project src/ProjetoClubes.Api --output-dir Infrastructure/Persistence/Migrations
 ```
 
 A API aplica as migrations pendentes ao iniciar.

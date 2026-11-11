@@ -1,7 +1,7 @@
 # Banco de dados
 
-O Projeto Clubes usa **SQLite**: um único arquivo, `src/Backend/ProjetoClubes.API/projetoclubes.db`, criado pela própria
-API na primeira execução (migrations do EF Core em `src/Backend/ProjetoClubes.Infrastructure/Persistence/Migrations`).
+O Projeto Clubes usa **SQLite**: um único arquivo, `src/ProjetoClubes.Api/projetoclubes.db`, criado pela própria
+API na primeira execução (migrations do EF Core em `src/ProjetoClubes.Api/Infrastructure/Persistence/Migrations`).
 Não há servidor de banco para instalar.
 
 - Começar do zero: pare a API e apague `projetoclubes.db` (e `-wal`/`-shm`). Na próxima execução ele é recriado com os

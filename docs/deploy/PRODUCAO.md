@@ -86,8 +86,8 @@ git pull && docker compose up -d --build
 A API aplica as migrations novas ao iniciar. Faça backup antes de cada atualização.
 
 ## 9. Aplicativo (.NET MAUI)
-1. Em `src/Mobile/ProjetoClubes.Mobile/Configuracao.cs`, troque `UrlApiProducao` pelo endereço HTTPS da API.
-2. Android: `dotnet publish src/Mobile/ProjetoClubes.Mobile -f net10.0-android -c Release` com a chave de assinatura
+1. Em `src/ProjetoClubes.Mobile/Configuracao.cs`, troque `UrlApiProducao` pelo endereço HTTPS da API.
+2. Android: `dotnet publish src/ProjetoClubes.Mobile -f net10.0-android -c Release` com a chave de assinatura
    da loja (`AndroidSigningKeyStore` etc. via variáveis de ambiente, nunca no repositório). Gera o `.aab` para a Play Store.
 3. iOS: precisa de um Mac com Xcode e conta Apple Developer (`-f net10.0-ios -c Release`).
 4. Push (Firebase/APNs) ainda não está ligado: as notificações aparecem na caixa "Avisos" do app (DT-028).

@@ -1,6 +1,0 @@
-<Project>
-  <!-- Versões dos pacotes MAUI acompanham o workload ($(MauiVersion)); fora da gestão central da raiz. -->
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-</Project>

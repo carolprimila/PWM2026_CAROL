@@ -17,7 +17,7 @@
 
 ## Como roda (desde a DT-030)
 - Abrir `ProjetoClubes.slnx` no Visual Studio e escolher o perfil "API + Web administrativo" (ou "API + App"); F5.
-- Banco SQLite `src/Backend/ProjetoClubes.API/projetoclubes.db`, criado sozinho com dados de demonstração (senha `Clubes2026!`).
+- Banco SQLite `src/ProjetoClubes.Api/projetoclubes.db`, criado sozinho com dados de demonstração (senha `Clubes2026!`).
 - Nada para instalar além do Visual Studio/.NET 10 SDK (e a carga MAUI para o app). Sem user-secrets.
 - Migrations: `20261111180346_Inicial` (esquema completo para SQLite, com os gatilhos de conflito de reservas).
   As migrations e scripts do PostgreSQL foram removidos.
@@ -78,7 +78,7 @@ exceção de múltiplos titulares), `VinculoDependente`, `PermissoesDependente`,
   o acesso ao app (409); a administração deve adicionar o perfil "Associado" ao usuário.
 
 ## Web administrativo (Blazor) — primeira versão
-Projeto `src/Web/ProjetoClubes.Web` (Blazor Web App, Interactive Server, Bootstrap), no estilo do VanderBakery.
+Projeto `src/ProjetoClubes.Web` (Blazor Web App, Interactive Server, Bootstrap), no estilo do VanderBakery.
 - Telas: entrar; início (indicadores reais da API); associados (lista com busca/filtro/paginação, novo, detalhe com
   aprovar/rejeitar/suspender/reativar/inativar com motivo, QR Code da carteirinha, inclusão de dependente, convite do app);
   dependentes (lista, aprovar/rejeitar pendentes); portaria (entrada/saída por código, presentes, últimos registros);
@@ -91,7 +91,7 @@ Projeto `src/Web/ProjetoClubes.Web` (Blazor Web App, Interactive Server, Bootstr
 - Sem testes automatizados de interface (a lógica está na API, coberta pelos 98 testes).
 
 ## App .NET MAUI — primeira versão
-Projeto `src/Mobile/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
+Projeto `src/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
 - Login (só associados/dependentes), sessão salva no SecureStorage, saudação e situação do cadastro.
 - Carteirinhas do titular e dos dependentes, com a cor do clube e o QR Code vindo da API.
 - Titular: lista de dependentes e inclusão (fica pendente para o clube aprovar). Dependente vê só a própria carteirinha.
@@ -182,6 +182,11 @@ Projeto `src/Mobile/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mo
   CSV, edição de associado mantendo o endereço, download LGPD, recuperação de senha pelo link do e-mail) e no app Windows
   (esqueci minha senha, login, exportação gerando o JSON).
 
+## Três projetos como o VanderBakery (DT-031)
+- `src/ProjetoClubes.Api` (com `Domain/`, `Application/`, `Infrastructure/` dentro), `src/ProjetoClubes.Web` e
+  `src/ProjetoClubes.Mobile`; cada `.csproj` compila sozinho. Arquivos de build da raiz removidos.
+- Build da solução sem avisos; unitários **80/80** e integração **80/80**.
+
 ## Troca para SQLite (DT-030)
 - Pedido para rodar como o VanderBakery: clonar, abrir no Visual Studio e rodar, sem instalar banco.
 - Provedor, migrations, travas de concorrência, gatilhos de conflito de reservas, CHECKs e mapeamento de erros adaptados.
@@ -202,7 +207,7 @@ Projeto `src/Mobile/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mo
 ```bash
 dotnet build ProjetoClubes.slnx
 dotnet test ProjetoClubes.slnx
-dotnet run --project src/Backend/ProjetoClubes.API --launch-profile http
-dotnet ef migrations add <Nome> --project src/Backend/ProjetoClubes.Infrastructure --startup-project src/Backend/ProjetoClubes.API --output-dir Persistence/Migrations
+dotnet run --project src/ProjetoClubes.Api --launch-profile http
+dotnet ef migrations add <Nome> --project src/ProjetoClubes.Api/Infrastructure --startup-project src/ProjetoClubes.Api --output-dir Persistence/Migrations
 ```
 Ler antes: `docs/arquitetura/ARQUITETURA.md`, `docs/DECISOES_TECNICAS.md`.

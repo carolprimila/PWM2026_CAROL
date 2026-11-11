@@ -6,7 +6,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/Backend/ProjetoClubes.API/Dockerfile
+      dockerfile: src/ProjetoClubes.Api/Dockerfile
     container_name: projetoclubes-api
     restart: unless-stopped
     environment:
@@ -36,7 +36,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: src/Web/ProjetoClubes.Web/Dockerfile
+      dockerfile: src/ProjetoClubes.Web/Dockerfile
     container_name: projetoclubes-web
     restart: unless-stopped
     depends_on: [api]

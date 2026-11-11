@@ -4,7 +4,7 @@ Registro das decisões arquiteturais. Cada item: contexto, decisão e consequên
 
 ## DT-001 — Raiz do repositório
 A pasta de trabalho `VanderClub/` é a raiz do repositório e corresponde ao `ProjetoClubes/` da especificação.
-Estrutura `src/Backend`, `src/Web`, `src/Mobile`, `database`, `docs`, `tests` mantida.
+Estrutura `src/Backend`, `src/Web`, `src/Mobile`, `database`, `docs`, `tests` mantida (depois simplificada — DT-031).
 
 ## DT-002 — .NET 10 fixado por `global.json`
 A máquina tem SDK 10.0.401 e 11 RC. `global.json` fixa `10.0.401` com `rollForward: latestFeature`
@@ -136,7 +136,7 @@ Acesso a dados de pessoa fora do escopo responde 404 (não revela existência).
 
 ## DT-024 — Web administrativo em Blazor (simples), no lugar de React
 Decisão do usuário (2026-11-11): seguir a estrutura e a simplicidade do projeto VanderBakery — um único projeto
-`src/Web/ProjetoClubes.Web` em Blazor Web App (Interactive Server) com Bootstrap, páginas diretas e sem design
+`src/ProjetoClubes.Web` em Blazor Web App (Interactive Server) com Bootstrap, páginas diretas e sem design
 system próprio. Isso substitui o requisito original de React + TypeScript + Vite; o início de projeto React foi removido.
 - O Web continua consumindo **somente a API REST** (`HttpClient` nomeado "api", `ApiBaseUrl`), nunca o banco.
 - Sessão por circuito (`Sessao`): access/refresh token ficam no servidor do Web; só o refresh token vai para o
@@ -146,7 +146,7 @@ system próprio. Isso substitui o requisito original de React + TypeScript + Vit
 - Modelos de resposta próprios do Web (`Servicos/Modelos.cs`) com só os campos usados — sem referenciar Application.
 
 ## DT-025 — App MAUI simples (uma tela), como o VanderBakery.Mobile
-`src/Mobile/ProjetoClubes.Mobile`: .NET MAUI (.NET 10) com uma `MainPage` (XAML + code-behind), painel de login e área do
+`src/ProjetoClubes.Mobile`: .NET MAUI (.NET 10) com uma `MainPage` (XAML + code-behind), painel de login e área do
 associado, sem MVVM nem camadas extras — escolha do usuário por simplicidade, no lugar do MVVM pedido no requisito original.
 - Consome só a API (`/api/v1/portal/*`, `/auth/*`, QR em `/pessoas/{id}/qrcode`). Endereço: `http://10.0.2.2:5080/` no
   emulador Android e `http://localhost:5080/` nas demais plataformas (troque a constante `BaseApi` para um celular físico).
@@ -218,6 +218,16 @@ associado, sem MVVM nem camadas extras — escolha do usuário por simplicidade,
   apuração e decisões; registrada uma única vez e imutável.
 - Fora do escopo por ora: enquetes e pesquisas de satisfação, escalas em grade (a escala é texto), anexos de manutenção,
   lançamento automático do custo de manutenção/compra no financeiro.
+
+## DT-031 — Três projetos, como o VanderBakery (Api, Web, Mobile)
+Pedido da usuária: a mesma organização do VanderBakery — três pastas em `src/`, abrir um `.csproj` e compilar.
+- `ProjetoClubes.Domain`, `.Application` e `.Infrastructure` viraram as pastas `Domain/`, `Application/` e `Infrastructure/`
+  dentro de `src/ProjetoClubes.Api` (histórico preservado com `git mv`). Namespaces e código não mudaram; a separação em
+  camadas continua por convenção, não mais imposta pelo compilador.
+- Cada `.csproj` tem suas versões de pacotes e configurações; saíram `Directory.Build.props`, `Directory.Packages.props`,
+  `global.json`, `.editorconfig`, `dotnet-tools.json` e `.claude/`. Ficaram `NuGet.Config`, a solução e os perfis do VS.
+- O namespace da API passou de `ProjetoClubes.API` para `ProjetoClubes.Api` (mesmo nome do projeto).
+- Testes, documentação e Docker continuam (testes em `tests/`, referenciando só o projeto da API).
 
 ## DT-030 — SQLite em arquivo, no lugar do PostgreSQL (rodar em qualquer notebook)
 Pedido da usuária: o projeto deve funcionar como o VanderBakery — clonar o repositório, abrir no Visual Studio e rodar,

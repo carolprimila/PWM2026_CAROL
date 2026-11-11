@@ -11,16 +11,15 @@
           └──────────┬─────────────┘
                      ▼
         ┌──────────────────────────┐
-        │ ProjetoClubes.API        │  Controllers, autenticação, autorização,
-        │ (ASP.NET Core, .NET 10)  │  middlewares, Swagger, rate limiting
-        ├──────────────────────────┤
-        │ ProjetoClubes.Application│  Casos de uso, DTOs, validações, interfaces
-        ├──────────────────────────┤
-        │ ProjetoClubes.Domain     │  Entidades, enums, regras de domínio
-        ├──────────────────────────┤
-        │ ProjetoClubes.Infrastr.  │  EF Core + SQLite, JWT, hash, e-mail,
-        │                          │  arquivos, interceptors de auditoria
-        └────────────┬─────────────┘
+        │ ProjetoClubes.Api (um projeto — DT-031)  │
+        │  Controllers/  autenticação, autorização,│
+        │                middlewares, Swagger      │
+        │  Application/  casos de uso, DTOs,       │
+        │                validações, interfaces    │
+        │  Domain/       entidades e regras        │
+        │  Infrastructure/ EF Core + SQLite, JWT,  │
+        │                e-mail, arquivos, auditoria│
+        └────────────┬─────────────────────────────┘
                      ▼
               ┌─────────────┐
               │   SQLite    │  (arquivo projetoclubes.db — DT-030)
@@ -29,12 +28,15 @@
 
 Regra inegociável: Web e Mobile **só** falam com a API. Nenhum cliente conhece a string de conexão.
 
-Dependências entre projetos (Clean Architecture):
+Dependências entre as camadas (Clean Architecture, agora como pastas de um único projeto — DT-031):
 
 ```
-API ──► Application ──► Domain
- └────► Infrastructure ──► Application
+Controllers ──► Application ──► Domain
+     └────────► Infrastructure ──► Application
 ```
+
+A regra continua valendo por convenção: `Domain` não usa nada das outras pastas, `Application` não usa `Infrastructure`
+nem `Controllers`.
 
 `Application` depende das abstrações do EF Core (`DbSet`, LINQ) através da interface
 `IAppDbContext`. Ver decisão DT-003 em `docs/DECISOES_TECNICAS.md`.
@@ -43,17 +45,15 @@ API ──► Application ──► Domain
 
 ```
 VanderClub/                         (raiz do repositório = "ProjetoClubes/")
-  src/Backend/
-    ProjetoClubes.Domain/           Entidades por módulo (Clubes, Identidade, Auditoria…)
-    ProjetoClubes.Application/      Módulos com Dtos/, Validators/, Services/
-    ProjetoClubes.Infrastructure/   Persistence/ (DbContext, Configurations, Migrations,
-                                    Interceptors, Seed), Security/, Email/
-    ProjetoClubes.API/              Controllers/, Middleware/, Authorization/, Extensions/
-  src/Web/ProjetoClubes.Web/        Blazor Web App (Interactive Server) + Bootstrap — ver DT-024
-  src/Mobile/ProjetoClubes.Mobile/  (Etapa 6)
-  database/migrations/              Script SQL idempotente gerado a partir das migrations
-  database/scripts/                 Scripts operacionais (backup, criação de banco)
-  database/seed/                    Documentação do seed de demonstração
+  src/ProjetoClubes.Api/            API (um projeto, abre e compila sozinho)
+    Domain/                         Entidades por módulo (Clubes, Identidade, Auditoria…)
+    Application/                    Casos de uso por módulo (serviços, DTOs, validações)
+    Infrastructure/                 Persistence/ (DbContext, Configurations, Migrations,
+                                    Interceptors, Seed), Seguranca/, Email/, Arquivos/
+    Controllers/, Middleware/, Autorizacao/, Configuracao/, Program.cs
+  src/ProjetoClubes.Web/            Blazor Web App (Interactive Server) + Bootstrap — ver DT-024
+  src/ProjetoClubes.Mobile/         App .NET MAUI (uma tela, código no MainPage)
+  database/                         Notas sobre o banco SQLite e o seed
   docs/                             Arquitetura, decisões, status, API, diagramas
   tests/ProjetoClubes.UnitTests/
   tests/ProjetoClubes.IntegrationTests/  (API real + SQLite em arquivo)
