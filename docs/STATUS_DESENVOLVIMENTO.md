@@ -208,8 +208,10 @@ Projeto `src/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
 - **Votação pelo app**: a assembleia pode permitir participação pelo aplicativo; com ela em andamento, o associado toca em
   "Participar pelo app" (presença registrada como "pelo app") e vota. Todos os titulares recebem aviso quando ela começa.
   A ata sugerida informa quantos participaram pelo app. Demonstração: assembleia extraordinária em andamento com votação aberta.
-- **Visual Studio parando em erro de validação**: erros esperados (CPF inválido, conflito, não encontrado) agora são tratados
-  no nosso middleware e viram 400/404/409 sem parar o depurador; erros de verdade (500) continuam parando.
+- **Visual Studio parando em erro de validação** (ex.: CPF inválido): a API responde certo (400 com a mensagem), mas o
+  depurador do VS para porque o erro passa pelo código do ASP.NET. Isso não se resolve no código: desmarque "Habilitar Apenas
+  Meu Código" (Ferramentas → Opções → Depuração → Geral) ou, na janela da exceção, desmarque "Interromper quando este tipo de
+  exceção não for manipulado pelo usuário". Enquanto o VS está pausado, a API não responde (e o Web parece fora do ar).
 - Migration `CarteirinhaEVotoPeloApp`. Testes de integração **88/88** (+3).
 - **App em abas** (Início, Eventos, Reservas, Financeiro, Perfil) no lugar da tela única. Na aba Eventos, cada evento mostra
   "Quem vai" com o titular e os dependentes ativos: inscrever um a um (perguntando quantos convidados de fora leva, até o
