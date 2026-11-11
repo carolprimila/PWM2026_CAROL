@@ -34,6 +34,8 @@ public interface IAppDbContext
     DbSet<Interesse> Interesses { get; }
     DbSet<Associado> Associados { get; }
     DbSet<HistoricoAssociado> HistoricoAssociados { get; }
+    DbSet<ContratoAssociado> ContratosAssociados { get; }
+    DbSet<MembroDiretoria> MembrosDiretoria { get; }
     DbSet<Dependente> Dependentes { get; }
     DbSet<VinculoDependente> VinculosDependentes { get; }
     DbSet<HistoricoDependente> HistoricoDependentes { get; }

@@ -157,6 +157,24 @@ Conflito de horário (inclusive o barrado pela restrição do banco) → **409**
 | GET · POST | `/api/v1/portal/comunicados` · `/{id}/leitura?confirmar=` | app | Mural e leitura/confirmação |
 | GET · POST | `/api/v1/portal/assembleias` · `/{id}/pautas/{pautaId}/voto` | app (titular) | Assembleias e voto `{ opcao }` (índice da opção) |
 
+## Pedidos do cliente (DT-032)
+
+| Método | Rota | Acesso | Descrição |
+|---|---|---|---|
+| GET · POST | `/api/v1/associados/{id}/contratos` | `associados.visualizar` · `associados.cadastrar` | Lista (com parcelas, se puder ver o financeiro) · cria `{ valorMensal?, diaVencimento?, inicio? }` em análise |
+| POST | `/api/v1/contratos/{id}/aprovar` | `associados.aprovar` | Aprova e gera as 12 mensalidades |
+| POST | `/api/v1/contratos/{id}/reprovar` · `/desligar` | `associados.aprovar` | `{ motivo }` — desligar cancela parcelas futuras e inativa o associado |
+| POST | `/api/v1/contratos/{id}/renovar` | `associados.cadastrar` | Contrato do ano seguinte, em análise |
+| POST | `/api/v1/dependentes/{id}/tornar-associado` | `associados.cadastrar` | `{ categoriaId }` — dependente maior de idade vira titular |
+| GET | `/api/v1/associados?sexo=Feminino` | `associados.visualizar` | Filtro por gênero (`Masculino`, `Feminino`, `Outro`, `NaoInformado`) |
+| GET | `/api/v1/espacos/disponiveis?inicio&fim&pessoas&eventoId` | `reservas.visualizar` | Espaços com `livre`, `comporta` e o que ocupa o período |
+| POST · DELETE | `/api/v1/eventos/{id}/locais` · `/locais/{espacoId}` | `eventos.gerenciar` | Adiciona `{ espacoId }` / remove um local do evento |
+| POST | `/api/v1/eventos/{id}/divulgar` | `eventos.gerenciar` | Aviso no app + e-mails; devolve contagens, texto e link do WhatsApp |
+| GET · POST | `/api/v1/diretoria` | `clubes.visualizar` · `clubes.editar` | Diretoria atual/anterior e aviso · adiciona `{ nome, cargo, email?, telefone?, inicioMandato, fimMandato? }` |
+| POST | `/api/v1/diretoria/{id}/encerrar` | `clubes.editar` | Encerra o mandato hoje |
+
+Espaços aceitam `limiteReservasPorMes` (por família, por tipo de espaço; erro `reserva.limite_tipo`). Pessoas aceitam `profissao`.
+
 ## Etapa 8 — LGPD
 
 | Método | Rota | Acesso | Descrição |

@@ -104,6 +104,33 @@ internal static class DadosDemonstracao
         await CriarPlanosAsync(db, logger, ct);
         await CriarEspacosEventosAsync(db, agora, logger, ct);
         await CriarEtapa7Async(sp, db, agora, logger, ct);
+        await CriarDiretoriaAsync(db, agora, logger, ct);
+    }
+
+    /// <summary>Diretoria de demonstração: mandato do presidente de 2 anos, começando em janeiro do ano passado.</summary>
+    private static async Task CriarDiretoriaAsync(AppDbContext db, DateTimeOffset agora, ILogger logger, CancellationToken ct)
+    {
+        var inicio = new DateOnly(agora.Year - 1, 1, 1);
+        (string Nome, string Cargo)[] membros =
+        [
+            ("Roberto Almeida", Domain.Clubes.MembroDiretoria.CargoPresidente),
+            ("Sandra Lopes", "Vice-presidente"),
+            ("Paulo Henrique Souza", "Diretor financeiro"),
+            ("Juliana Martins", "Diretora social"),
+            ("Marcos Vinícius Prado", "Diretor de esportes"),
+        ];
+        foreach (var sigla in Clubes.Select(c => c.Sigla))
+        {
+            var clube = await db.Clubes.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Sigla == sigla && c.Demonstracao, ct);
+            if (clube is null || await db.MembrosDiretoria.IgnoreQueryFilters().AnyAsync(m => m.ClubeId == clube.Id, ct)) continue;
+            db.MembrosDiretoria.AddRange(membros.Select(m => new Domain.Clubes.MembroDiretoria(clube.Id, m.Nome, m.Cargo, inicio, null)));
+            clube.Endereco.Logradouro ??= "Avenida das Cataratas";
+            clube.Endereco.Numero ??= "1000";
+            clube.Endereco.Bairro ??= "Centro";
+            clube.Telefone ??= "4535230000";
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Diretoria de demonstração criada no clube {Clube}", clube.Nome);
+        }
     }
 
     /// <summary>Comunicados, funcionários, patrimônio, estoque e uma assembleia convocada (Etapa 7).</summary>

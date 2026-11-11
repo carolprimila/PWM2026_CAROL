@@ -14,7 +14,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-3">
         <div>
             <h1 class="h3 mb-1">@e.Nome <Situacao Valor="@e.Situacao" /></h1>
-            <div class="text-secondary">@Rotulos.Periodo(e.Inicio, e.Fim) · @(e.Espaco ?? e.Local ?? "Local a definir") · @Rotulos.Texto(e.Publico)</div>
+            <div class="text-secondary">@Rotulos.Periodo(e.Inicio, e.Fim) · @(e.Locais.Count > 0 ? string.Join(", ", e.Locais.Select(l => l.Nome)) : e.Espaco ?? e.Local ?? "Local a definir") · @Rotulos.Texto(e.Publico)</div>
             <div class="text-secondary small">@(e.Valor > 0 ? Rotulos.Moeda(e.Valor) + " por pessoa · " : "")até @e.MaximoAcompanhantes acompanhante(s) · @e.LugaresOcupados@(e.Capacidade is { } c ? $" de {c}" : "") lugares@(e.NaListaEspera > 0 ? $" · {e.NaListaEspera} na lista de espera" : "")</div>
             @if (e.MotivoCancelamento is not null) { <div class="text-danger small">Cancelado: @e.MotivoCancelamento</div> }
         </div>
@@ -23,11 +23,32 @@
             <div class="d-flex gap-2">
                 @if (e.Situacao == "InscricoesAbertas") { <button class="btn btn-outline-secondary" @onclick='() => Acao("encerrar-inscricoes")'>Encerrar inscrições</button> }
                 else { <button class="btn btn-outline-secondary" @onclick='() => Acao("reabrir-inscricoes")'>Reabrir inscrições</button> }
+                <button class="btn btn-dark" @onclick="Divulgar">@(e.DivulgadoEm is null ? "Divulgar" : "Divulgar de novo")</button>
                 <button class="btn btn-outline-danger" @onclick="Cancelar">Cancelar evento</button>
             </div>
         }
     </div>
     @if (e.Descricao is not null) { <p>@e.Descricao</p> }
+    @if (e.DivulgadoEm is { } dv) { <p class="small text-secondary">Divulgado em @dv.ToLocalTime().ToString("dd/MM/yyyy HH:mm").</p> }
+
+    @if (_divulgacao is { } dg)
+    {
+        <div class="alert alert-success">
+            <div class="fw-semibold mb-1">Divulgação enviada</div>
+            <div class="small mb-2">@dg.AvisosNoApp aviso(s) no aplicativo e @dg.Emails e-mail(s) enviados.</div>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-success" href="@dg.LinkWhatsApp" target="_blank" rel="noopener">Compartilhar no WhatsApp</a>
+                @if (e.Publico == "Geral") { <span class="small align-self-center">Evento aberto ao público: copie o texto abaixo para as redes sociais.</span> }
+            </div>
+            <textarea class="form-control form-control-sm mt-2" rows="3" readonly>@dg.Texto</textarea>
+        </div>
+    }
+
+    @if (_verLocais)
+    {
+        <LocaisDisponiveis Inicio="e.Inicio" Fim="e.Fim" EventoId="e.Id" Ignorar="e.Locais.Select(l => l.EspacoId).ToList()"
+                           AoEscolher="AdicionarLocal" AoFechar="() => _verLocais = false" />
+    }
 
     <div class="row g-3">
         <div class="col-12 col-lg-8">
@@ -53,6 +74,31 @@
             </div></div>
         </div>
         <div class="col-12 col-lg-4">
+            <div class="card mb-3"><div class="card-body">
+                <h2 class="h6">Locais do evento</h2>
+                @if (e.Locais.Count == 0) { <p class="small text-secondary mb-2">Nenhum espaço reservado para o evento.</p> }
+                <ul class="list-unstyled small mb-2">
+                    @foreach (var l in e.Locais)
+                    {
+                        <li class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                            <span>@l.Nome@(l.Capacidade is { } cap ? $" · {cap} pessoas" : "")</span>
+                            @if (Sessao.Possui("eventos.gerenciar") && e.Situacao != "Cancelado")
+                            {
+                                <button class="btn btn-sm btn-link text-danger p-0" @onclick="() => RemoverLocal(l)">Remover</button>
+                            }
+                        </li>
+                    }
+                </ul>
+                @if (e.Locais.Count > 0 && e.Capacidade is { } vagas)
+                {
+                    var total = e.Locais.Sum(l => l.Capacidade ?? 0);
+                    <div class="small text-secondary mb-2">Capacidade dos locais: @total · vagas do evento: @vagas</div>
+                }
+                @if (Sessao.Possui("eventos.gerenciar") && e.Situacao != "Cancelado")
+                {
+                    <button class="btn btn-sm btn-outline-dark w-100" @onclick="() => _verLocais = true">Adicionar local (quadra, quiosque…)</button>
+                }
+            </div></div>
             <form class="card mb-3" @onsubmit="Presenca"><div class="card-body">
                 <h2 class="h6">Registrar presença</h2>
                 <input class="form-control mb-2" placeholder="Código da carteirinha (leitor de QR)" @bind="_codigo" aria-label="Código da carteirinha" />
@@ -81,8 +127,26 @@
     private string _codigo = "", _busca = "";
     private List<AssociadoLista> _resultados = [];
     private string? _erro, _mensagem;
+    private bool _verLocais;
+    private Divulgacao? _divulgacao;
 
     protected override Task OnParametersSetAsync() => Carregar();
+
+    private async Task AdicionarLocal(LocalDisponivel l)
+    {
+        _verLocais = false;
+        await Executar(() => Api.PostAsync($"api/v1/eventos/{Id}/locais", new { espacoId = l.Id }), $"{l.Nome} reservado para o evento.");
+    }
+
+    private Task RemoverLocal(LocalEvento l) =>
+        Executar(() => Api.DeleteAsync($"api/v1/eventos/{Id}/locais/{l.EspacoId}"), $"{l.Nome} liberado.");
+
+    private async Task Divulgar()
+    {
+        _erro = _mensagem = null;
+        try { _divulgacao = await Api.PostAsync<Divulgacao>($"api/v1/eventos/{Id}/divulgar"); await Carregar(); }
+        catch (ErroApi ex) { _erro = ex.Message; }
+    }
 
     private async Task Carregar()
     {

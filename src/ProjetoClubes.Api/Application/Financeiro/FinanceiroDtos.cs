@@ -35,7 +35,11 @@ public sealed record MensalidadeDto(
     decimal Encargos,
     decimal ValorAtualizado,
     string? Motivo,
-    PagamentoResumoDto? Pagamento);
+    PagamentoResumoDto? Pagamento,
+    DateTimeOffset EmitidaEm,
+    decimal Multa,
+    decimal Juros,
+    string? Contrato);
 
 public sealed class ConsultaMensalidades : ConsultaPaginada
 {
@@ -44,6 +48,7 @@ public sealed class ConsultaMensalidades : ConsultaPaginada
     // Aberta | Vencida | Paga | Isenta | Cancelada
     public string? Situacao { get; set; }
     public Guid? AssociadoId { get; set; }
+    public Guid? ContratoId { get; set; }
 }
 
 public sealed record RegistrarPagamentoRequest(decimal? Valor, DateOnly? Data, FormaPagamento Forma, string? Observacao,

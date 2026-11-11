@@ -543,6 +543,85 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ProjetoClubes.Domain.Associados.ContratoAssociado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AprovadoEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AssociadoId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("AtualizadoPor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClubeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ContratoAnteriorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("CriadoPor")
+                        .HasColumnType("TEXT");
+
+                    b.PrimitiveCollection<string>("Dependentes")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DiaVencimento")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("Fim")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("Inicio")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Situacao")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ValorMensal")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssociadoId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Contratos_UmEmAnalise")
+                        .HasFilter("\"Situacao\" = 'EmAnalise'");
+
+                    b.HasIndex("ClubeId", "Numero")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Contratos_ClubeNumero");
+
+                    b.ToTable("ContratosAssociados", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Contratos_Dia", "\"DiaVencimento\" BETWEEN 1 AND 28");
+
+                            t.HasCheckConstraint("CK_Contratos_Periodo", "\"Fim\" > \"Inicio\"");
+                        });
+                });
+
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.HistoricoAssociado", b =>
                 {
                     b.Property<Guid>("Id")
@@ -846,6 +925,63 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.ToTable("ConfiguracoesClube", null, t =>
                         {
                             t.HasCheckConstraint("CK_ConfiguracoesClube_Cor", "\"CorPrimaria\" GLOB '#[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]'");
+                        });
+                });
+
+            modelBuilder.Entity("ProjetoClubes.Domain.Clubes.MembroDiretoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("AtualizadoPor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Cargo")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ClubeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("CriadoPor")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EncerradoEm")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("FimMandato")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("InicioMandato")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Telefone")
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClubeId", "FimMandato");
+
+                    b.ToTable("MembrosDiretoria", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Diretoria_Mandato", "\"FimMandato\" >= \"InicioMandato\"");
                         });
                 });
 
@@ -1302,6 +1438,9 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT");
 
+                    b.Property<long?>("DivulgadoEm")
+                        .HasColumnType("INTEGER");
+
                     b.Property<Guid?>("EspacoId")
                         .HasColumnType("TEXT");
 
@@ -1594,6 +1733,9 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.Property<DateOnly>("Competencia")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ContratoId")
+                        .HasColumnType("TEXT");
+
                     b.Property<long>("CriadoEm")
                         .HasColumnType("INTEGER");
 
@@ -1627,6 +1769,8 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ContratoId");
 
                     b.HasIndex("PlanoId");
 
@@ -2724,6 +2868,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Profissao")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Rg")
                         .HasMaxLength(20)
                         .HasColumnType("TEXT");
@@ -2855,6 +3003,9 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("ExigeAprovacao")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LimiteReservasPorMes")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Nome")
@@ -3205,6 +3356,15 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ProjetoClubes.Domain.Associados.ContratoAssociado", b =>
+                {
+                    b.HasOne("ProjetoClubes.Domain.Associados.Associado", null)
+                        .WithMany()
+                        .HasForeignKey("AssociadoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.HistoricoAssociado", b =>
                 {
                     b.HasOne("ProjetoClubes.Domain.Associados.Associado", null)
@@ -3228,6 +3388,15 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.HasOne("ProjetoClubes.Domain.Clubes.Clube", null)
                         .WithOne("Configuracao")
                         .HasForeignKey("ProjetoClubes.Domain.Clubes.ConfiguracaoClube", "ClubeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("ProjetoClubes.Domain.Clubes.MembroDiretoria", b =>
+                {
+                    b.HasOne("ProjetoClubes.Domain.Clubes.Clube", null)
+                        .WithMany()
+                        .HasForeignKey("ClubeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -3452,6 +3621,11 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ClubeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("ProjetoClubes.Domain.Associados.ContratoAssociado", null)
+                        .WithMany()
+                        .HasForeignKey("ContratoId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("ProjetoClubes.Domain.Financeiro.PlanoMensalidade", null)
                         .WithMany()

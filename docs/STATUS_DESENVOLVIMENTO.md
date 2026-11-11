@@ -1,6 +1,6 @@
 # Status do desenvolvimento
 
-Última atualização: 2026-11-11 — **Todas as etapas entregues. Banco trocado para SQLite (DT-030): roda em qualquer notebook, abrindo no Visual Studio.**
+Última atualização: 2026-11-11 — **Todas as etapas entregues + pedidos do cliente (contrato, diretoria, eventos com vários locais, reservas no app — DT-032). Roda em qualquer notebook pelo Visual Studio (SQLite).**
 
 ## Etapas
 
@@ -19,7 +19,8 @@
 - Abrir `ProjetoClubes.slnx` no Visual Studio e escolher o perfil "API + Web administrativo" (ou "API + App"); F5.
 - Banco SQLite `src/ProjetoClubes.Api/projetoclubes.db`, criado sozinho com dados de demonstração (senha `Clubes2026!`).
 - Nada para instalar além do Visual Studio/.NET 10 SDK (e a carga MAUI para o app). Sem user-secrets.
-- Migrations: `20261111180346_Inicial` (esquema completo para SQLite, com os gatilhos de conflito de reservas).
+- Migrations: `20261111180346_Inicial` (esquema completo para SQLite, com os gatilhos de conflito de reservas) e
+  `ContratosEventosDiretoria` (DT-032).
   As migrations e scripts do PostgreSQL foram removidos.
 
 ## Etapa 1 — entregue
@@ -181,6 +182,30 @@ Projeto `src/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
 - Testado no navegador (perfis, perfis de usuário, configurações salvas e revertidas, auditoria com o diff, relatórios e
   CSV, edição de associado mantendo o endereço, download LGPD, recuperação de senha pelo link do e-mail) e no app Windows
   (esqueci minha senha, login, exportação gerando o JSON).
+
+## Pedidos do cliente após a Etapa 8 (DT-032)
+- **Reserva pelo app**: o associado já conseguia reservar, mas não via o que estava ocupado. Agora o app mostra os horários
+  ocupados do espaço no dia escolhido. No Web, o calendário mostra "Finalidade — nome de quem reservou" (no app, só "Ocupado").
+- **Cadastro do associado**: profissão, endereço completo, gênero, data de cadastro, "Titular" e histórico de alterações com
+  quem fez e quais campos mudaram. Filtro de associados por gênero.
+- **Contrato do associado** (`ContratoAssociado`): número `ano-0001`, em análise → aprovado/reprovado → desligado/encerrado,
+  valor mensal (padrão: plano da categoria + adicional de dependentes), dependentes e parentesco, anual com renovação.
+  Ao aprovar, gera as 12 mensalidades vinculadas ao contrato; a ficha mostra parcelas com emissão, vencimento, valor, multa,
+  juros e situação. Desligar cancela as parcelas futuras em aberto e inativa o associado.
+- **Dependente vira associado**: dependente ativo e maior de idade (com CPF) ganha matrícula própria; o vínculo se encerra.
+- **Eventos**: vários locais por evento (salão + quadra + quiosque…), pop-up de locais disponíveis no período com capacidade
+  e agenda, capacidade do evento limitada à soma dos locais, divulgação (aviso no app, e-mail e link de compartilhamento no
+  WhatsApp; texto pronto para redes sociais quando aberto ao público).
+- **Limite de reservas por tipo de espaço**: por família (titular + dependentes) por mês, configurável em cada espaço.
+- **Login com mais de um clube**: depois de e-mail e senha, escolhe o clube (Web e app).
+- **Associação e diretoria**: dados e endereço da associação editáveis em Configurações; diretoria com cargos e mandato
+  (presidente: 2 anos, um por vez, aviso 60 dias antes do fim e quando falta presidente); gestões anteriores guardadas.
+- Migration nova `ContratosEventosDiretoria` (aplicada sobre o banco existente, sem perder dados).
+- Testes: unitários **87/87** (+7) e integração **85/85** (+5). Bug encontrado pelos testes e corrigido: reprovar/desligar
+  com motivo em branco mudava a situação do contrato antes de recusar.
+- Conferido no navegador (cópia em portas separadas): Configurações com diretoria, ficha do associado com contrato gerando
+  12 parcelas, evento com segundo local pelo pop-up e divulgação. App Windows compila; a escolha de clube no app não foi
+  testada em tela (nenhum associado de demonstração participa de dois clubes).
 
 ## Três projetos como o VanderBakery (DT-031)
 - `src/ProjetoClubes.Api` (com `Domain/`, `Application/`, `Infrastructure/` dentro), `src/ProjetoClubes.Web` e

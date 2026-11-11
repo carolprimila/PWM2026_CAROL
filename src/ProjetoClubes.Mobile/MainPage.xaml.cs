@@ -113,6 +113,22 @@ public partial class MainPage : ContentPage
                 new { email = LoginEmailEntry.Text.Trim(), senha = LoginSenhaEntry.Text, dispositivo = $"App {DeviceInfo.Platform}" }, Json);
             if (!r.IsSuccessStatusCode) { LoginMensagemLabel.Text = await MensagemErroAsync(r); return; }
             var t = (await r.Content.ReadFromJsonAsync<Tokens>(Json))!;
+            // Associado de mais de um clube escolhe em qual entrar.
+            if (t.Usuario.Clubes is { Count: > 1 } clubes)
+            {
+                var escolha = await DisplayActionSheetAsync("Em qual clube deseja entrar?", "Cancelar", null,
+                    clubes.Select(c => c.NomeExibicao ?? c.Nome).ToArray());
+                var clube = clubes.FirstOrDefault(c => (c.NomeExibicao ?? c.Nome) == escolha);
+                if (clube is null) return;
+                using var pedido = new HttpRequestMessage(HttpMethod.Post, "api/v1/auth/trocar-clube")
+                {
+                    Content = JsonContent.Create(new { clubeId = clube.Id }, options: Json),
+                };
+                pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", t.AccessToken);
+                using var troca = await _api.SendAsync(pedido);
+                if (!troca.IsSuccessStatusCode) { LoginMensagemLabel.Text = await MensagemErroAsync(troca); return; }
+                t = (await troca.Content.ReadFromJsonAsync<Tokens>(Json))!;
+            }
             if (!t.Usuario.Permissoes.Contains("portal.acessar") && !t.Usuario.SuperAdmin)
             {
                 LoginMensagemLabel.Text = "Este aplicativo é para associados e dependentes. Use o sistema Web da administração.";
@@ -434,6 +450,27 @@ public partial class MainPage : ContentPage
         ReservarBotao.Text = ReservaForm.IsVisible ? "Cancelar" : "＋ Reservar";
     }
 
+    /// <summary>Mostra os horários já ocupados do espaço no dia escolhido, antes de pedir a reserva.</summary>
+    private async void ReservaFiltroAlterado(object? sender, EventArgs e)
+    {
+        if (EspacoPicker.SelectedIndex < 0 || EspacoPicker.SelectedIndex >= _espacos.Count) return;
+        var espaco = _espacos[EspacoPicker.SelectedIndex];
+        var dia = (ReservaDiaPicker.Date ?? DateTime.Today).Date;
+        var de = Uri.EscapeDataString(new DateTimeOffset(dia).ToString("O"));
+        var ate = Uri.EscapeDataString(new DateTimeOffset(dia.AddDays(1)).ToString("O"));
+        try
+        {
+            var ocupados = await GetAsync<List<ItemCalendarioApp>>($"api/v1/reservas/calendario?de={de}&ate={ate}&espacoId={espaco.Id}");
+            OcupacaoLabel.TextColor = Color.FromArgb(ocupados.Count == 0 ? "#1F7A45" : "#A34A00");
+            OcupacaoLabel.Text = ocupados.Count == 0
+                ? $"{espaco.Nome} está livre o dia todo em {dia:dd/MM}."
+                : $"Já ocupado em {dia:dd/MM}: " + string.Join(", ", ocupados.OrderBy(o => o.Inicio)
+                    .Select(o => $"{o.Inicio.ToLocalTime():HH:mm}–{o.Fim.ToLocalTime():HH:mm}{(o.Tipo == "Evento" ? $" ({o.Titulo})" : "")}"))
+                  + ". Escolha outro horário.";
+        }
+        catch (Exception ex) { OcupacaoLabel.Text = ex.Message; }
+    }
+
     private async void SolicitarReservaClicked(object? sender, EventArgs e)
     {
         if (EspacoPicker.SelectedIndex < 0) { await DisplayAlertAsync("Reserva", "Escolha o espaço.", "OK"); return; }
@@ -536,7 +573,9 @@ public partial class MainPage : ContentPage
             info.Add(new Label { Text = $"{m.Competencia[5..]}/{m.Competencia[..4]} · {(m.Pagamento?.Valor ?? m.ValorAtualizado).ToString("C", pt)}", FontSize = 15, TextColor = Color.FromArgb("#1D2127") });
             info.Add(Linha(m.Situacao == "Paga" && m.Pagamento is { } p
                 ? $"Pago em {p.Data:dd/MM/yyyy} · recibo nº {p.NumeroRecibo}"
-                : $"Vence em {m.Vencimento:dd/MM/yyyy}"));
+                : m.Multa + m.Juros > 0
+                    ? $"Venceu em {m.Vencimento:dd/MM/yyyy} · {m.Valor.ToString("C", pt)} + multa {m.Multa.ToString("C", pt)} + juros {m.Juros.ToString("C", pt)}"
+                    : $"Vence em {m.Vencimento:dd/MM/yyyy}{(m.Contrato is null ? "" : $" · contrato {m.Contrato}")}"));
             g.Add(info);
             g.Add(Situacao(m.Situacao == "Aberta" ? "Em aberto" : m.Situacao), 1);
             MensalidadesLista.Children.Add(g);
@@ -717,11 +756,13 @@ public partial class MainPage : ContentPage
 
     // ------------------------------------------------------------------ modelos (respostas da API)
 
-    private sealed record Usuario(string Nome, bool SuperAdmin, List<string> Permissoes);
+    private sealed record Usuario(string Nome, bool SuperAdmin, List<string> Permissoes, List<ClubeLogin>? Clubes);
+    private sealed record ClubeLogin(Guid Id, string Nome, string? NomeExibicao);
     private sealed record AvisoApp(Guid Id, string Tipo, string Titulo, string Texto, DateTimeOffset CriadaEm, bool Lida);
     private sealed record CaixaAvisos(int NaoLidas, List<AvisoApp> Itens);
     private sealed record ComunicadoApp(Guid Id, string Titulo, string Texto, bool Fixado, DateTimeOffset PublicadoEm, bool ExigeConfirmacao, bool Lido, bool Confirmado);
     private sealed record ApuracaoApp(string Opcao, int Votos);
+    private sealed record ItemCalendarioApp(string Tipo, string Titulo, DateTimeOffset Inicio, DateTimeOffset Fim);
     private sealed record PautaApp(Guid Id, int Ordem, string Titulo, bool ComVotacao, List<string> Opcoes, string? Votacao, bool Votei,
         List<ApuracaoApp>? Apuracao, string? Decisao);
     private sealed record AssembleiaApp(Guid Id, string Titulo, DateTimeOffset DataHora, string? Local, string? Convocacao, string Situacao,
@@ -743,7 +784,8 @@ public partial class MainPage : ContentPage
     private sealed record RespostaApp(string Texto, bool DaAdministracao, DateTimeOffset CriadaEm);
     private sealed record SolicitacaoDetalheApp(string Protocolo, string Descricao, List<RespostaApp> Respostas);
     private sealed record PagamentoResumo(long NumeroRecibo, DateOnly Data, decimal Valor);
-    private sealed record Mensalidade(string Competencia, DateOnly Vencimento, decimal ValorAtualizado, string Situacao, PagamentoResumo? Pagamento);
+    private sealed record Mensalidade(string Competencia, DateOnly Vencimento, decimal ValorAtualizado, string Situacao, PagamentoResumo? Pagamento,
+        decimal Valor = 0, decimal Multa = 0, decimal Juros = 0, string? Contrato = null);
     private sealed record SituacaoFinanceira(bool Adimplente, int EmAberto, int Vencidas, decimal TotalDevido, List<Mensalidade> Mensalidades);
     private sealed record Dependente(Guid Id, string Nome, int? Idade, string Parentesco, string NumeroIdentificacao, string Situacao);
 }

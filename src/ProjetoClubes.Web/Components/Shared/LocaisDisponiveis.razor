@@ -1,0 +1,63 @@
+@* Pop-up com os espaços do clube e a situação deles no período: livre/ocupado e se comportam o público. *@
+@inject Api Api
+
+<div class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.45)" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title h5">Locais disponíveis</h2>
+                <button type="button" class="btn-close" aria-label="Fechar" @onclick="() => AoFechar.InvokeAsync()"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-secondary">@Rotulos.Periodo(Inicio, Fim)@(Pessoas is { } p ? $" · {p} pessoa(s)" : "")</p>
+                @if (_erro is not null) { <div class="alert alert-danger py-2">@_erro</div> }
+                else if (_locais is null) { <p class="text-secondary">Verificando a agenda…</p> }
+                else
+                {
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Espaço</th><th>Capacidade</th><th>Agenda</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var l in _locais)
+                        {
+                            var jaEsta = Ignorar?.Contains(l.Id) == true;
+                            <tr class="@(l.Livre ? "" : "text-secondary")">
+                                <td><div class="fw-medium">@l.Nome</div><small class="text-secondary">@Rotulos.Texto(l.Tipo)</small></td>
+                                <td>@(l.Capacidade?.ToString() ?? "—")@if (!l.Comporta) { <span class="badge text-bg-warning ms-1">pequeno</span> }</td>
+                                <td class="small">@if (l.Livre) { <span class="text-success">Livre</span> } else { <span>Ocupado: @l.Ocupacao</span> }</td>
+                                <td class="text-end">
+                                    @if (jaEsta) { <span class="small text-secondary">já no evento</span> }
+                                    else { <button class="btn btn-sm @(l.Livre ? "btn-dark" : "btn-outline-secondary")" disabled="@(!l.Livre)" @onclick="() => AoEscolher.InvokeAsync(l)">Escolher</button> }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public DateTimeOffset Inicio { get; set; }
+    [Parameter, EditorRequired] public DateTimeOffset Fim { get; set; }
+    [Parameter] public int? Pessoas { get; set; }
+    [Parameter] public Guid? EventoId { get; set; }
+    [Parameter] public IReadOnlyCollection<Guid>? Ignorar { get; set; }
+    [Parameter] public EventCallback<LocalDisponivel> AoEscolher { get; set; }
+    [Parameter] public EventCallback AoFechar { get; set; }
+
+    private List<LocalDisponivel>? _locais;
+    private string? _erro;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try
+        {
+            var url = $"api/v1/espacos/disponiveis?inicio={Uri.EscapeDataString(Inicio.ToString("o"))}&fim={Uri.EscapeDataString(Fim.ToString("o"))}"
+                      + (Pessoas is { } p ? $"&pessoas={p}" : "") + (EventoId is { } id ? $"&eventoId={id}" : "");
+            _locais = await Api.GetAsync<List<LocalDisponivel>>(url);
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

@@ -27,6 +27,8 @@ public sealed record Pessoa(Guid Id, string NomeCompleto, string? Cpf, DateOnly?
 {
     public string? Rg { get; init; }
     public string? EstadoCivil { get; init; }
+    public string? Profissao { get; init; }
+    public DateTimeOffset CadastradoEm { get; init; }
 }
 
 public sealed record DependenteResumo(Guid Id, Guid PessoaId, string Nome, string Parentesco, string? ParentescoDescricao,
@@ -66,7 +68,19 @@ public sealed record PagamentoResumo(Guid Id, long NumeroRecibo, decimal Valor, 
 
 public sealed record Mensalidade(Guid Id, Guid AssociadoId, string AssociadoNome, string Matricula, string Competencia,
     DateOnly Vencimento, decimal Valor, int QuantidadeDependentes, string Situacao, decimal Encargos, decimal ValorAtualizado,
-    string? Motivo, PagamentoResumo? Pagamento);
+    string? Motivo, PagamentoResumo? Pagamento)
+{
+    public DateTimeOffset EmitidaEm { get; init; }
+    public decimal Multa { get; init; }
+    public decimal Juros { get; init; }
+    public string? Contrato { get; init; }
+}
+
+public sealed record ContratoInfo(Guid Id, string Numero, string Situacao, DateOnly Inicio, DateOnly Fim, decimal ValorMensal,
+    int DiaVencimento, List<string> Dependentes, DateTimeOffset DataContrato, DateTimeOffset? AprovadoEm, string? Motivo, bool Vigente,
+    List<Mensalidade> Parcelas);
+
+public sealed record HistoricoCadastro(string Evento, string Descricao, string? UsuarioNome, DateTimeOffset OcorridoEm);
 
 public sealed record Inadimplencia(int Associados, int Mensalidades, decimal Valor);
 
@@ -89,7 +103,15 @@ public sealed record FluxoCaixa(DateOnly De, DateOnly Ate, decimal Entradas, dec
 
 public sealed record EventoInfo(Guid Id, string Nome, string? Descricao, string? Local, Guid? EspacoId, string? Espaco,
     DateTimeOffset Inicio, DateTimeOffset Fim, string Publico, int? Capacidade, int LugaresOcupados, int NaListaEspera,
-    decimal Valor, int MaximoAcompanhantes, string Situacao, string? MotivoCancelamento);
+    decimal Valor, int MaximoAcompanhantes, string Situacao, string? MotivoCancelamento)
+{
+    public List<LocalEvento> Locais { get; init; } = [];
+    public DateTimeOffset? DivulgadoEm { get; init; }
+}
+
+public sealed record LocalEvento(Guid EspacoId, string Nome, int? Capacidade);
+public sealed record LocalDisponivel(Guid Id, string Nome, string Tipo, int? Capacidade, bool Livre, bool Comporta, string? Ocupacao);
+public sealed record Divulgacao(int AvisosNoApp, int Emails, string Texto, string LinkWhatsApp);
 
 public sealed record InscricaoInfo(Guid Id, Guid EventoId, Guid PessoaId, string Nome, int Acompanhantes, string Situacao,
     DateTimeOffset InscritoEm, DateTimeOffset? PresencaEm);
@@ -97,7 +119,10 @@ public sealed record InscricaoInfo(Guid Id, Guid EventoId, Guid PessoaId, string
 public sealed record EventoDetalheInfo(EventoInfo Evento, List<InscricaoInfo> Inscricoes);
 
 public sealed record EspacoInfo(Guid Id, string Nome, string Tipo, string? Descricao, int? Capacidade, decimal ValorLocacao,
-    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo);
+    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo)
+{
+    public int? LimiteReservasPorMes { get; init; }
+}
 
 public sealed record ReservaInfo(Guid Id, Guid EspacoId, string Espaco, Guid? PessoaId, string? Solicitante, Guid? EventoId,
     DateTimeOffset Inicio, DateTimeOffset Fim, string? Finalidade, decimal Valor, string Situacao, string? Motivo);
@@ -185,7 +210,8 @@ public static class Rotulos
         "Vencida" or "Atrasado" => "danger",
         "Isenta" or "Cancelada" => "secondary",
         "Suspenso" => "orange",
-        "Rejeitado" or "Bloqueado" => "danger",
+        "Rejeitado" or "Bloqueado" or "Reprovado" => "danger",
+        "EmAnalise" => "warning",
         _ => "secondary",
     };
 
@@ -240,6 +266,8 @@ public static class Rotulos
         "Todos" => "Associados e dependentes",
         "Saida" => "Saída",
         "Afastamento" => "Afastamento",
+        "EmAnalise" => "Em análise",
+        "NaoInformado" => "Não informado",
         _ => codigo,
     };
 

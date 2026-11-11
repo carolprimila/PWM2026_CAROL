@@ -41,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<GestaoDependentes>();
         services.AddScoped<ICategoriaService, CategoriaService>();
         services.AddScoped<IAssociadoService, AssociadoService>();
+        services.AddScoped<IContratoService, ContratoService>();
+        services.AddScoped<IDiretoriaService, DiretoriaService>();
         services.AddScoped<DependenteService>();
         services.AddScoped<IDependenteService>(sp => sp.GetRequiredService<DependenteService>());
         services.AddScoped<IDocumentoService, DocumentoService>();

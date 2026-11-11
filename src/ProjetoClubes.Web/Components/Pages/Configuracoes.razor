@@ -6,10 +6,96 @@
 <PageTitle>Configurações · Projeto Clubes</PageTitle>
 
 <h1 class="h3 mb-1">Configurações do clube</h1>
-<p class="text-secondary mb-3">Identidade visual, aprovações e regras de dependentes. Valem só para este clube.</p>
+<p class="text-secondary mb-3">Dados da associação, diretoria, identidade visual, aprovações e regras de dependentes. Valem só para este clube.</p>
 
 @if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
 @if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_dados is not null)
+{
+    <form class="card mb-3" @onsubmit="SalvarDados"><div class="card-body">
+        <h2 class="h6 mb-3">Dados da associação</h2>
+        <div class="row g-3">
+            <div class="col-12 col-md-6"><label class="form-label small">Nome</label><input class="form-control" @bind="_dados.Nome" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Sigla</label><input class="form-control" @bind="_dados.Sigla" /></div>
+            <div class="col-6 col-md-4"><label class="form-label small">CNPJ</label><input class="form-control" @bind="_dados.Cnpj" /></div>
+            <div class="col-6 col-md-3"><label class="form-label small">Telefone</label><input class="form-control" @bind="_dados.Telefone" /></div>
+            <div class="col-6 col-md-5"><label class="form-label small">E-mail</label><input type="email" class="form-control" @bind="_dados.Email" /></div>
+            <div class="col-6 col-md-4"><label class="form-label small">Fundação</label><input type="date" class="form-control" @bind="_dados.DataFundacao" /></div>
+            <div class="col-12 col-md-6"><label class="form-label small">Endereço</label><input class="form-control" @bind="_dados.Endereco.Logradouro" /></div>
+            <div class="col-4 col-md-2"><label class="form-label small">Número</label><input class="form-control" @bind="_dados.Endereco.Numero" /></div>
+            <div class="col-8 col-md-4"><label class="form-label small">Complemento</label><input class="form-control" @bind="_dados.Endereco.Complemento" /></div>
+            <div class="col-6 col-md-4"><label class="form-label small">Bairro</label><input class="form-control" @bind="_dados.Endereco.Bairro" /></div>
+            <div class="col-6 col-md-4"><label class="form-label small">Cidade</label><input class="form-control" @bind="_dados.Endereco.Cidade" /></div>
+            <div class="col-4 col-md-1"><label class="form-label small">UF</label><input class="form-control" maxlength="2" @bind="_dados.Endereco.Uf" /></div>
+            <div class="col-8 col-md-3"><label class="form-label small">CEP</label><input class="form-control" @bind="_dados.Endereco.Cep" /></div>
+        </div>
+        @if (Edita) { <button class="btn btn-dark mt-3" type="submit">Salvar dados</button> }
+    </div></form>
+}
+
+@if (_diretoria is not null)
+{
+    <div class="card mb-3"><div class="card-body">
+        <h2 class="h6 mb-1">Diretoria</h2>
+        <p class="small text-secondary mb-3">O presidente tem mandato de @AnosMandato anos; os demais cargos podem ter o período que a associação definir.</p>
+        @if (_diretoria.Aviso is not null) { <div class="alert alert-warning py-2 small">@_diretoria.Aviso</div> }
+        <div class="table-responsive">
+            <table class="table table-sm align-middle mb-2">
+                <thead><tr><th>Cargo</th><th>Nome</th><th>Contato</th><th>Mandato</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var m in _diretoria.Atual)
+                    {
+                        <tr>
+                            <td class="fw-medium">@m.Cargo</td>
+                            <td>@m.Nome</td>
+                            <td class="small">@Contato(m)</td>
+                            <td class="small">
+                                @m.InicioMandato.ToString("dd/MM/yyyy") a @m.FimMandato.ToString("dd/MM/yyyy")
+                                @if (!m.Atual) { <span class="badge text-bg-info ms-1">Próxima gestão</span> }
+                                else if (m.DiasParaTerminar is <= 60) { <span class="badge text-bg-warning ms-1">termina em @m.DiasParaTerminar dia(s)</span> }
+                            </td>
+                            <td class="text-end">
+                                @if (Edita && m.Atual) { <button class="btn btn-sm btn-outline-danger" @onclick="() => EncerrarMandato(m)">Encerrar mandato</button> }
+                            </td>
+                        </tr>
+                    }
+                    @if (_diretoria.Atual.Count == 0) { <tr><td colspan="5" class="text-secondary small">Nenhum membro cadastrado.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+        @if (Edita)
+        {
+            <form class="row g-2 align-items-end" @onsubmit="AdicionarMembro">
+                <div class="col-12 col-md-3"><label class="form-label small">Nome</label><input class="form-control form-control-sm" @bind="_novo.Nome" /></div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small">Cargo</label>
+                    <input class="form-control form-control-sm" list="cargos" @bind="_novo.Cargo" />
+                    <datalist id="cargos">
+                        @foreach (var c in Cargos) { <option value="@c"></option> }
+                    </datalist>
+                </div>
+                <div class="col-6 col-md-2"><label class="form-label small">E-mail</label><input class="form-control form-control-sm" @bind="_novo.Email" /></div>
+                <div class="col-6 col-md-1"><label class="form-label small">Telefone</label><input class="form-control form-control-sm" @bind="_novo.Telefone" /></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Início do mandato</label><input type="date" class="form-control form-control-sm" @bind="_novo.InicioMandato" /></div>
+                <div class="col-6 col-md-2"><label class="form-label small">Fim (vazio = 2 anos)</label><input type="date" class="form-control form-control-sm" @bind="_novo.FimMandato" /></div>
+                <div class="col-12"><button class="btn btn-sm btn-dark" type="submit">Adicionar à diretoria</button></div>
+            </form>
+        }
+        @if (_diretoria.Anteriores.Count > 0)
+        {
+            <details class="mt-3">
+                <summary class="small">Gestões anteriores (@_diretoria.Anteriores.Count)</summary>
+                <ul class="small mt-2 mb-0">
+                    @foreach (var m in _diretoria.Anteriores)
+                    {
+                        <li>@m.Cargo — @m.Nome (@m.InicioMandato.ToString("dd/MM/yyyy") a @((m.EncerradoEm ?? m.FimMandato).ToString("dd/MM/yyyy")))</li>
+                    }
+                </ul>
+            </details>
+        }
+    </div></div>
+}
 
 @if (_clube is not null)
 {
@@ -104,7 +190,56 @@
         public Dictionary<string, bool> PermissoesPadrao { get; set; } = [];
     }
 
-    private sealed record ClubeComConfig(Guid Id, ConfigClube Configuracao);
+    private sealed class EnderecoForm
+    {
+        public string? Logradouro { get; set; }
+        public string? Numero { get; set; }
+        public string? Complemento { get; set; }
+        public string? Bairro { get; set; }
+        public string? Cidade { get; set; }
+        public string? Uf { get; set; }
+        public string? Cep { get; set; }
+    }
+
+    private sealed class DadosClube
+    {
+        public string Nome { get; set; } = "";
+        public string Sigla { get; set; } = "";
+        public string? Cnpj { get; set; }
+        public EnderecoForm Endereco { get; set; } = new();
+        public string? Telefone { get; set; }
+        public string? Email { get; set; }
+        public DateOnly? DataFundacao { get; set; }
+    }
+
+    private sealed record ClubeComConfig(Guid Id, string Nome, string Sigla, string? Cnpj, EnderecoForm? Endereco, string? Telefone,
+        string? Email, DateOnly? DataFundacao, ConfigClube Configuracao);
+
+    private sealed record MembroDiretoria(Guid Id, string Nome, string Cargo, string? Email, string? Telefone, DateOnly InicioMandato,
+        DateOnly FimMandato, DateOnly? EncerradoEm, bool Atual, int? DiasParaTerminar);
+    private sealed record Diretoria(List<MembroDiretoria> Atual, List<MembroDiretoria> Anteriores, string? Aviso);
+
+    private sealed class NovoMembro
+    {
+        public string Nome { get; set; } = "";
+        public string Cargo { get; set; } = "";
+        public string? Email { get; set; }
+        public string? Telefone { get; set; }
+        public DateOnly InicioMandato { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public DateOnly? FimMandato { get; set; }
+    }
+
+    private const int AnosMandato = 2;
+    private static readonly string[] Cargos = ["Presidente", "Vice-presidente", "Diretor financeiro", "Diretor social",
+        "Diretor de esportes", "Diretor de patrimônio", "Secretário", "Conselheiro fiscal"];
+
+    private DadosClube? _dados;
+    private Diretoria? _diretoria;
+    private NovoMembro _novo = new();
+    private bool Edita => Sessao.Possui("clubes.editar");
+
+    private static string Contato(MembroDiretoria m) =>
+        string.Join(" · ", new[] { m.Email, m.Telefone is null ? null : Rotulos.Telefone(m.Telefone) }.Where(x => x is not null));
 
     private static readonly string[] Fusos = ["America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Campo_Grande",
         "America/Porto_Velho", "America/Rio_Branco", "America/Fortaleza", "America/Recife", "America/Belem", "America/Noronha"];
@@ -119,7 +254,14 @@
     {
         try
         {
-            _clube = (await Api.GetAsync<ClubeComConfig>($"api/v1/clubes/{ClubeId}")).Configuracao;
+            var c = await Api.GetAsync<ClubeComConfig>($"api/v1/clubes/{ClubeId}");
+            _clube = c.Configuracao;
+            _dados = new DadosClube
+            {
+                Nome = c.Nome, Sigla = c.Sigla, Cnpj = c.Cnpj, Endereco = c.Endereco ?? new(), Telefone = c.Telefone, Email = c.Email,
+                DataFundacao = c.DataFundacao,
+            };
+            if (Sessao.Possui("clubes.visualizar")) _diretoria = await Api.GetAsync<Diretoria>("api/v1/diretoria");
             _dep = await Api.GetAsync<ConfigDependentes>("api/v1/dependentes/configuracoes");
         }
         catch (ErroApi e) { _erro = e.Message; }
@@ -129,6 +271,32 @@
     {
         _erro = _mensagem = null;
         try { await Api.PutAsync<JsonElement>($"api/v1/clubes/{ClubeId}/configuracoes", _clube!); _mensagem = "Configurações do clube salvas. A nova cor aparece no próximo login."; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarDados()
+    {
+        _erro = _mensagem = null;
+        try { await Api.PutAsync<JsonElement>($"api/v1/clubes/{ClubeId}", _dados!); _mensagem = "Dados da associação salvos."; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task AdicionarMembro()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            _diretoria = await Api.PostAsync<Diretoria>("api/v1/diretoria", _novo);
+            _mensagem = $"{_novo.Nome} adicionado(a) à diretoria.";
+            _novo = new();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task EncerrarMandato(MembroDiretoria m)
+    {
+        _erro = _mensagem = null;
+        try { _diretoria = await Api.PostAsync<Diretoria>($"api/v1/diretoria/{m.Id}/encerrar"); _mensagem = $"Mandato de {m.Nome} encerrado hoje."; }
         catch (ErroApi e) { _erro = e.Message; }
     }
 

@@ -167,6 +167,7 @@ public sealed class MensalidadeService(
             q = q.Where(m => m.Competencia == comp);
         }
         if (c.AssociadoId is { } aid) q = q.Where(m => m.AssociadoId == aid);
+        if (c.ContratoId is { } cid) q = q.Where(m => m.ContratoId == cid);
         var hoje = Hoje;
         q = c.Situacao switch
         {
@@ -306,6 +307,7 @@ public sealed class MensalidadeService(
                 M = m,
                 Nome = db.Associados.Where(a => a.Id == m.AssociadoId).Select(a => a.Pessoa.NomeCompleto).FirstOrDefault(),
                 Matricula = db.Associados.Where(a => a.Id == m.AssociadoId).Select(a => a.Matricula).FirstOrDefault(),
+                Contrato = db.ContratosAssociados.Where(c => c.Id == m.ContratoId).Select(c => c.Numero).FirstOrDefault(),
                 Pagamento = db.Pagamentos.Where(p => p.MensalidadeId == m.Id && !p.Estornado)
                     .Select(p => new PagamentoResumoDto(p.Id, p.NumeroRecibo, p.Valor, p.Encargos, p.Data, p.Forma)).FirstOrDefault(),
             })
@@ -316,10 +318,12 @@ public sealed class MensalidadeService(
             var d = dados[id];
             var m = d.M;
             var vencida = m.Vencida(hoje);
-            var encargos = vencida ? CalculoFinanceiro.Encargos(m.Valor, m.Vencimento, hoje, cfg) : 0m;
+            var (multa, juros) = vencida ? CalculoFinanceiro.Detalhar(m.Valor, m.Vencimento, hoje, cfg) : (0m, 0m);
+            var encargos = multa + juros;
             return new MensalidadeDto(m.Id, m.AssociadoId, d.Nome ?? "—", d.Matricula ?? "—", m.Competencia.ToString("yyyy-MM"),
                 m.Vencimento, m.ValorPlano, m.ValorDependentes, m.QuantidadeDependentes, m.Valor,
-                vencida ? "Vencida" : m.Situacao.ToString(), encargos, m.Valor + encargos, m.Motivo, d.Pagamento);
+                vencida ? "Vencida" : m.Situacao.ToString(), encargos, m.Valor + encargos, m.Motivo, d.Pagamento,
+                m.CriadoEm, multa, juros, d.Contrato);
         }).ToList();
     }
 

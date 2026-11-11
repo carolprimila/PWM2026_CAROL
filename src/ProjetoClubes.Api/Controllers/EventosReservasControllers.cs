@@ -34,6 +34,20 @@ public sealed class EventosController(IEventoService eventos) : ControllerBase
     [RequerPermissao(Permissoes.Eventos.Gerenciar)]
     public Task<EventoDto> Atualizar(Guid id, SalvarEventoRequest r, CancellationToken ct) => eventos.SalvarAsync(id, r, ct);
 
+    /// <summary>Reserva mais um local (quadra, quiosque...) para o evento, no mesmo período.</summary>
+    [HttpPost("{id:guid}/locais")]
+    [RequerPermissao(Permissoes.Eventos.Gerenciar)]
+    public Task<EventoDto> AdicionarLocal(Guid id, LocalRequest r, CancellationToken ct) => eventos.AdicionarLocalAsync(id, r.EspacoId, ct);
+
+    [HttpDelete("{id:guid}/locais/{espacoId:guid}")]
+    [RequerPermissao(Permissoes.Eventos.Gerenciar)]
+    public Task<EventoDto> RemoverLocal(Guid id, Guid espacoId, CancellationToken ct) => eventos.RemoverLocalAsync(id, espacoId, ct);
+
+    /// <summary>Avisa os associados (app e e-mail) e devolve o texto e o link para compartilhar no WhatsApp.</summary>
+    [HttpPost("{id:guid}/divulgar")]
+    [RequerPermissao(Permissoes.Eventos.Gerenciar)]
+    public Task<DivulgacaoDto> Divulgar(Guid id, CancellationToken ct) => eventos.DivulgarAsync(id, ct);
+
     [HttpPost("{id:guid}/encerrar-inscricoes")]
     [RequerPermissao(Permissoes.Eventos.Gerenciar)]
     public Task<EventoDto> EncerrarInscricoes(Guid id, CancellationToken ct) => eventos.AlterarInscricoesAsync(id, false, ct);
@@ -74,6 +88,13 @@ public sealed class EspacosController(IReservaService reservas) : ControllerBase
     [HttpGet]
     public Task<IReadOnlyList<EspacoDto>> Listar([FromQuery] bool incluirInativos = false, CancellationToken ct = default) =>
         reservas.ListarEspacosAsync(incluirInativos, ct);
+
+    /// <summary>Espaços livres (e se comportam o público) num período — para escolher o local de um evento.</summary>
+    [HttpGet("disponiveis")]
+    [RequerPermissao(Permissoes.Reservas.Visualizar)]
+    public Task<IReadOnlyList<EspacoDisponivelDto>> Disponiveis([FromQuery] DateTimeOffset inicio, [FromQuery] DateTimeOffset fim,
+        [FromQuery] int? pessoas, [FromQuery] Guid? eventoId, CancellationToken ct) =>
+        reservas.DisponiveisAsync(inicio, fim, pessoas, eventoId, ct);
 
     [HttpPost]
     [RequerPermissao(Permissoes.Reservas.GerenciarEspacos)]

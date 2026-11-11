@@ -17,6 +17,13 @@
         <option value="">Todas as situações</option>
         @foreach (var s in Rotulos.Situacoes) { <option value="@s">@s</option> }
     </select>
+    <select class="form-select" style="max-width:200px" @bind="_sexo" @bind:after="Buscar" aria-label="Gênero">
+        <option value="">Todos os gêneros</option>
+        <option value="Feminino">Feminino</option>
+        <option value="Masculino">Masculino</option>
+        <option value="Outro">Outro</option>
+        <option value="NaoInformado">Não informado</option>
+    </select>
 </div>
 
 @if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
@@ -65,7 +72,7 @@ else
 @code {
     private Pagina<AssociadoLista>? _pagina;
     private string _busca = "";
-    private string _situacao = "";
+    private string _situacao = "", _sexo = "";
     private int _numero = 1;
     private string? _erro;
 
@@ -80,7 +87,7 @@ else
         try
         {
             _erro = null;
-            var url = $"api/v1/associados?pagina={_numero}&tamanhoPagina=20&busca={Uri.EscapeDataString(_busca)}&situacao={_situacao}";
+            var url = $"api/v1/associados?pagina={_numero}&tamanhoPagina=20&busca={Uri.EscapeDataString(_busca)}&situacao={_situacao}" + (_sexo == "" ? "" : $"&sexo={_sexo}");
             _pagina = await Api.GetAsync<Pagina<AssociadoLista>>(url);
         }
         catch (ErroApi e) { _erro = e.Message; }

@@ -219,6 +219,18 @@ associado, sem MVVM nem camadas extras — escolha do usuário por simplicidade,
 - Fora do escopo por ora: enquetes e pesquisas de satisfação, escalas em grade (a escala é texto), anexos de manutenção,
   lançamento automático do custo de manutenção/compra no financeiro.
 
+## DT-032 — Contrato, diretoria, eventos com vários locais (pedidos do cliente)
+- O **contrato gera a cobrança**: ao ser aprovado, cria as 12 mensalidades do período (pula competências que já existem) e
+  as vincula pelo `Mensalidade.ContratoId`. Só um contrato em análise por associado (índice filtrado). Renovar cria o contrato
+  do ano seguinte em análise; o anterior se encerra quando o novo é aprovado.
+- Multa e juros mostrados por parcela usam o mesmo cálculo do financeiro (`CalculoFinanceiro.Detalhar`).
+- Locais de evento são **reservas com `EventoId`**: o mesmo controle de conflito (API + gatilho no banco) vale para todos.
+- Divulgação simples, sem integração paga (projeto acadêmico): notificação no app, e-mail pelo `IEmailSender` e link
+  `wa.me` para compartilhar. Sem disparo automático por WhatsApp nem postagem em redes sociais.
+- Diretoria em tabela própria (`MembrosDiretoria`), cargo em texto livre; "Presidente" tem regra de não sobreposição e
+  mandato padrão de 2 anos. Não está ligada a usuários do sistema (o perfil Presidente continua sendo de acesso).
+- Login: a API já devolvia os clubes do usuário; Web e app perguntam qual quando há mais de um (`auth/trocar-clube`).
+
 ## DT-031 — Três projetos, como o VanderBakery (Api, Web, Mobile)
 Pedido da usuária: a mesma organização do VanderBakery — três pastas em `src/`, abrir um `.csproj` e compilar.
 - `ProjetoClubes.Domain`, `.Application` e `.Infrastructure` viraram as pastas `Domain/`, `Application/` e `Infrastructure/`

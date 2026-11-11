@@ -55,6 +55,8 @@ public class Evento : AuditableEntity, ITenantScoped, ISoftDelete
     public int MaximoAcompanhantes { get; set; }
     public SituacaoEvento Situacao { get; private set; }
     public string? MotivoCancelamento { get; private set; }
+    /// <summary>Quando o clube divulgou o evento aos associados (aviso no app e e-mail).</summary>
+    public DateTimeOffset? DivulgadoEm { get; set; }
 
     public bool Excluido { get; private set; }
     public DateTimeOffset? ExcluidoEm { get; private set; }

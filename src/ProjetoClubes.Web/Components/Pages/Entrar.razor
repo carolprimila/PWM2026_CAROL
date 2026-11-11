@@ -11,6 +11,20 @@
 
 @if (_erro is not null) { <div class="alert alert-danger py-2">@_erro</div> }
 
+@if (_clubes is { } clubes)
+{
+    <p class="small mb-2">Você tem acesso a mais de um clube. Em qual deseja entrar?</p>
+    <div class="d-grid gap-2">
+        @foreach (var c in clubes)
+        {
+            <button type="button" class="btn btn-outline-dark text-start" disabled="@_enviando" @onclick="() => EscolherClubeAsync(c.Id)">
+                <span class="fw-medium">@(c.NomeExibicao ?? c.Nome)</span> <span class="text-secondary small">@c.Sigla</span>
+            </button>
+        }
+    </div>
+    return;
+}
+
 <form @onsubmit="EntrarAsync">
     <div class="mb-3">
         <label class="form-label" for="email">E-mail</label>
@@ -67,6 +81,17 @@
         }
     }
 
+    private List<ClubeResumo>? _clubes;
+
+    private async Task EscolherClubeAsync(Guid clubeId)
+    {
+        _erro = null;
+        _enviando = true;
+        try { await Api.TrocarClubeAsync(clubeId); Nav.NavigateTo(""); }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _enviando = false; }
+    }
+
     private async Task EntrarComoAsync(string email)
     {
         _email = email;
@@ -90,7 +115,9 @@
         _enviando = true;
         try
         {
-            await Api.EntrarAsync(_email.Trim(), _senha);
+            var t = await Api.EntrarAsync(_email.Trim(), _senha);
+            // Quem participa de mais de um clube escolhe em qual entrar.
+            if (t.Usuario.Clubes.Count > 1) { _clubes = t.Usuario.Clubes; return; }
             Nav.NavigateTo("");
         }
         catch (ErroApi e) { _erro = e.Message; }

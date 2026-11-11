@@ -21,11 +21,14 @@
                 <div class="col-6 col-md-3"><label class="form-label small" for="ini">Início *</label><input id="ini" type="datetime-local" class="form-control" @bind="_inicio" /></div>
                 <div class="col-6 col-md-3"><label class="form-label small" for="fim">Término *</label><input id="fim" type="datetime-local" class="form-control" @bind="_fim" /></div>
                 <div class="col-12 col-md-4">
-                    <label class="form-label small" for="esp">Espaço (reserva o período)</label>
-                    <select id="esp" class="form-select" @bind="_espacoId">
-                        <option value="">Nenhum</option>
-                        @foreach (var e in _espacos) { <option value="@e.Id">@e.Nome</option> }
-                    </select>
+                    <label class="form-label small" for="esp">Local (reserva o período)</label>
+                    <div class="input-group">
+                        <select id="esp" class="form-select" @bind="_espacoId">
+                            <option value="">Nenhum</option>
+                            @foreach (var e in _espacos) { <option value="@e.Id">@e.Nome</option> }
+                        </select>
+                        <button type="button" class="btn btn-outline-dark" @onclick="() => _verLocais = true">Ver agenda</button>
+                    </div>
                 </div>
                 <div class="col-12 col-md-4">
                     <label class="form-label small" for="pub">Público</label>
@@ -45,6 +48,12 @@
     </form>
 }
 
+@if (_verLocais)
+{
+    <LocaisDisponiveis Inicio="new DateTimeOffset(_inicio)" Fim="new DateTimeOffset(_fim)" Pessoas="_capacidade"
+                       AoEscolher="l => { _espacoId = l.Id.ToString(); _verLocais = false; }" AoFechar="() => _verLocais = false" />
+}
+
 @if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
 else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum evento programado.</div></div> }
 else
@@ -56,7 +65,7 @@ else
             @foreach (var e in _pagina.Itens)
             {
                 <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"eventos/{e.Id}")'>
-                    <td><div class="fw-medium">@e.Nome</div><small class="text-secondary">@(e.Espaco ?? e.Local ?? "Local a definir") · @Rotulos.Texto(e.Publico)</small></td>
+                    <td><div class="fw-medium">@e.Nome</div><small class="text-secondary">@NomeLocais(e) · @Rotulos.Texto(e.Publico)</small></td>
                     <td class="small">@Rotulos.Periodo(e.Inicio, e.Fim)</td>
                     <td class="small">@e.LugaresOcupados@(e.Capacidade is { } c ? $" / {c}" : "")@(e.NaListaEspera > 0 ? $" · {e.NaListaEspera} na espera" : "")</td>
                     <td><Situacao Valor="@e.Situacao" /></td>
@@ -70,7 +79,7 @@ else
 @code {
     private Pagina<EventoInfo>? _pagina;
     private List<EspacoInfo> _espacos = [];
-    private bool _novo;
+    private bool _novo, _verLocais;
     private string _nome = "", _publico = "AssociadosEDependentes", _espacoId = "";
     private string? _descricao;
     private DateTime _inicio = DateTime.Today.AddDays(7).AddHours(12), _fim = DateTime.Today.AddDays(7).AddHours(16);
@@ -84,6 +93,9 @@ else
         try { _espacos = await Api.GetAsync<List<EspacoInfo>>("api/v1/espacos"); } catch (ErroApi) { /* espaços são opcionais aqui */ }
         await Carregar();
     }
+
+    private static string NomeLocais(EventoInfo e) =>
+        e.Locais.Count > 0 ? string.Join(", ", e.Locais.Select(l => l.Nome)) : e.Espaco ?? e.Local ?? "Local a definir";
 
     private async Task Carregar()
     {

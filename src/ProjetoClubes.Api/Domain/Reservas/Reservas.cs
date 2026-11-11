@@ -44,6 +44,10 @@ public class Espaco : AuditableEntity, ITenantScoped, ISoftDelete
     public decimal TaxaAdicional { get; set; }
     public bool ExigeAprovacao { get; set; } = true;
     public string? Regras { get; set; }
+    /// <summary>
+    /// Quantas reservas cada associado (com seus dependentes) pode ter por mês em espaços deste tipo. Nulo = sem limite.
+    /// </summary>
+    public int? LimiteReservasPorMes { get; set; }
     public bool Ativo { get; set; }
 
     public bool Excluido { get; private set; }

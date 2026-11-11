@@ -56,3 +56,20 @@ internal sealed class ConfiguracaoClubeConfiguration : IEntityTypeConfiguration<
         b.Property(x => x.PrefixoMatricula).HasMaxLength(10);
     }
 }
+
+internal sealed class MembroDiretoriaConfiguration : IEntityTypeConfiguration<MembroDiretoria>
+{
+    public void Configure(EntityTypeBuilder<MembroDiretoria> b)
+    {
+        b.ToTable("MembrosDiretoria", t => t.HasCheckConstraint("CK_Diretoria_Mandato", "\"FimMandato\" >= \"InicioMandato\""));
+        b.HasKey(x => x.Id);
+        b.Ignore(x => x.Presidente);
+        b.Ignore(x => x.TerminoEfetivo);
+        b.Property(x => x.Nome).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Cargo).HasMaxLength(60).IsRequired();
+        b.Property(x => x.Email).HasMaxLength(254);
+        b.Property(x => x.Telefone).HasMaxLength(30);
+        b.HasIndex(x => new { x.ClubeId, x.FimMandato });
+        b.HasOne<Clube>().WithMany().HasForeignKey(x => x.ClubeId).OnDelete(DeleteBehavior.Restrict);
+    }
+}

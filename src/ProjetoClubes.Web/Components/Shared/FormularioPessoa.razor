@@ -29,6 +29,26 @@
         <label class="form-label" for="@(_id)-email">E-mail</label>
         <input type="email" class="form-control" id="@(_id)-email" @bind="Dados.Email" />
     </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label" for="@(_id)-prof">Profissão</label>
+        <input class="form-control" id="@(_id)-prof" @bind="Dados.Profissao" />
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label" for="@(_id)-log">Endereço</label>
+        <input class="form-control" id="@(_id)-log" @bind="Dados.Logradouro" placeholder="Rua, avenida" />
+    </div>
+    <div class="col-4 col-md-2">
+        <label class="form-label" for="@(_id)-num">Número</label>
+        <input class="form-control" id="@(_id)-num" @bind="Dados.Numero" />
+    </div>
+    <div class="col-8 col-md-4">
+        <label class="form-label" for="@(_id)-bairro">Bairro</label>
+        <input class="form-control" id="@(_id)-bairro" @bind="Dados.Bairro" />
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label" for="@(_id)-cep">CEP</label>
+        <input class="form-control" id="@(_id)-cep" @bind="Dados.Cep" inputmode="numeric" />
+    </div>
     <div class="col-8 col-md-4">
         <label class="form-label" for="@(_id)-cidade">Cidade</label>
         <input class="form-control" id="@(_id)-cidade" @bind="Dados.Cidade" />
@@ -52,6 +72,11 @@
         public string Sexo { get; set; } = "NaoInformado";
         public string? Telefone { get; set; }
         public string? Email { get; set; }
+        public string? Profissao { get; set; }
+        public string? Logradouro { get; set; }
+        public string? Numero { get; set; }
+        public string? Bairro { get; set; }
+        public string? Cep { get; set; }
         public string? Cidade { get; set; }
         public string? Uf { get; set; }
 
@@ -64,7 +89,12 @@
             sexo = Sexo,
             telefone = Vazio(Telefone),
             email = Vazio(Email),
-            endereco = new { cidade = Vazio(Cidade), uf = Vazio(Uf)?.ToUpperInvariant() },
+            profissao = Vazio(Profissao),
+            endereco = new
+            {
+                logradouro = Vazio(Logradouro), numero = Vazio(Numero), bairro = Vazio(Bairro), cep = Vazio(Cep),
+                cidade = Vazio(Cidade), uf = Vazio(Uf)?.ToUpperInvariant(),
+            },
         };
 
         private static string? Vazio(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();

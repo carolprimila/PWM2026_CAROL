@@ -46,6 +46,8 @@ public class Pessoa : AuditableEntity, ITenantScoped, ISoftDelete
     public Endereco Endereco { get; set; } = new();
     public string? Telefone { get; set; }
     public string? Email { get; set; }
+    /// <summary>Qualificação/profissão (texto livre).</summary>
+    public string? Profissao { get; set; }
     public Guid? FotoArquivoId { get; set; }
     /// <summary>Conta de acesso ao aplicativo, quando houver.</summary>
     public Guid? UsuarioId { get; set; }
@@ -74,6 +76,7 @@ public class Pessoa : AuditableEntity, ITenantScoped, ISoftDelete
         Endereco = new Endereco();
         Telefone = null;
         Email = null;
+        Profissao = null;
         FotoArquivoId = null;
         UsuarioId = null;
         RegenerarTokenCarteirinha(novoTokenCarteirinha, agora);

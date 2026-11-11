@@ -134,8 +134,11 @@
                                             BackgroundColor="#EAF1EE" TextColor="#2F5D50" CornerRadius="10" />
                                 </Grid>
                                 <VerticalStackLayout x:Name="ReservaForm" IsVisible="False" Spacing="8">
-                                    <Picker x:Name="EspacoPicker" Title="Espaço" />
-                                    <DatePicker x:Name="ReservaDiaPicker" Format="dd/MM/yyyy" BackgroundColor="White" TextColor="#1D2127" />
+                                    <Picker x:Name="EspacoPicker" Title="Espaço" SelectedIndexChanged="ReservaFiltroAlterado" />
+                                    <DatePicker x:Name="ReservaDiaPicker" Format="dd/MM/yyyy" BackgroundColor="White" TextColor="#1D2127"
+                                                DateSelected="ReservaFiltroAlterado" />
+                                    <Label x:Name="OcupacaoLabel" Text="Escolha o espaço para ver os horários já ocupados."
+                                           FontSize="13" TextColor="#5B6270" />
                                     <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                                         <TimePicker x:Name="ReservaInicioPicker" Format="HH:mm" BackgroundColor="White" TextColor="#1D2127" />
                                         <TimePicker Grid.Column="1" x:Name="ReservaFimPicker" Format="HH:mm" BackgroundColor="White" TextColor="#1D2127" />

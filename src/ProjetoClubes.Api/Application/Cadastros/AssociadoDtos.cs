@@ -57,6 +57,8 @@ public sealed class ConsultaAssociados : ConsultaPaginada
     public SituacaoCadastral? Situacao { get; set; }
     public Guid? CategoriaId { get; set; }
     public Guid? InteresseId { get; set; }
+    /// <summary>Gênero (Masculino, Feminino, Outro, NaoInformado).</summary>
+    public Domain.Pessoas.Sexo? Sexo { get; set; }
 }
 
 public sealed class CriarAssociadoRequestValidator : AbstractValidator<CriarAssociadoRequest>

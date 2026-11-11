@@ -23,6 +23,7 @@
             <div class="col-4 col-md-1"><input type="number" min="1" class="form-control" placeholder="Pessoas" @bind="_capacidade" aria-label="Capacidade" /></div>
             <div class="col-4 col-md-2"><input type="number" min="0" step="0.01" class="form-control" placeholder="Locação (R$)" @bind="_valor" aria-label="Valor de locação" /></div>
             <div class="col-4 col-md-2"><input type="number" min="0" step="0.01" class="form-control" placeholder="Taxa (R$)" @bind="_taxa" aria-label="Taxa adicional" /></div>
+            <div class="col-12 col-md-4"><input type="number" min="1" class="form-control" placeholder="Limite de reservas por família/mês (vazio = sem limite)" @bind="_limite" aria-label="Limite de reservas por mês" /></div>
         </div>
         <div class="d-flex justify-content-between align-items-center mt-2">
             <div class="form-check"><input class="form-check-input" type="checkbox" id="aprov" @bind="_exigeAprovacao" />
@@ -34,16 +35,24 @@
 
 <div class="card"><div class="table-responsive">
     <table class="table mb-0 align-middle">
-        <thead><tr><th>Espaço</th><th>Capacidade</th><th class="text-end">Locação</th><th>Aprovação</th></tr></thead>
+        <thead><tr><th>Espaço</th><th>Capacidade</th><th class="text-end">Locação</th><th>Aprovação</th><th>Limite por mês</th></tr></thead>
         <tbody>
         @foreach (var e in _espacos)
         {
             <tr><td><div class="fw-medium">@e.Nome</div><small class="text-secondary">@Rotulos.Texto(e.Tipo)</small></td>
                 <td>@(e.Capacidade?.ToString() ?? "—")</td>
                 <td class="text-end text-nowrap">@Rotulos.Moeda(e.ValorLocacao + e.TaxaAdicional)</td>
-                <td>@(e.ExigeAprovacao ? "Necessária" : "Automática")</td></tr>
+                <td>@(e.ExigeAprovacao ? "Necessária" : "Automática")</td>
+                <td style="max-width:150px">
+                    @if (Sessao.Possui("espacos.gerenciar"))
+                    {
+                        <input type="number" min="1" class="form-control form-control-sm" placeholder="sem limite" value="@e.LimiteReservasPorMes"
+                               @onchange="v => SalvarLimite(e, v.Value?.ToString())" aria-label="Limite de reservas por mês" />
+                    }
+                    else { @(e.LimiteReservasPorMes?.ToString() ?? "Sem limite") }
+                </td></tr>
         }
-        @if (_espacos.Count == 0) { <tr><td colspan="4" class="text-secondary">Nenhum espaço cadastrado.</td></tr> }
+        @if (_espacos.Count == 0) { <tr><td colspan="5" class="text-secondary">Nenhum espaço cadastrado.</td></tr> }
         </tbody>
     </table>
 </div></div>
@@ -52,7 +61,7 @@
     private static readonly string[] Tipos = ["SalaoSocial", "Quiosque", "Churrasqueira", "Quadra", "CampoFutebol", "Piscina", "Camping", "SalaReuniao", "Outro"];
     private List<EspacoInfo> _espacos = [];
     private string _nome = "", _tipo = "SalaoSocial";
-    private int? _capacidade;
+    private int? _capacidade, _limite;
     private decimal _valor, _taxa;
     private bool _exigeAprovacao = true;
     private string? _erro;
@@ -70,10 +79,28 @@
         _erro = null;
         try
         {
-            await Api.PostAsync("api/v1/espacos", new { nome = _nome, tipo = _tipo, capacidade = _capacidade, valorLocacao = _valor, taxaAdicional = _taxa, exigeAprovacao = _exigeAprovacao });
+            await Api.PostAsync("api/v1/espacos", new { nome = _nome, tipo = _tipo, capacidade = _capacidade, valorLocacao = _valor, taxaAdicional = _taxa, exigeAprovacao = _exigeAprovacao, limiteReservasPorMes = _limite });
             _nome = "";
             await Carregar();
         }
         catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    /// <summary>Limite mensal de reservas por família nos espaços deste tipo (vale para pedidos feitos pelo app).</summary>
+    private async Task SalvarLimite(EspacoInfo e, string? valor)
+    {
+        _erro = null;
+        int? limite = int.TryParse(valor, out var n) ? n : null;
+        try
+        {
+            await Api.PutAsync<System.Text.Json.JsonElement>($"api/v1/espacos/{e.Id}", new
+            {
+                nome = e.Nome, tipo = e.Tipo, descricao = e.Descricao, capacidade = e.Capacidade, valorLocacao = e.ValorLocacao,
+                taxaAdicional = e.TaxaAdicional, exigeAprovacao = e.ExigeAprovacao, regras = e.Regras, ativo = e.Ativo,
+                limiteReservasPorMes = limite,
+            });
+            await Carregar();
+        }
+        catch (ErroApi ex) { _erro = ex.Message; }
     }
 }

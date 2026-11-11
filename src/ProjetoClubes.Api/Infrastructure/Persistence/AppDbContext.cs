@@ -36,6 +36,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IUsuarioAtual 
     public DbSet<Interesse> Interesses => Set<Interesse>();
     public DbSet<Associado> Associados => Set<Associado>();
     public DbSet<HistoricoAssociado> HistoricoAssociados => Set<HistoricoAssociado>();
+    public DbSet<ContratoAssociado> ContratosAssociados => Set<ContratoAssociado>();
+    public DbSet<MembroDiretoria> MembrosDiretoria => Set<MembroDiretoria>();
     public DbSet<Dependente> Dependentes => Set<Dependente>();
     public DbSet<VinculoDependente> VinculosDependentes => Set<VinculoDependente>();
     public DbSet<HistoricoDependente> HistoricoDependentes => Set<HistoricoDependente>();

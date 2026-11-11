@@ -32,6 +32,7 @@ internal sealed class PessoaConfiguration : IEntityTypeConfiguration<Pessoa>
         b.Property(x => x.Rg).HasMaxLength(20);
         b.Property(x => x.Telefone).HasMaxLength(11);
         b.Property(x => x.Email).HasMaxLength(254);
+        b.Property(x => x.Profissao).HasMaxLength(100);
         b.Property(x => x.TokenCarteirinha).HasMaxLength(100).IsRequired();
         b.ComplexProperty(x => x.Endereco, e =>
         {

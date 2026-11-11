@@ -99,6 +99,7 @@ public enum TipoNotificacao
     Assembleia = 5,
     Votacao = 6,
     Geral = 7,
+    Evento = 8,
 }
 
 /// <summary>

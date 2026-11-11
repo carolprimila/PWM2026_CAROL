@@ -16,7 +16,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-4">
         <div>
             <h1 class="h3 mb-1">@a.Pessoa.NomeCompleto <Situacao Valor="@a.Situacao" /></h1>
-            <div class="text-secondary">Matrícula @a.Matricula · @a.Categoria.Nome@(a.AptoAVotar ? " · apto a votar" : "")</div>
+            <div class="text-secondary">Titular · Matrícula @a.Matricula · @a.Categoria.Nome@(a.AptoAVotar ? " · apto a votar" : "")</div>
             @if (a.MotivoSituacao is not null) { <div class="small text-secondary mt-1">Motivo: @a.MotivoSituacao</div> }
         </div>
         @if (Sessao.Possui("associados.aprovar"))
@@ -59,6 +59,7 @@
                             <div class="col-6 col-md-4"><label class="form-label small">Sexo</label>
                                 <select class="form-select form-select-sm" @bind="ed.Sexo"><option value="NaoInformado">Não informado</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option><option value="Outro">Outro</option></select></div>
                             <div class="col-6 col-md-6"><label class="form-label small">Telefone</label><input class="form-control form-control-sm" @bind="ed.Telefone" /></div>
+                            <div class="col-6 col-md-6"><label class="form-label small">Profissão</label><input class="form-control form-control-sm" @bind="ed.Profissao" /></div>
                             <div class="col-12 col-md-6"><label class="form-label small">E-mail</label><input type="email" class="form-control form-control-sm" @bind="ed.Email" /></div>
                             <div class="col-12 col-md-8"><label class="form-label small">Endereço</label><input class="form-control form-control-sm" @bind="ed.Logradouro" placeholder="Rua, avenida" /></div>
                             <div class="col-4 col-md-2"><label class="form-label small">Número</label><input class="form-control form-control-sm" @bind="ed.Numero" /></div>
@@ -82,10 +83,13 @@
                 <dl class="row mb-0 small">
                     <dt class="col-4 fw-normal text-secondary">CPF</dt><dd class="col-8">@Rotulos.Cpf(a.Pessoa.Cpf)</dd>
                     <dt class="col-4 fw-normal text-secondary">Nascimento</dt><dd class="col-8">@a.Pessoa.DataNascimento?.ToString("dd/MM/yyyy") (@a.Pessoa.Idade anos)</dd>
+                    <dt class="col-4 fw-normal text-secondary">Gênero</dt><dd class="col-8">@Rotulos.Texto(a.Pessoa.Sexo)</dd>
+                    <dt class="col-4 fw-normal text-secondary">Profissão</dt><dd class="col-8">@(a.Pessoa.Profissao ?? "—")</dd>
                     <dt class="col-4 fw-normal text-secondary">Telefone</dt><dd class="col-8">@Rotulos.Telefone(a.Pessoa.Telefone)</dd>
                     <dt class="col-4 fw-normal text-secondary">E-mail</dt><dd class="col-8">@(a.Pessoa.Email ?? "—")</dd>
-                    <dt class="col-4 fw-normal text-secondary">Cidade</dt><dd class="col-8">@(a.Pessoa.Endereco.Cidade ?? "—") @a.Pessoa.Endereco.Uf</dd>
+                    <dt class="col-4 fw-normal text-secondary">Endereço</dt><dd class="col-8">@EnderecoCompleto(a.Pessoa.Endereco)</dd>
                     <dt class="col-4 fw-normal text-secondary">Associado desde</dt><dd class="col-8">@a.DataAssociacao.ToString("dd/MM/yyyy")</dd>
+                    <dt class="col-4 fw-normal text-secondary">Cadastrado em</dt><dd class="col-8">@a.Pessoa.CadastradoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
                     <dt class="col-4 fw-normal text-secondary">Aplicativo</dt>
                     <dd class="col-8">
                         @if (a.Pessoa.TemAcessoApp) { <span>Acesso criado</span> }
@@ -131,14 +135,35 @@
         else
         {
             <table class="table table-sm align-middle">
-                <thead><tr><th>Nome</th><th>Parentesco</th><th>Nº</th><th>Situação</th></tr></thead>
+                <thead><tr><th>Nome</th><th>Parentesco</th><th>Nº</th><th>Situação</th><th></th></tr></thead>
                 <tbody>
                 @foreach (var d in a.Dependentes)
                 {
-                    <tr><td>@d.Nome</td><td>@Rotulos.Parentesco(d.Parentesco, d.ParentescoDescricao)@(d.Idade is { } i ? $" · {i} anos" : "")</td><td>@d.NumeroIdentificacao</td><td><Situacao Valor="@d.Situacao" /></td></tr>
+                    <tr>
+                        <td>@d.Nome</td><td>@Rotulos.Parentesco(d.Parentesco, d.ParentescoDescricao)@(d.Idade is { } i ? $" · {i} anos" : "")</td>
+                        <td>@d.NumeroIdentificacao</td><td><Situacao Valor="@d.Situacao" /></td>
+                        <td class="text-end">
+                            @if (Sessao.Possui("associados.cadastrar") && d.Situacao == "Ativo" && d.Idade is >= 18)
+                            {
+                                <button class="btn btn-sm btn-outline-dark" @onclick="() => IniciarTornarAssociado(d)">Tornar associado</button>
+                            }
+                        </td>
+                    </tr>
                 }
                 </tbody>
             </table>
+            @if (_tornando is { } td)
+            {
+                <div class="border rounded-3 p-3 mb-3 small">
+                    <div class="fw-semibold mb-2">@td.Nome passa a ser associado(a) titular, com matrícula própria. O vínculo de dependente é encerrado.</div>
+                    <div class="d-flex flex-wrap gap-2 align-items-end">
+                        <div><label class="form-label small">Categoria</label>
+                            <select class="form-select form-select-sm" @bind="_categoriaNova">@foreach (var c in _categorias) { <option value="@c.Id">@c.Nome</option> }</select></div>
+                        <button class="btn btn-dark btn-sm" @onclick="TornarAssociado">Confirmar</button>
+                        <button class="btn btn-link btn-sm" @onclick="() => _tornando = null">Cancelar</button>
+                    </div>
+                </div>
+            }
         }
 
         @if (Sessao.Possui("dependentes.cadastrar") && a.Situacao is "Ativo" or "Pendente")
@@ -166,6 +191,115 @@
                     </div>
                 </div>
             }
+        }
+    </div></div>
+
+    <div class="card mt-3"><div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="h6 mb-0">Contratos</h2>
+            @if (Sessao.Possui("associados.cadastrar") && a.Situacao is "Ativo" or "Pendente"
+                 && !_contratos.Any(c => c.Situacao == "EmAnalise" || (c.Situacao == "Aprovado" && c.Fim >= DateOnly.FromDateTime(DateTime.Today))))
+            {
+                <button class="btn btn-sm btn-outline-dark" @onclick="() => _novoContrato = new()">Gerar contrato</button>
+            }
+        </div>
+        @if (_novoContrato is { } nc)
+        {
+            <div class="border rounded-3 p-3 mb-3 small">
+                <div class="mb-2 text-secondary">Contrato anual. Deixe valor e dia em branco para usar o plano da categoria (+ adicional de dependentes).</div>
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3"><label class="form-label small">Valor mensal (R$)</label><input type="number" step="0.01" min="0" class="form-control form-control-sm" @bind="nc.ValorMensal" /></div>
+                    <div class="col-6 col-md-2"><label class="form-label small">Dia de vencimento</label><input type="number" min="1" max="28" class="form-control form-control-sm" @bind="nc.DiaVencimento" /></div>
+                    <div class="col-6 col-md-3"><label class="form-label small">Início (mês)</label><input type="date" class="form-control form-control-sm" @bind="nc.Inicio" /></div>
+                    <div class="col-6 col-md-4 d-flex gap-2">
+                        <button class="btn btn-dark btn-sm" @onclick="CriarContrato">Gerar (fica em análise)</button>
+                        <button class="btn btn-link btn-sm" @onclick="() => _novoContrato = null">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        }
+        @if (_contratos.Count == 0) { <p class="text-secondary small mb-0">Nenhum contrato. Ao aprovar um contrato, as 12 mensalidades do período são geradas.</p> }
+        @foreach (var c in _contratos)
+        {
+            <div class="border rounded-3 p-3 mb-2">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <div>
+                        <span class="fw-semibold">Contrato nº @c.Numero</span> <Situacao Valor="@c.Situacao" />
+                        @if (c.Vigente) { <span class="badge text-bg-success ms-1">vigente</span> }
+                        <div class="small text-secondary">
+                            @c.Inicio.ToString("dd/MM/yyyy") a @c.Fim.ToString("dd/MM/yyyy") · @Rotulos.Moeda(c.ValorMensal)/mês · vence dia @c.DiaVencimento
+                            · feito em @c.DataContrato.ToLocalTime().ToString("dd/MM/yyyy")
+                        </div>
+                        @if (c.Dependentes.Count > 0) { <div class="small">Dependentes: @string.Join(", ", c.Dependentes)</div> }
+                        @if (c.Motivo is not null) { <div class="small text-secondary">Motivo: @c.Motivo</div> }
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap align-items-start">
+                        @if (Sessao.Possui("associados.aprovar") && c.Situacao == "EmAnalise")
+                        {
+                            <button class="btn btn-sm btn-success" @onclick='() => AcaoContrato(c, "aprovar")'>Aprovar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick='() => PedirMotivoContrato(c, "reprovar")'>Reprovar</button>
+                        }
+                        @if (Sessao.Possui("associados.aprovar") && c.Situacao == "Aprovado")
+                        {
+                            <button class="btn btn-sm btn-outline-danger" @onclick='() => PedirMotivoContrato(c, "desligar")'>Desligar</button>
+                        }
+                        @if (Sessao.Possui("associados.cadastrar") && c.Situacao == "Aprovado")
+                        {
+                            <button class="btn btn-sm btn-outline-dark" @onclick='() => AcaoContrato(c, "renovar")'>Renovar (próximo ano)</button>
+                        }
+                    </div>
+                </div>
+                @if (_motivoContrato is { } mc && mc.Contrato.Id == c.Id)
+                {
+                    <div class="d-flex gap-2 mt-2">
+                        <input class="form-control form-control-sm" placeholder="Motivo para @mc.Acao" @bind="_textoMotivoContrato" />
+                        <button class="btn btn-sm btn-dark" @onclick="() => AcaoContrato(c, mc.Acao)">Confirmar</button>
+                        <button class="btn btn-sm btn-link" @onclick="() => _motivoContrato = null">Cancelar</button>
+                    </div>
+                }
+                @if (c.Parcelas.Count > 0)
+                {
+                    <div class="table-responsive mt-2">
+                        <table class="table table-sm small align-middle mb-0">
+                            <thead><tr><th>Parcela</th><th>Emissão</th><th>Vencimento</th><th class="text-end">Valor</th><th class="text-end">Multa</th><th class="text-end">Juros</th><th class="text-end">Total</th><th>Situação</th></tr></thead>
+                            <tbody>
+                                @foreach (var p in c.Parcelas)
+                                {
+                                    <tr>
+                                        <td>@p.Competencia</td>
+                                        <td>@p.EmitidaEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                                        <td>@p.Vencimento.ToString("dd/MM/yyyy")</td>
+                                        <td class="text-end">@Rotulos.Moeda(p.Valor)</td>
+                                        <td class="text-end">@Rotulos.Moeda(p.Multa)</td>
+                                        <td class="text-end">@Rotulos.Moeda(p.Juros)</td>
+                                        <td class="text-end">@Rotulos.Moeda(p.ValorAtualizado)</td>
+                                        <td><Situacao Valor="@p.Situacao" />@if (p.Pagamento is { } pg) { <span class="text-secondary"> em @pg.Data.ToString("dd/MM/yyyy")</span> }</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        }
+    </div></div>
+
+    <div class="card mt-3"><div class="card-body">
+        <h2 class="h6 mb-3">Últimas alterações</h2>
+        @if (_historico.Count == 0) { <p class="text-secondary small mb-0">Sem registros.</p> }
+        else
+        {
+            <ul class="list-unstyled small mb-0">
+                @foreach (var h in _historico.Take(_verTudo ? int.MaxValue : 8))
+                {
+                    <li class="mb-2">
+                        <span class="text-secondary">@h.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span> ·
+                        <span class="fw-medium">@h.Descricao</span>
+                        <span class="text-secondary"> — por @(h.UsuarioNome ?? "sistema")</span>
+                    </li>
+                }
+            </ul>
+            @if (!_verTudo && _historico.Count > 8) { <button class="btn btn-link btn-sm p-0" @onclick="() => _verTudo = true">Ver tudo (@_historico.Count)</button> }
         }
     </div></div>
 }
@@ -200,6 +334,7 @@ else if (_erro is null)
         public string? EstadoCivil { get; set; }
         public string? Telefone { get; set; }
         public string? Email { get; set; }
+        public string? Profissao { get; set; }
         public string? Logradouro { get; set; }
         public string? Numero { get; set; }
         public string? Complemento { get; set; }
@@ -226,7 +361,7 @@ else if (_erro is null)
         _ed = new Edicao
         {
             NomeCompleto = p.NomeCompleto, Cpf = p.Cpf, Rg = p.Rg, DataNascimento = p.DataNascimento, Sexo = p.Sexo, EstadoCivil = p.EstadoCivil,
-            Telefone = p.Telefone, Email = p.Email, Logradouro = p.Endereco.Logradouro, Numero = p.Endereco.Numero,
+            Telefone = p.Telefone, Email = p.Email, Profissao = p.Profissao, Logradouro = p.Endereco.Logradouro, Numero = p.Endereco.Numero,
             Complemento = p.Endereco.Complemento, Bairro = p.Endereco.Bairro, Cidade = p.Endereco.Cidade, Uf = p.Endereco.Uf, Cep = p.Endereco.Cep,
             CategoriaId = a.Categoria.Id, DataAssociacao = a.DataAssociacao,
         };
@@ -245,7 +380,7 @@ else if (_erro is null)
                 pessoa = new
                 {
                     nomeCompleto = e.NomeCompleto.Trim(), cpf = V(e.Cpf), rg = V(e.Rg), dataNascimento = e.DataNascimento, sexo = e.Sexo,
-                    estadoCivil = e.EstadoCivil, telefone = V(e.Telefone), email = V(e.Email),
+                    estadoCivil = e.EstadoCivil, telefone = V(e.Telefone), email = V(e.Email), profissao = V(e.Profissao),
                     endereco = new { logradouro = V(e.Logradouro), numero = V(e.Numero), complemento = V(e.Complemento), bairro = V(e.Bairro),
                         cidade = V(e.Cidade), uf = V(e.Uf)?.ToUpperInvariant(), cep = V(e.Cep) },
                 },
@@ -255,6 +390,7 @@ else if (_erro is null)
             });
             _editando = false;
             _mensagem = "Dados atualizados.";
+            await CarregarExtras();
         }
         catch (ErroApi ex) { _erro = ex.Message; }
     }
@@ -290,6 +426,104 @@ else if (_erro is null)
         {
             _a = await Api.GetAsync<AssociadoDetalhe>($"api/v1/associados/{Id}");
             _qr = await Api.ImagemAsync($"api/v1/pessoas/{_a.Pessoa.Id}/qrcode");
+            await CarregarExtras();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    // ---------- contratos, histórico e dependente que vira associado ----------
+    private sealed class NovoContrato
+    {
+        public decimal? ValorMensal { get; set; }
+        public int? DiaVencimento { get; set; }
+        public DateOnly? Inicio { get; set; }
+    }
+
+    private sealed record MotivoPendente(ContratoInfo Contrato, string Acao);
+
+    private List<ContratoInfo> _contratos = [];
+    private List<HistoricoCadastro> _historico = [];
+    private bool _verTudo;
+    private NovoContrato? _novoContrato;
+    private MotivoPendente? _motivoContrato;
+    private string _textoMotivoContrato = "";
+    private DependenteResumo? _tornando;
+    private Guid _categoriaNova;
+
+    private async Task CarregarExtras()
+    {
+        _contratos = await Api.GetAsync<List<ContratoInfo>>($"api/v1/associados/{Id}/contratos");
+        _historico = await Api.GetAsync<List<HistoricoCadastro>>($"api/v1/associados/{Id}/historico");
+    }
+
+    private static string EnderecoCompleto(Endereco e)
+    {
+        var partes = new[]
+        {
+            e.Logradouro is null ? null : e.Logradouro + (e.Numero is null ? "" : ", " + e.Numero) + (e.Complemento is null ? "" : " - " + e.Complemento),
+            e.Bairro, e.Cidade is null ? null : e.Cidade + (e.Uf is null ? "" : "/" + e.Uf), e.Cep is null ? null : "CEP " + e.Cep,
+        }.Where(p => !string.IsNullOrWhiteSpace(p));
+        var texto = string.Join(" · ", partes);
+        return texto.Length == 0 ? "—" : texto;
+    }
+
+    private async Task CriarContrato()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            var c = await Api.PostAsync<ContratoInfo>($"api/v1/associados/{Id}/contratos", _novoContrato!);
+            _novoContrato = null;
+            _mensagem = $"Contrato nº {c.Numero} gerado e aguardando análise.";
+            await CarregarExtras();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private void PedirMotivoContrato(ContratoInfo c, string acao)
+    {
+        _motivoContrato = new(c, acao);
+        _textoMotivoContrato = "";
+    }
+
+    private async Task AcaoContrato(ContratoInfo c, string acao)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            object corpo = acao is "reprovar" or "desligar" ? new { motivo = _textoMotivoContrato } : new { };
+            var r = await Api.PostAsync<ContratoInfo>($"api/v1/contratos/{c.Id}/{acao}", corpo);
+            _motivoContrato = null;
+            _mensagem = acao switch
+            {
+                "aprovar" => $"Contrato aprovado: {r.Parcelas.Count} mensalidade(s) geradas.",
+                "renovar" => $"Renovação gerada: contrato nº {r.Numero}, aguardando análise.",
+                "desligar" => "Associado desligado. As mensalidades futuras em aberto foram canceladas.",
+                _ => "Contrato reprovado.",
+            };
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task IniciarTornarAssociado(DependenteResumo d)
+    {
+        try { _categorias = await Api.GetAsync<List<Categoria>>("api/v1/categorias-associados"); }
+        catch (ErroApi e) { _erro = e.Message; return; }
+        _categorias = _categorias.Where(c => c.Ativa).ToList();
+        _categoriaNova = _categorias.FirstOrDefault()?.Id ?? Guid.Empty;
+        _tornando = d;
+    }
+
+    private async Task TornarAssociado()
+    {
+        if (_tornando is not { } d) return;
+        _erro = _mensagem = null;
+        try
+        {
+            var novo = await Api.PostAsync<AssociadoDetalhe>($"api/v1/dependentes/{d.Id}/tornar-associado", new { categoriaId = _categoriaNova });
+            _tornando = null;
+            Nav.NavigateTo($"associados/{novo.Id}");
         }
         catch (ErroApi e) { _erro = e.Message; }
     }

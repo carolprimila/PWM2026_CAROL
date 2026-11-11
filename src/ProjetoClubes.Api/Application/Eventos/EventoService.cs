@@ -12,7 +12,16 @@ namespace ProjetoClubes.Application.Eventos;
 
 public sealed record EventoDto(Guid Id, string Nome, string? Descricao, string? Local, Guid? EspacoId, string? Espaco,
     DateTimeOffset Inicio, DateTimeOffset Fim, PublicoEvento Publico, int? Capacidade, int LugaresOcupados, int NaListaEspera,
-    decimal Valor, int MaximoAcompanhantes, SituacaoEvento Situacao, string? MotivoCancelamento);
+    decimal Valor, int MaximoAcompanhantes, SituacaoEvento Situacao, string? MotivoCancelamento,
+    IReadOnlyList<LocalEventoDto> Locais, DateTimeOffset? DivulgadoEm);
+
+/// <summary>Local (espaço) reservado para o evento.</summary>
+public sealed record LocalEventoDto(Guid EspacoId, string Nome, int? Capacidade);
+
+public sealed record LocalRequest(Guid EspacoId);
+
+/// <summary>Resultado da divulgação: avisos/e-mails enviados e o texto pronto para WhatsApp e redes sociais.</summary>
+public sealed record DivulgacaoDto(int AvisosNoApp, int Emails, string Texto, string LinkWhatsApp);
 
 public sealed record InscricaoDto(Guid Id, Guid EventoId, Guid PessoaId, string Nome, int Acompanhantes, SituacaoInscricao Situacao,
     DateTimeOffset InscritoEm, DateTimeOffset? PresencaEm);
@@ -54,6 +63,9 @@ public interface IEventoService
     Task<Pagina<EventoDto>> ListarAsync(ConsultaEventos c, CancellationToken ct);
     Task<EventoDetalheDto> ObterAsync(Guid id, CancellationToken ct);
     Task<EventoDto> SalvarAsync(Guid? id, SalvarEventoRequest r, CancellationToken ct);
+    Task<EventoDto> AdicionarLocalAsync(Guid id, Guid espacoId, CancellationToken ct);
+    Task<EventoDto> RemoverLocalAsync(Guid id, Guid espacoId, CancellationToken ct);
+    Task<DivulgacaoDto> DivulgarAsync(Guid id, CancellationToken ct);
     Task<EventoDto> AlterarInscricoesAsync(Guid id, bool abertas, CancellationToken ct);
     Task<EventoDto> CancelarAsync(Guid id, string motivo, CancellationToken ct);
     Task<InscricaoDto> InscreverAsync(Guid eventoId, InscreverRequest r, CancellationToken ct);
@@ -70,6 +82,8 @@ public sealed class EventoService(
     IPermissaoResolver permissoes,
     IAcessoPessoas acessoPessoas,
     ITransacoes transacoes,
+    Comunicacao.INotificador notificador,
+    IEmailSender email,
     TimeProvider relogio,
     IValidator<SalvarEventoRequest> validator) : IEventoService
 {
@@ -120,6 +134,7 @@ public sealed class EventoService(
                 e = new Evento(ClubeId, r.Nome, r.Inicio, r.Fim, r.Publico);
                 db.Eventos.Add(e);
             }
+            var principalAnterior = e.EspacoId;
             e.Descricao = r.Descricao?.Trim();
             e.Local = r.Local?.Trim() ?? espaco?.Nome;
             e.Publico = r.Publico;
@@ -128,20 +143,28 @@ public sealed class EventoService(
             e.MaximoAcompanhantes = r.MaximoAcompanhantes;
             e.EspacoId = espaco?.Id;
 
-            var reservaAtual = await db.Reservas.FirstOrDefaultAsync(x => x.EventoId == e.Id && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente), ct);
-            if (reservaAtual is not null && (espaco is null || reservaAtual.EspacoId != espaco.Id))
+            // O evento pode ocupar vários locais (um principal + os adicionados depois): todos acompanham o período.
+            var reservas = await db.Reservas.Where(x => x.EventoId == e.Id
+                && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente)).ToListAsync(ct);
+            var trocado = reservas.FirstOrDefault(x => x.EspacoId == principalAnterior && x.EspacoId != espaco?.Id);
+            if (trocado is not null) { trocado.Cancelar("Evento alterado"); reservas.Remove(trocado); }
+            foreach (var x in reservas)
             {
-                reservaAtual.Cancelar("Evento alterado");
-                reservaAtual = null;
+                await ExigirSemConflitoAsync(x.EspacoId, r.Inicio, r.Fim, x.Id, ct);
+                x.AlterarPeriodo(r.Inicio, r.Fim);
             }
-            if (espaco is not null)
+            if (espaco is not null && reservas.All(x => x.EspacoId != espaco.Id))
             {
-                await ExigirSemConflitoAsync(espaco.Id, r.Inicio, r.Fim, reservaAtual?.Id, ct);
-                if (reservaAtual is null)
-                    db.Reservas.Add(new Reserva(ClubeId, espaco.Id, null, e.Id, r.Inicio, r.Fim, $"Evento: {e.Nome}", 0, exigeAprovacao: false));
-                else
-                    reservaAtual.AlterarPeriodo(r.Inicio, r.Fim);
+                await ExigirSemConflitoAsync(espaco.Id, r.Inicio, r.Fim, null, ct);
+                db.Reservas.Add(new Reserva(ClubeId, espaco.Id, null, e.Id, r.Inicio, r.Fim, $"Evento: {e.Nome}", 0, exigeAprovacao: false));
             }
+
+            // Os locais precisam comportar o público do evento.
+            var locais = reservas.Select(x => x.EspacoId).Append(espaco?.Id ?? Guid.Empty).Where(x => x != Guid.Empty).Distinct().ToList();
+            var capacidades = await db.Espacos.Where(x => locais.Contains(x.Id)).Select(x => x.Capacidade).ToListAsync(ct);
+            if (r.Capacidade is { } publico && capacidades.Count > 0 && capacidades.All(c => c is not null) && publico > capacidades.Sum(c => c!.Value))
+                throw new DomainException("evento.capacidade",
+                    $"Os locais escolhidos comportam {capacidades.Sum(c => c!.Value)} pessoas; o evento prevê {publico}.");
             await db.SaveChangesAsync(ct);
             return e.Id;
         }, ct);
@@ -286,6 +309,74 @@ public sealed class EventoService(
         await db.InscricoesEventos.Where(x => x.EventoId == eventoId && x.Situacao == SituacaoInscricao.Confirmada)
             .SumAsync(x => (int?)(1 + x.Acompanhantes), ct) ?? 0;
 
+    /// <summary>Reserva mais um local (quadra, quiosque...) para o evento, no mesmo período, se estiver livre.</summary>
+    public async Task<EventoDto> AdicionarLocalAsync(Guid id, Guid espacoId, CancellationToken ct)
+    {
+        await permissoes.ExigirAsync(Permissoes.Eventos.Gerenciar, ct);
+        await transacoes.ComBloqueioAsync($"espaco:{espacoId}", async () =>
+        {
+            var e = await db.Eventos.FirstOrDefaultAsync(x => x.Id == id && x.ClubeId == ClubeId, ct) ?? throw new NaoEncontradoException("Evento");
+            if (e.Situacao == SituacaoEvento.Cancelado) throw new DomainException("evento.cancelado", "O evento está cancelado.");
+            var espaco = await db.Espacos.FirstOrDefaultAsync(x => x.Id == espacoId && x.ClubeId == ClubeId && x.Ativo, ct)
+                         ?? throw new NaoEncontradoException("Espaço");
+            if (await db.Reservas.AnyAsync(x => x.EventoId == id && x.EspacoId == espacoId
+                    && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente), ct))
+                throw new ConflitoException("evento.local_repetido", "Este local já faz parte do evento.");
+            await ExigirSemConflitoAsync(espacoId, e.Inicio, e.Fim, null, ct);
+            db.Reservas.Add(new Reserva(ClubeId, espacoId, null, e.Id, e.Inicio, e.Fim, $"Evento: {e.Nome}", 0, exigeAprovacao: false));
+            e.Local ??= espaco.Nome;
+            await db.SaveChangesAsync(ct);
+            return true;
+        }, ct);
+        return await ObterDtoAsync(id, ct);
+    }
+
+    public async Task<EventoDto> RemoverLocalAsync(Guid id, Guid espacoId, CancellationToken ct)
+    {
+        await permissoes.ExigirAsync(Permissoes.Eventos.Gerenciar, ct);
+        var e = await db.Eventos.FirstOrDefaultAsync(x => x.Id == id && x.ClubeId == ClubeId, ct) ?? throw new NaoEncontradoException("Evento");
+        var reserva = await db.Reservas.FirstOrDefaultAsync(x => x.EventoId == id && x.EspacoId == espacoId
+                          && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente), ct)
+                      ?? throw new NaoEncontradoException("Local do evento");
+        reserva.Cancelar("Local removido do evento");
+        if (e.EspacoId == espacoId) e.EspacoId = null;
+        await db.SaveChangesAsync(ct);
+        return await ObterDtoAsync(id, ct);
+    }
+
+    /// <summary>
+    /// Divulga o evento: aviso no app e e-mail para o público do evento. Devolve o texto pronto e o link de
+    /// compartilhamento do WhatsApp (para grupos ou redes sociais, enviados por quem divulga).
+    /// </summary>
+    public async Task<DivulgacaoDto> DivulgarAsync(Guid id, CancellationToken ct)
+    {
+        await permissoes.ExigirAsync(Permissoes.Eventos.Gerenciar, ct);
+        var e = await db.Eventos.FirstOrDefaultAsync(x => x.Id == id && x.ClubeId == ClubeId, ct) ?? throw new NaoEncontradoException("Evento");
+        if (e.Situacao == SituacaoEvento.Cancelado) throw new DomainException("evento.cancelado", "O evento está cancelado.");
+        var clube = await db.Clubes.Where(c => c.Id == ClubeId).Select(c => c.Nome).FirstAsync(ct);
+        var quando = await notificador.FormatarAsync(e.Inicio, ct, "dd/MM/yyyy 'às' HH:mm");
+        var texto = $"{clube} convida: {e.Nome} — {quando}{(e.Local is null ? "" : $", {e.Local}")}." +
+                    $"{(e.Valor > 0 ? $" Valor: {e.Valor:C} por pessoa." : " Entrada gratuita.")}" +
+                    $"{(e.Descricao is null ? "" : $" {e.Descricao}")} Inscrições pelo aplicativo do clube.";
+
+        var titulares = db.Associados.Where(a => a.ClubeId == ClubeId && a.Situacao == SituacaoCadastral.Ativo).Select(a => a.PessoaId);
+        var pessoas = await (e.Publico == PublicoEvento.Associados ? titulares
+            : titulares.Union(db.Dependentes.Where(d => d.ClubeId == ClubeId && d.Situacao == SituacaoCadastral.Ativo
+                                                        && d.Permissoes.ParticipacaoEventos).Select(d => d.PessoaId))).ToListAsync(ct);
+        await notificador.NotificarPessoasAsync(pessoas, Domain.Comunicacao.TipoNotificacao.Evento, $"Novo evento: {e.Nome}", texto, e.Id, ct);
+        var avisos = await db.Notificacoes.CountAsync(n => n.ReferenciaId == e.Id && n.Tipo == Domain.Comunicacao.TipoNotificacao.Evento, ct);
+
+        var emails = await db.Pessoas.Where(p => pessoas.Contains(p.Id) && p.Email != null).Select(p => p.Email!).Distinct().ToListAsync(ct);
+        foreach (var destino in emails)
+            await email.EnviarAsync(new MensagemEmail(destino, $"{clube}: {e.Nome}", texto), ct);
+
+        e.DivulgadoEm = Agora;
+        await db.SaveChangesAsync(ct);
+        return new DivulgacaoDto(avisos, emails.Count, texto, "https://wa.me/?text=" + Uri.EscapeDataString(texto));
+    }
+
+    private async Task<EventoDto> ObterDtoAsync(Guid id, CancellationToken ct) => (await DtosAsync([id], ct)).Single();
+
     private async Task ExigirSemConflitoAsync(Guid espacoId, DateTimeOffset inicio, DateTimeOffset fim, Guid? ignorar, CancellationToken ct)
     {
         var conflito = await db.Reservas.AnyAsync(x => x.EspacoId == espacoId && x.Id != ignorar
@@ -303,9 +394,15 @@ public sealed class EventoService(
                 e.Inicio, e.Fim, e.Publico, e.Capacidade,
                 db.InscricoesEventos.Where(i => i.EventoId == e.Id && i.Situacao == SituacaoInscricao.Confirmada).Sum(i => 1 + i.Acompanhantes),
                 db.InscricoesEventos.Count(i => i.EventoId == e.Id && i.Situacao == SituacaoInscricao.ListaEspera),
-                e.Valor, e.MaximoAcompanhantes, e.Situacao, e.MotivoCancelamento))
+                e.Valor, e.MaximoAcompanhantes, e.Situacao, e.MotivoCancelamento, new List<LocalEventoDto>(), e.DivulgadoEm))
             .ToListAsync(ct);
-        return ids.Select(id => lista.FirstOrDefault(e => e.Id == id)).OfType<EventoDto>().ToList();
+        var locais = await db.Reservas.AsNoTracking()
+            .Where(r => r.EventoId != null && ids.Contains(r.EventoId.Value)
+                        && (r.Situacao == SituacaoReserva.Aprovada || r.Situacao == SituacaoReserva.Pendente))
+            .Select(r => new { EventoId = r.EventoId!.Value, Local = new LocalEventoDto(r.EspacoId, r.Espaco.Nome, r.Espaco.Capacidade) })
+            .ToListAsync(ct);
+        return ids.Select(id => lista.FirstOrDefault(e => e.Id == id)).OfType<EventoDto>()
+            .Select(e => e with { Locais = locais.Where(l => l.EventoId == e.Id).Select(l => l.Local).ToList() }).ToList();
     }
 
     private async Task<List<InscricaoDto>> InscricoesAsync(System.Linq.Expressions.Expression<Func<InscricaoEvento, bool>> filtro, CancellationToken ct) =>

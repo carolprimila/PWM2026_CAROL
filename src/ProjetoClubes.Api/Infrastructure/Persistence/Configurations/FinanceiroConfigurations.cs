@@ -40,6 +40,26 @@ internal sealed class PlanoMensalidadeConfiguration : IEntityTypeConfiguration<P
     }
 }
 
+internal sealed class ContratoAssociadoConfiguration : IEntityTypeConfiguration<Domain.Associados.ContratoAssociado>
+{
+    public void Configure(EntityTypeBuilder<Domain.Associados.ContratoAssociado> b)
+    {
+        b.ToTable("ContratosAssociados", t =>
+        {
+            t.HasCheckConstraint("CK_Contratos_Dia", "\"DiaVencimento\" BETWEEN 1 AND 28");
+            t.HasCheckConstraint("CK_Contratos_Periodo", "\"Fim\" > \"Inicio\"");
+        });
+        b.HasKey(x => x.Id);
+        b.Property(x => x.Numero).HasMaxLength(20).IsRequired();
+        b.Property(x => x.ValorMensal).HasPrecision(12, 2);
+        b.Property(x => x.Motivo).HasMaxLength(300);
+        b.HasIndex(x => new { x.ClubeId, x.Numero }).IsUnique().HasDatabaseName("UX_Contratos_ClubeNumero");
+        // No máximo um contrato em análise por associado.
+        b.HasIndex(x => x.AssociadoId).IsUnique().HasFilter("\"Situacao\" = 'EmAnalise'").HasDatabaseName("UX_Contratos_UmEmAnalise");
+        b.HasOne<Domain.Associados.Associado>().WithMany().HasForeignKey(x => x.AssociadoId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 internal sealed class MensalidadeConfiguration : IEntityTypeConfiguration<Mensalidade>
 {
     public void Configure(EntityTypeBuilder<Mensalidade> b)
@@ -55,6 +75,8 @@ internal sealed class MensalidadeConfiguration : IEntityTypeConfiguration<Mensal
         b.HasIndex(x => new { x.AssociadoId, x.Competencia }).IsUnique().HasFilter("\"Situacao\" <> 'Cancelada'")
             .HasDatabaseName("UX_Mensalidades_AssociadoCompetencia");
         b.HasIndex(x => new { x.ClubeId, x.Competencia });
+        b.HasIndex(x => x.ContratoId);
+        b.HasOne<Domain.Associados.ContratoAssociado>().WithMany().HasForeignKey(x => x.ContratoId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.ClubeId, x.Situacao, x.Vencimento });
         b.HasOne<Clube>().WithMany().HasForeignKey(x => x.ClubeId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Associado>().WithMany().HasForeignKey(x => x.AssociadoId).OnDelete(DeleteBehavior.Restrict);

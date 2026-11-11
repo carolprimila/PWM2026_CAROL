@@ -7,6 +7,7 @@ using ProjetoClubes.Application.Seguranca;
 using ProjetoClubes.Application.Usuarios;
 using ProjetoClubes.Domain.Associados;
 using ProjetoClubes.Domain.Common;
+using ProjetoClubes.Domain.Dependentes;
 using ProjetoClubes.Domain.Pessoas;
 
 namespace ProjetoClubes.Application.Cadastros;
@@ -18,11 +19,15 @@ public interface IAssociadoService
     Task<AssociadoDetalheDto> CriarAsync(CriarAssociadoRequest request, CancellationToken ct);
     Task<AssociadoDetalheDto> AtualizarAsync(Guid id, AtualizarAssociadoRequest request, CancellationToken ct);
     Task<AssociadoDetalheDto> AlterarSituacaoAsync(Guid id, AcaoSituacao acao, string? motivo, CancellationToken ct);
+    /// <summary>O dependente maior de idade passa a ser associado titular (mesma pessoa, CPF, login e histórico).</summary>
+    Task<AssociadoDetalheDto> TornarDependenteAssociadoAsync(Guid dependenteId, TornarAssociadoRequest r, CancellationToken ct);
     Task ExcluirAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<HistoricoCadastroDto>> HistoricoAsync(Guid id, CancellationToken ct);
     Task<CriarAcessoAppResponse> CriarAcessoAppAsync(Guid id, CriarAcessoAppRequest request, CancellationToken ct);
     Task<ResumoCadastrosDto> ResumoAsync(CancellationToken ct);
 }
+
+public sealed record TornarAssociadoRequest(Guid CategoriaId);
 
 public enum AcaoSituacao
 {
@@ -79,6 +84,7 @@ public sealed class AssociadoService(
         if (c.Situacao is { } s) q = q.Where(a => a.Situacao == s);
         if (c.CategoriaId is { } cat) q = q.Where(a => a.CategoriaId == cat);
         if (c.InteresseId is { } i) q = q.Where(a => a.Interesses.Any(x => x.InteresseId == i));
+        if (c.Sexo is { } sexo) q = q.Where(a => a.Pessoa.Sexo == sexo);
 
         var pagina = await q.Ordenar(c, Ordenacoes, "nome")
             .Select(a => new
@@ -137,10 +143,14 @@ public sealed class AssociadoService(
             Historico(a.Id, "Categoria", $"Categoria alterada de \"{a.Categoria.Nome}\" para \"{nova.Nome}\".");
             a.AlterarCategoria(r.CategoriaId);
         }
+        var antes = PessoaMapeamento.Resumo(a.Pessoa);
         PessoaMapeamento.Aplicar(a.Pessoa, r.Pessoa);
+        var alterados = PessoaMapeamento.CamposAlterados(antes, PessoaMapeamento.Resumo(a.Pessoa));
+        if (a.DataAssociacao != r.DataAssociacao) alterados.Add("data de associação");
         a.DataAssociacao = r.DataAssociacao;
         a.DefinirInteresses(await ValidarInteressesAsync(r.InteresseIds, ct));
-        Historico(a.Id, "Edicao", "Dados cadastrais atualizados.");
+        Historico(a.Id, "Edicao", alterados.Count == 0 ? "Cadastro salvo sem alterações nos dados."
+            : $"Alterado: {string.Join(", ", alterados)}.");
         await db.SaveChangesAsync(ct);
         return await MontarDetalheAsync(id, ct);
     }
@@ -264,6 +274,33 @@ public sealed class AssociadoService(
         if (validos.Count != distintos.Count)
             throw new ValidationException([new ValidationFailure("InteresseIds", "Interesse inválido.")]);
         return validos;
+    }
+
+    public async Task<AssociadoDetalheDto> TornarDependenteAssociadoAsync(Guid dependenteId, TornarAssociadoRequest r, CancellationToken ct)
+    {
+        await permissoes.ExigirAsync(Permissoes.Associados.Cadastrar, ct);
+        var d = await db.Dependentes.Include(x => x.Pessoa).Include(x => x.AssociadoTitular)
+                    .FirstOrDefaultAsync(x => x.Id == dependenteId && x.ClubeId == ClubeId, ct)
+                ?? throw new NaoEncontradoException("Dependente");
+        if (d.Situacao != SituacaoCadastral.Ativo)
+            throw new DomainException("dependente.nao_ativo", "Somente um dependente ativo pode virar associado.");
+        var maioridade = await db.ConfiguracoesDependentes.Where(c => c.ClubeId == ClubeId).Select(c => c.IdadeMaioridade).FirstOrDefaultAsync(ct);
+        if (d.Pessoa.Idade(Hoje) is not { } idade || idade < (maioridade == 0 ? 18 : maioridade))
+            throw new DomainException("dependente.menor", "Só um dependente maior de idade pode virar associado.");
+        if (string.IsNullOrWhiteSpace(d.Pessoa.Cpf))
+            throw new DomainException("dependente.sem_cpf", "Informe o CPF do dependente antes de torná-lo associado.");
+        var categoria = await ValidarCategoriaAsync(r.CategoriaId, ct);
+
+        var matricula = await DefinirMatriculaAsync(null, ct);
+        d.Inativar($"Tornou-se associado (matrícula {matricula}).", Agora);
+        db.HistoricoDependentes.Add(new HistoricoDependente(ClubeId, d.Id, "TornouSeAssociado",
+            $"Passou a ser associado titular, matrícula {matricula}, categoria {categoria.Nome}.", atual.UsuarioId, Agora));
+        var associado = new Associado(ClubeId, d.Pessoa, matricula, r.CategoriaId, Hoje, exigeAprovacao: false, Agora);
+        db.Associados.Add(associado);
+        Historico(associado.Id, "Cadastro",
+            $"Era dependente de {d.AssociadoTitular.Matricula} e passou a associado titular. Matrícula {matricula}.");
+        await db.SaveChangesAsync(ct);
+        return await MontarDetalheAsync(associado.Id, ct);
     }
 
     private async Task<Pessoa> ObterOuCriarPessoaAsync(DadosPessoaisRequest dados, CancellationToken ct)

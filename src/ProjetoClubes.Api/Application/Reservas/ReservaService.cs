@@ -10,10 +10,14 @@ using ProjetoClubes.Domain.Reservas;
 namespace ProjetoClubes.Application.Reservas;
 
 public sealed record EspacoDto(Guid Id, string Nome, TipoEspaco Tipo, string? Descricao, int? Capacidade, decimal ValorLocacao,
-    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo);
+    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo, int? LimiteReservasPorMes);
 
 public sealed record SalvarEspacoRequest(string Nome, TipoEspaco Tipo, string? Descricao, int? Capacidade, decimal ValorLocacao,
-    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo = true);
+    decimal TaxaAdicional, bool ExigeAprovacao, string? Regras, bool Ativo = true, int? LimiteReservasPorMes = null);
+
+/// <summary>Espaço com a situação no período pedido (para escolher o local de um evento).</summary>
+public sealed record EspacoDisponivelDto(Guid Id, string Nome, TipoEspaco Tipo, int? Capacidade, bool Livre, bool Comporta,
+    string? Ocupacao);
 
 public sealed record ReservaDto(Guid Id, Guid EspacoId, string Espaco, Guid? PessoaId, string? Solicitante, Guid? EventoId,
     DateTimeOffset Inicio, DateTimeOffset Fim, string? Finalidade, decimal Valor, SituacaoReserva Situacao, string? Motivo,
@@ -68,6 +72,7 @@ public interface IReservaService
     Task<Pagina<ReservaDto>> ListarAsync(ConsultaReservas c, CancellationToken ct);
     Task<IReadOnlyList<ItemCalendarioDto>> CalendarioAsync(DateTimeOffset de, DateTimeOffset ate, Guid? espacoId, CancellationToken ct);
     Task<ReservaDto> CriarAsync(SolicitarReservaRequest r, CancellationToken ct);
+    Task<IReadOnlyList<EspacoDisponivelDto>> DisponiveisAsync(DateTimeOffset inicio, DateTimeOffset fim, int? pessoas, Guid? ignorarEventoId, CancellationToken ct);
     Task<ReservaDto> AlterarAsync(Guid id, AlterarReservaRequest r, CancellationToken ct);
     Task<ReservaDto> AprovarAsync(Guid id, CancellationToken ct);
     Task<ReservaDto> RecusarAsync(Guid id, string motivo, CancellationToken ct);
@@ -97,7 +102,7 @@ public sealed class ReservaService(
     {
         if (!await permissoes.PossuiAsync(Permissoes.Reservas.Visualizar, ct)) await acessoPessoas.ObterPortalAsync(ct);
         return await db.Espacos.AsNoTracking().Where(e => e.ClubeId == ClubeId && (incluirInativos || e.Ativo)).OrderBy(e => e.Nome)
-            .Select(e => new EspacoDto(e.Id, e.Nome, e.Tipo, e.Descricao, e.Capacidade, e.ValorLocacao, e.TaxaAdicional, e.ExigeAprovacao, e.Regras, e.Ativo))
+            .Select(e => new EspacoDto(e.Id, e.Nome, e.Tipo, e.Descricao, e.Capacidade, e.ValorLocacao, e.TaxaAdicional, e.ExigeAprovacao, e.Regras, e.Ativo, e.LimiteReservasPorMes))
             .ToListAsync(ct);
     }
 
@@ -123,9 +128,11 @@ public sealed class ReservaService(
         e.TaxaAdicional = r.TaxaAdicional;
         e.ExigeAprovacao = r.ExigeAprovacao;
         e.Regras = r.Regras?.Trim();
+        if (r.LimiteReservasPorMes is < 1) throw new DomainException("espaco.limite", "O limite de reservas por mês deve ser 1 ou mais.");
+        e.LimiteReservasPorMes = r.LimiteReservasPorMes;
         e.Ativo = r.Ativo;
         await db.SaveChangesAsync(ct);
-        return new EspacoDto(e.Id, e.Nome, e.Tipo, e.Descricao, e.Capacidade, e.ValorLocacao, e.TaxaAdicional, e.ExigeAprovacao, e.Regras, e.Ativo);
+        return new EspacoDto(e.Id, e.Nome, e.Tipo, e.Descricao, e.Capacidade, e.ValorLocacao, e.TaxaAdicional, e.ExigeAprovacao, e.Regras, e.Ativo, e.LimiteReservasPorMes);
     }
 
     public async Task ExcluirEspacoAsync(Guid id, CancellationToken ct)
@@ -157,7 +164,11 @@ public sealed class ReservaService(
         var reservas = await db.Reservas.AsNoTracking()
             .Where(r => r.ClubeId == ClubeId && r.Inicio < ate && r.Fim > de && (r.Situacao == SituacaoReserva.Aprovada || r.Situacao == SituacaoReserva.Pendente)
                         && (espacoId == null || r.EspacoId == espacoId))
-            .Select(r => new { r.Id, r.EventoId, r.Finalidade, r.EspacoId, Espaco = r.Espaco.Nome, r.Inicio, r.Fim, r.Situacao })
+            .Select(r => new
+            {
+                r.Id, r.EventoId, r.Finalidade, r.EspacoId, Espaco = r.Espaco.Nome, r.Inicio, r.Fim, r.Situacao,
+                Solicitante = db.Pessoas.Where(x => x.Id == r.PessoaId).Select(x => x.NomeCompleto).FirstOrDefault(),
+            })
             .ToListAsync(ct);
         var eventos = await db.Eventos.AsNoTracking()
             .Where(e => e.ClubeId == ClubeId && e.Inicio < ate && e.Fim > de && e.Situacao != SituacaoEvento.Cancelado
@@ -165,10 +176,34 @@ public sealed class ReservaService(
             .Select(e => new ItemCalendarioDto("Evento", e.Id, e.Nome, null, e.Local, e.Inicio, e.Fim, e.Situacao.ToString()))
             .ToListAsync(ct);
 
-        // No portal mostramos só que o horário está ocupado, sem dados de quem reservou.
+        // A administração vê a finalidade e quem reservou; no portal mostramos só que o horário está ocupado.
+        string Titulo(string? finalidade, string? solicitante) =>
+            $"{finalidade ?? "Reserva"}{(solicitante is null ? "" : $" — {solicitante}")}";
         return reservas.Select(r => new ItemCalendarioDto(r.EventoId is null ? "Reserva" : "Evento", r.EventoId ?? r.Id,
-                veDetalhes || r.EventoId is not null ? r.Finalidade ?? "Reserva" : "Ocupado", r.EspacoId, r.Espaco, r.Inicio, r.Fim, r.Situacao.ToString()))
+                r.EventoId is not null ? r.Finalidade ?? "Evento" : veDetalhes ? Titulo(r.Finalidade, r.Solicitante) : "Ocupado",
+                r.EspacoId, r.Espaco, r.Inicio, r.Fim, r.Situacao.ToString()))
             .Concat(eventos).OrderBy(i => i.Inicio).ToList();
+    }
+
+    /// <summary>Espaços ativos com a situação no período: livre ou ocupado (por quê) e se comportam o público.</summary>
+    public async Task<IReadOnlyList<EspacoDisponivelDto>> DisponiveisAsync(DateTimeOffset inicio, DateTimeOffset fim, int? pessoas,
+        Guid? ignorarEventoId, CancellationToken ct)
+    {
+        await permissoes.ExigirAsync(Permissoes.Reservas.Visualizar, ct);
+        if (fim <= inicio) throw new DomainException("periodo.invalido", "O término deve ser depois do início.");
+        var espacos = await db.Espacos.AsNoTracking().Where(e => e.ClubeId == ClubeId && e.Ativo).OrderBy(e => e.Nome).ToListAsync(ct);
+        var ocupacoes = await db.Reservas.AsNoTracking()
+            .Where(x => x.ClubeId == ClubeId && x.Inicio < fim && inicio < x.Fim
+                        && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente)
+                        && (ignorarEventoId == null || x.EventoId != ignorarEventoId))
+            .Select(x => new { x.EspacoId, x.Finalidade, x.Inicio, x.Fim }).ToListAsync(ct);
+        return espacos.Select(e =>
+        {
+            var ocupado = ocupacoes.Where(o => o.EspacoId == e.Id).OrderBy(o => o.Inicio).ToList();
+            return new EspacoDisponivelDto(e.Id, e.Nome, e.Tipo, e.Capacidade, ocupado.Count == 0,
+                pessoas is null || e.Capacidade is null || e.Capacidade >= pessoas,
+                ocupado.Count == 0 ? null : string.Join("; ", ocupado.Select(o => o.Finalidade ?? "Reserva")));
+        }).OrderByDescending(x => x.Livre).ThenByDescending(x => x.Comporta).ThenBy(x => x.Nome).ToList();
     }
 
     public async Task<ReservaDto> CriarAsync(SolicitarReservaRequest r, CancellationToken ct)
@@ -188,7 +223,26 @@ public sealed class ReservaService(
         if (portal.Dependente is { } d && (d.Situacao != SituacaoCadastral.Ativo || !d.Permissoes.SolicitacaoReservas))
             throw new AcessoNegadoException("Você não tem permissão para solicitar reservas. Fale com o titular ou com a secretaria.");
         if (r.Inicio < relogio.GetUtcNow()) throw new DomainException("reserva.passado", "Não é possível reservar um horário que já passou.");
+        await ExigirDentroDoLimiteAsync(r, portal, ct);
         return await ReservarAsync(r, portal.Pessoa.Id, aprovadaDireto: false, ct);
+    }
+
+    /// <summary>Limite mensal de reservas por tipo de ambiente, contando o titular e os dependentes dele juntos.</summary>
+    private async Task ExigirDentroDoLimiteAsync(SolicitarReservaRequest r, ContextoPortal portal, CancellationToken ct)
+    {
+        var espaco = await db.Espacos.AsNoTracking().FirstOrDefaultAsync(e => e.Id == r.EspacoId && e.ClubeId == ClubeId, ct);
+        if (espaco?.LimiteReservasPorMes is not { } limite) return;
+        var titularId = portal.Associado?.Id ?? portal.Dependente!.AssociadoTitularId;
+        var familia = await db.Dependentes.Where(d => d.AssociadoTitularId == titularId).Select(d => d.PessoaId)
+            .Union(db.Associados.Where(a => a.Id == titularId).Select(a => a.PessoaId)).ToListAsync(ct);
+        var mes = new DateTimeOffset(r.Inicio.Year, r.Inicio.Month, 1, 0, 0, 0, r.Inicio.Offset);
+        var fimMes = mes.AddMonths(1);
+        var usadas = await db.Reservas.CountAsync(x => x.ClubeId == ClubeId && x.PessoaId != null && familia.Contains(x.PessoaId.Value)
+            && x.Espaco.Tipo == espaco.Tipo && (x.Situacao == SituacaoReserva.Aprovada || x.Situacao == SituacaoReserva.Pendente)
+            && x.Inicio >= mes && x.Inicio < fimMes, ct);
+        if (usadas >= limite)
+            throw new DomainException("reserva.limite_tipo",
+                $"Limite de {limite} reserva(s) por mês neste tipo de espaço atingido para a sua família em {mes:MM/yyyy}.");
     }
 
     public async Task<ReservaDto> AlterarAsync(Guid id, AlterarReservaRequest r, CancellationToken ct)

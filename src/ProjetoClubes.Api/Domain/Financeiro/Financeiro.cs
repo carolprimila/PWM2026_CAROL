@@ -114,6 +114,10 @@ public class Mensalidade : AuditableEntity, ITenantScoped
     public decimal Valor => ValorPlano + ValorDependentes;
     public SituacaoMensalidade Situacao { get; private set; }
     public string? Motivo { get; private set; }
+    /// <summary>Contrato anual que gerou esta parcela (nulo para mensalidades geradas pelo plano mês a mês).</summary>
+    public Guid? ContratoId { get; private set; }
+
+    public void VincularContrato(Guid contratoId) => ContratoId = contratoId;
 
     public bool Vencida(DateOnly hoje) => Situacao == SituacaoMensalidade.Aberta && Vencimento < hoje;
 
@@ -278,6 +282,15 @@ public static class CalculoFinanceiro
         var multa = valor * cfg.MultaPercentual / 100m;
         var juros = valor * cfg.JurosMensalPercentual / 100m / 30m * diasAtraso;
         return Arredondar(multa + juros);
+    }
+
+    /// <summary>Encargos separados em multa e juros (a soma é igual a <see cref="Encargos"/>).</summary>
+    public static (decimal Multa, decimal Juros) Detalhar(decimal valor, DateOnly vencimento, DateOnly pagamento, ConfiguracaoFinanceira cfg)
+    {
+        var total = Encargos(valor, vencimento, pagamento, cfg);
+        if (total == 0m) return (0m, 0m);
+        var multa = Arredondar(valor * cfg.MultaPercentual / 100m);
+        return (multa, total - multa);
     }
 
     public static DateOnly Vencimento(DateOnly competencia, int dia) => new(competencia.Year, competencia.Month, dia);
