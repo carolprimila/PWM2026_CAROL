@@ -28,14 +28,26 @@ try
 
     app.UseForwardedHeaders();
     app.UseMiddleware<CabecalhosSegurancaMiddleware>();
-    app.UseExceptionHandler();
     app.UseMiddleware<ContextoRequisicaoMiddleware>();
+    // O log da requisição fica por fora do tratamento de erros: registra o status que o cliente realmente recebeu
+    // (ex.: 401/422), e não um 500 por ter visto a exceção antes de ela ser tratada.
     app.UseSerilogRequestLogging(o =>
         o.GetLevel = (http, _, ex) => ex is not null || http.Response.StatusCode >= 500
             ? Serilog.Events.LogEventLevel.Error
-            : http.Request.Path.StartsWithSegments("/health")
-                ? Serilog.Events.LogEventLevel.Verbose
+            : http.Request.Path.StartsWithSegments("/health") || http.Response.StatusCode == 499
+                ? Serilog.Events.LogEventLevel.Debug
                 : Serilog.Events.LogEventLevel.Information);
+    app.UseExceptionHandler();
+    // Cliente desistiu da requisição (fechou o app, timeout, F5 no navegador): não é erro do servidor. Tratado aqui,
+    // no nosso código, para o depurador do Visual Studio não parar em OperationCanceledException a cada cancelamento.
+    app.Use(async (contexto, proximo) =>
+    {
+        try { await proximo(contexto); }
+        catch (OperationCanceledException) when (contexto.RequestAborted.IsCancellationRequested)
+        {
+            if (!contexto.Response.HasStarted) contexto.Response.StatusCode = 499;
+        }
+    });
 
     if (app.Configuration.GetValue("Swagger:Habilitado", app.Environment.IsDevelopment()))
     {
