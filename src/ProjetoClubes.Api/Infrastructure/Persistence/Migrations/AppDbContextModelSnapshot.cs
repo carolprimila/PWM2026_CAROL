@@ -243,6 +243,9 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ParticipacaoPeloApp")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -330,6 +333,9 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.Property<string>("MotivoInapto")
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("PeloApp")
+                        .HasColumnType("INTEGER");
 
                     b.Property<long>("RegistradaEm")
                         .HasColumnType("INTEGER");
@@ -2830,6 +2836,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ClubeId")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CodigoAcesso")
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Cpf")
                         .HasMaxLength(11)
                         .HasColumnType("TEXT");
@@ -2944,6 +2954,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ClubeId", "CodigoAcesso")
+                        .IsUnique()
+                        .HasFilter("\"CodigoAcesso\" IS NOT NULL");
 
                     b.HasIndex("ClubeId", "Cpf")
                         .IsUnique()

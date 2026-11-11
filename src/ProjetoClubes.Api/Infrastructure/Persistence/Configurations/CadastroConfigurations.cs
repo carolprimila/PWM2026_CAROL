@@ -34,6 +34,7 @@ internal sealed class PessoaConfiguration : IEntityTypeConfiguration<Pessoa>
         b.Property(x => x.Email).HasMaxLength(254);
         b.Property(x => x.Profissao).HasMaxLength(100);
         b.Property(x => x.TokenCarteirinha).HasMaxLength(100).IsRequired();
+        b.Property(x => x.CodigoAcesso).HasMaxLength(8);
         b.ComplexProperty(x => x.Endereco, e =>
         {
             e.Property(p => p.Logradouro).HasColumnName("Logradouro").HasMaxLength(200);
@@ -48,6 +49,7 @@ internal sealed class PessoaConfiguration : IEntityTypeConfiguration<Pessoa>
         b.HasIndex(x => new { x.ClubeId, x.Cpf }).IsUnique().HasFilter("\"Cpf\" IS NOT NULL AND NOT \"Excluido\"");
         b.HasIndex(x => new { x.ClubeId, x.UsuarioId }).IsUnique().HasFilter("\"UsuarioId\" IS NOT NULL AND NOT \"Excluido\"");
         b.HasIndex(x => x.TokenCarteirinha).IsUnique();
+        b.HasIndex(x => new { x.ClubeId, x.CodigoAcesso }).IsUnique().HasFilter("\"CodigoAcesso\" IS NOT NULL");
         b.HasIndex(x => new { x.ClubeId, x.NomeCompleto });
 
         b.HasOne<Clube>().WithMany().HasForeignKey(x => x.ClubeId).OnDelete(DeleteBehavior.Restrict);

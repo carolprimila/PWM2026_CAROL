@@ -66,6 +66,17 @@ public class Assembleia : AuditableEntity, ITenantScoped
 
     public bool RecebePresencas => Situacao is SituacaoAssembleia.Convocada or SituacaoAssembleia.EmAndamento;
 
+    /// <summary>Associados podem confirmar presença e votar pelo aplicativo, sem passar pela mesa.</summary>
+    public bool ParticipacaoPeloApp { get; private set; }
+
+    public void DefinirParticipacaoPeloApp(bool permitir)
+    {
+        if (permitir == ParticipacaoPeloApp) return;
+        if (Situacao is not (SituacaoAssembleia.Rascunho or SituacaoAssembleia.Convocada or SituacaoAssembleia.EmAndamento))
+            throw new DomainException("assembleia.situacao", "A assembleia não pode mais ser alterada.");
+        ParticipacaoPeloApp = permitir;
+    }
+
     public void Alterar(string titulo, TipoAssembleia tipo, DateTimeOffset dataHora, string? local, string? convocacao, bool exigeAdimplencia)
     {
         if (Situacao is not (SituacaoAssembleia.Rascunho or SituacaoAssembleia.Convocada))
@@ -241,8 +252,10 @@ public class PresencaAssembleia : Entity, ITenantScoped, INaoAuditavel
 {
     private PresencaAssembleia() { }
 
-    public PresencaAssembleia(Guid clubeId, Guid assembleiaId, Guid associadoId, string? motivoInapto, Guid? registradaPor, DateTimeOffset agora)
+    public PresencaAssembleia(Guid clubeId, Guid assembleiaId, Guid associadoId, string? motivoInapto, Guid? registradaPor, DateTimeOffset agora,
+        bool peloApp = false)
     {
+        PeloApp = peloApp;
         ClubeId = clubeId;
         AssembleiaId = assembleiaId;
         AssociadoId = associadoId;
@@ -259,6 +272,8 @@ public class PresencaAssembleia : Entity, ITenantScoped, INaoAuditavel
     public string? MotivoInapto { get; private set; }
     public Guid? RegistradaPor { get; private set; }
     public DateTimeOffset RegistradaEm { get; private set; }
+    /// <summary>Presença confirmada pelo próprio associado no aplicativo (participação à distância).</summary>
+    public bool PeloApp { get; private set; }
 }
 
 /// <summary>

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using ProjetoClubes.Domain.Common;
 
 namespace ProjetoClubes.Domain.Pessoas;
@@ -53,6 +54,24 @@ public class Pessoa : AuditableEntity, ITenantScoped, ISoftDelete
     public Guid? UsuarioId { get; set; }
     /// <summary>Identificador opaco impresso no QR Code. Não contém dados pessoais; validado no servidor.</summary>
     public string TokenCarteirinha { get; private set; } = null!;
+    /// <summary>
+    /// Código curto da carteirinha (8 caracteres, sem letras que se confundem) para digitar na portaria quando não há leitor
+    /// de QR. Muda junto com o token.
+    /// </summary>
+    public string? CodigoAcesso { get; private set; }
+
+    /// <summary>Alfabeto Crockford: sem I, L, O e U (não se confundem com 1, 0 e V).</summary>
+    public const string AlfabetoCodigoAcesso = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+
+    public static string NovoCodigoAcesso() => RandomNumberGenerator.GetString(AlfabetoCodigoAcesso, 8);
+
+    /// <summary>Cadastros anteriores ao código curto recebem um na inicialização.</summary>
+    public bool GarantirCodigoAcesso()
+    {
+        if (CodigoAcesso is not null) return false;
+        CodigoAcesso = NovoCodigoAcesso();
+        return true;
+    }
     public DateTimeOffset TokenCarteirinhaGeradoEm { get; private set; }
 
     public bool Excluido { get; private set; }
@@ -100,6 +119,7 @@ public class Pessoa : AuditableEntity, ITenantScoped, ISoftDelete
             throw new DomainException("pessoa.token_invalido", "Token de carteirinha inválido.");
         TokenCarteirinha = token;
         TokenCarteirinhaGeradoEm = agora;
+        CodigoAcesso = NovoCodigoAcesso();
     }
 
     public int? Idade(DateOnly hoje) => DataNascimento is { } n ? CalcularIdade(n, hoje) : null;

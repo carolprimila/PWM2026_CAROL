@@ -240,7 +240,12 @@ public partial class MainPage : ContentPage
         var corpo = new VerticalStackLayout { Padding = 16, Spacing = 14 };
         corpo.Add(detalhes);
         corpo.Add(new Border { Content = qr, Padding = 8, Stroke = Color.FromArgb("#E7E9EE"), StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 12 }, HorizontalOptions = LayoutOptions.Center, BackgroundColor = Colors.White });
-        corpo.Add(new Label { Text = "Apresente este QR Code na portaria.", FontSize = 12, TextColor = Color.FromArgb("#8A909C"), HorizontalTextAlignment = TextAlignment.Center });
+        if (c.CodigoAcesso is { } codigo)
+        {
+            corpo.Add(new Label { Text = codigo, FontSize = 24, FontAttributes = FontAttributes.Bold, CharacterSpacing = 3, TextColor = Color.FromArgb("#1D2127"),
+                HorizontalTextAlignment = TextAlignment.Center, FontFamily = "Consolas" });
+        }
+        corpo.Add(new Label { Text = "Na portaria: mostre o QR Code ou diga o código acima.", FontSize = 12, TextColor = Color.FromArgb("#8A909C"), HorizontalTextAlignment = TextAlignment.Center });
 
         var topo = new Grid { BackgroundColor = Color.FromArgb(_corClube), Padding = new Thickness(16, 12) };
         topo.Add(new Label { Text = $"{c.Clube.NomeExibicao ?? c.Clube.Nome}  ·  {c.Tipo.ToUpperInvariant()}", TextColor = Colors.White, FontSize = 12, FontAttributes = FontAttributes.Bold });
@@ -500,8 +505,16 @@ public partial class MainPage : ContentPage
             }
             if (a.Situacao == "EmAndamento")
             {
-                if (!a.Presente) bloco.Add(Linha("Registre sua presença na mesa da assembleia (carteirinha) para votar."));
+                if (!a.Presente && a.ParticipacaoPeloApp)
+                {
+                    bloco.Add(Linha("A assembleia está acontecendo. Você pode participar e votar daqui mesmo."));
+                    var participar = new Button { Text = "Participar pelo app", FontSize = 14, HeightRequest = 40, BackgroundColor = Color.FromArgb(_corClube), TextColor = Colors.White, CornerRadius = 10, HorizontalOptions = LayoutOptions.Start };
+                    participar.Clicked += async (_, _) => await AcaoAsync(HttpMethod.Post, $"api/v1/portal/assembleias/{a.Id}/participar", null, "Presença confirmada pelo app. Você já pode votar.");
+                    bloco.Add(participar);
+                }
+                else if (!a.Presente) bloco.Add(Linha("Registre sua presença na mesa da assembleia (carteirinha) para votar."));
                 else if (!a.AptoVotar) bloco.Add(Linha($"Você está presente, mas não vota: {a.MotivoInapto}"));
+                else bloco.Add(Situacao(a.PresentePeloApp ? "Presente pelo app" : "Presente"));
             }
             foreach (var p in a.Pautas.Where(p => p.ComVotacao))
             {
@@ -880,14 +893,14 @@ public partial class MainPage : ContentPage
     private sealed record PautaApp(Guid Id, int Ordem, string Titulo, bool ComVotacao, List<string> Opcoes, string? Votacao, bool Votei,
         List<ApuracaoApp>? Apuracao, string? Decisao);
     private sealed record AssembleiaApp(Guid Id, string Titulo, DateTimeOffset DataHora, string? Local, string? Convocacao, string Situacao,
-        bool Presente, bool AptoVotar, string? MotivoInapto, List<PautaApp> Pautas);
+        bool Presente, bool AptoVotar, string? MotivoInapto, List<PautaApp> Pautas, bool ParticipacaoPeloApp = false, bool PresentePeloApp = false);
     private sealed record Tokens(string AccessToken, string RefreshToken, Usuario Usuario);
     private sealed record Pessoa(Guid Id, string NomeCompleto, string? Telefone, string? Email);
     private sealed record Perfil(Pessoa Pessoa, string Tipo, string NumeroIdentificacao, string Situacao, string? Categoria,
         string? TitularNome, bool PodeEditarContato, bool PodeGerenciarDependentes);
     private sealed record Clube(string Nome, string Sigla, string CorPrimaria, string? NomeExibicao);
     private sealed record Carteirinha(Guid PessoaId, string Tipo, string Nome, string NumeroIdentificacao, string Situacao,
-        string? Categoria, string? TitularNome, string? Parentesco, Clube Clube);
+        string? Categoria, string? TitularNome, string? Parentesco, Clube Clube, string? CodigoAcesso = null);
     private sealed record EventoApp(Guid Id, string Nome, string? Local, string? Espaco, DateTimeOffset Inicio, int? Capacidade,
         int LugaresOcupados, decimal Valor, string Situacao, string Publico = "", int MaximoAcompanhantes = 0, List<LocalApp>? Locais = null);
     private sealed record LocalApp(Guid EspacoId, string Nome);

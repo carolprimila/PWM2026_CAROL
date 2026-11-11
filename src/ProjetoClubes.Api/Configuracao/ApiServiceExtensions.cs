@@ -22,6 +22,7 @@ public static class ApiServiceExtensions
     public static IServiceCollection AddApi(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AutenticacaoOptions>(configuration.GetSection(AutenticacaoOptions.Secao));
+        services.Configure<Application.Carteirinhas.CarteirinhaOptions>(configuration.GetSection(Application.Carteirinhas.CarteirinhaOptions.Secao));
 
         services.AddControllers(o => o.SuppressAsyncSuffixInActionNames = true)
             .AddJsonOptions(o =>

@@ -173,6 +173,11 @@ Conflito de horário (inclusive o barrado pela restrição do banco) → **409**
 | GET · POST | `/api/v1/diretoria` | `clubes.visualizar` · `clubes.editar` | Diretoria atual/anterior e aviso · adiciona `{ nome, cargo, email?, telefone?, inicioMandato, fimMandato? }` |
 | POST | `/api/v1/diretoria/{id}/encerrar` | `clubes.editar` | Encerra o mandato hoje |
 
+| POST | `/api/v1/portal/assembleias/{id}/participar` | app (titular) | Presença pelo app, quando a assembleia permite (`participacaoPeloApp`) |
+
+Carteirinha: `qrCodeConteudo` é um link `…/portaria?codigo=…` e `codigoAcesso` (ex.: `7KQ2-M9XA`) pode ser digitado em
+`controle-acesso/validar`, `registrar`, presença em eventos e assembleias. Assembleias aceitam `participacaoPeloApp`.
+
 Espaços aceitam `limiteReservasPorMes` (por família, por tipo de espaço; erro `reserva.limite_tipo`). Pessoas aceitam `profissao`.
 
 ## Etapa 8 — LGPD

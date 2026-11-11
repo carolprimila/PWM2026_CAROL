@@ -106,6 +106,7 @@ internal static partial class DadosDemonstracao
         await CriarEtapa7Async(sp, db, agora, logger, ct);
         await CriarDiretoriaAsync(db, agora, logger, ct);
         await CriarExemplosAsync(sp, db, agora, logger, ct);
+        await CriarAssembleiaPeloAppAsync(db, agora, logger, ct);
     }
 
     /// <summary>Diretoria de demonstração: mandato do presidente de 2 anos, começando em janeiro do ano passado.</summary>

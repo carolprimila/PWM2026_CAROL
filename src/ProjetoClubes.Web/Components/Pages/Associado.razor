@@ -124,7 +124,8 @@
             <div class="card h-100"><div class="card-body text-center">
                 <h2 class="h6 mb-3 text-start">Carteirinha</h2>
                 @if (_qr is not null) { <img src="@_qr" alt="QR Code da carteirinha" width="160" height="160" style="image-rendering:pixelated" /> }
-                <div class="small text-secondary mt-2">QR Code individual, sem dados pessoais. Válido na portaria.</div>
+                @if (_codigoAcesso is not null) { <div class="mt-2 fs-5 fw-semibold font-monospace">@_codigoAcesso</div> }
+                <div class="small text-secondary mt-1">QR Code individual, sem dados pessoais. Na portaria: ler o QR ou digitar o código.</div>
             </div></div>
         </div>
     </div>
@@ -312,7 +313,7 @@ else if (_erro is null)
     [Parameter] public Guid Id { get; set; }
 
     private AssociadoDetalhe? _a;
-    private string? _qr;
+    private string? _qr, _codigoAcesso;
     private string? _erro;
     private string? _mensagem;
     private string? _pedirMotivo;
@@ -426,6 +427,7 @@ else if (_erro is null)
         {
             _a = await Api.GetAsync<AssociadoDetalhe>($"api/v1/associados/{Id}");
             _qr = await Api.ImagemAsync($"api/v1/pessoas/{_a.Pessoa.Id}/qrcode");
+            _codigoAcesso = (await Api.GetAsync<Carteirinha>($"api/v1/associados/{Id}/carteirinha")).CodigoAcesso;
             await CarregarExtras();
         }
         catch (ErroApi e) { _erro = e.Message; }

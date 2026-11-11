@@ -34,7 +34,7 @@ public class CarteirinhaEControleAcessoTests(ApiFixture api)
         var cpf = a.GetProperty("pessoa").GetProperty("cpf").GetString()!;
         var cart = await api.Cliente(p.AccessToken).GetFromJsonAsync<JsonElement>($"/api/v1/associados/{a.GetProperty("id")}/carteirinha", Cenario.Json);
         var codigo = cart.GetProperty("qrCodeConteudo").GetString()!;
-        Assert.StartsWith("PCLUBES:1:", codigo);
+        Assert.Contains("/portaria?codigo=", codigo); // link: a câmera do celular abre a portaria do Web
         Assert.DoesNotContain(cpf, codigo);
         Assert.Equal(a.GetProperty("matricula").GetString(), cart.GetProperty("numeroIdentificacao").GetString());
 

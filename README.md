@@ -80,7 +80,7 @@ assembleia convocada) são fictícios, com CPFs sintéticos.
 dotnet test ProjetoClubes.slnx
 ```
 
-87 testes unitários e 85 de integração (a API real sobe contra um arquivo SQLite temporário), incluindo o roteiro de
+87 testes unitários e 88 de integração (a API real sobe contra um arquivo SQLite temporário), incluindo o roteiro de
 aceitação completo (`AceitacaoTests`). Levam cerca de 1 minuto.
 
 ## Migrations

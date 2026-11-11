@@ -44,7 +44,10 @@ public sealed record DependenteLista(Guid Id, Guid PessoaId, string Nome, string
     string TitularMatricula);
 
 public sealed record Carteirinha(Guid PessoaId, string Tipo, string Nome, string NumeroIdentificacao, string Situacao,
-    string? Categoria, string? TitularNome, string QrCodeConteudo);
+    string? Categoria, string? TitularNome, string QrCodeConteudo)
+{
+    public string? CodigoAcesso { get; init; }
+}
 
 public sealed record ResultadoValidacao(bool Autorizado, string Mensagem, Guid? PessoaId, string? Nome, string? Tipo,
     string? NumeroIdentificacao, string? Situacao, string? Categoria, string? TitularNome);
@@ -167,10 +170,16 @@ public sealed record AssembleiaResumo(Guid Id, string Titulo, string Tipo, DateT
 public sealed record ApuracaoInfo(string Opcao, int Votos);
 public sealed record PautaInfo(Guid Id, int Ordem, string Titulo, string? Descricao, bool ComVotacao, List<string> Opcoes, string? Votacao,
     int TotalVotos, List<ApuracaoInfo>? Apuracao, string? Decisao);
-public sealed record PresencaInfo(Guid AssociadoId, string Nome, string Matricula, bool AptoVotar, string? MotivoInapto, DateTimeOffset RegistradaEm);
+public sealed record PresencaInfo(Guid AssociadoId, string Nome, string Matricula, bool AptoVotar, string? MotivoInapto, DateTimeOffset RegistradaEm)
+{
+    public bool PeloApp { get; init; }
+}
 public sealed record AssembleiaInfo(Guid Id, string Titulo, string Tipo, DateTimeOffset DataHora, string? Local, string? Convocacao,
     bool ExigeAdimplencia, string Situacao, DateTimeOffset? ConvocadaEm, DateTimeOffset? EncerradaEm, string? MotivoCancelamento, string? Ata,
-    DateTimeOffset? AtaRegistradaEm, string? AtaSugerida, int Presentes, int Aptos, List<PautaInfo> Pautas, List<PresencaInfo> Presencas);
+    DateTimeOffset? AtaRegistradaEm, string? AtaSugerida, int Presentes, int Aptos, List<PautaInfo> Pautas, List<PresencaInfo> Presencas)
+{
+    public bool ParticipacaoPeloApp { get; init; }
+}
 
 // Etapa 8 — perfis, auditoria, configurações e relatórios
 public sealed record PermissaoItem(string Codigo, string Modulo, string Descricao);

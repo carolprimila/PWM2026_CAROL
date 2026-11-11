@@ -44,6 +44,15 @@ public static class InicializadorBanco
         }
 
         await SincronizarPermissoesAsync(db, logger, ct);
+
+        // Código curto da carteirinha para quem foi cadastrado antes dele existir.
+        var semCodigo = await db.Pessoas.IgnoreQueryFilters().Where(p => p.CodigoAcesso == null).ToListAsync(ct);
+        if (semCodigo.Count > 0)
+        {
+            foreach (var p in semCodigo) p.GarantirCodigoAcesso();
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Código curto de carteirinha gerado para {Quantidade} pessoa(s)", semCodigo.Count);
+        }
         await GarantirPadroesDosClubesAsync(sp, db, ct);
 
         if (config.GetValue<bool>("Seed:Demo"))

@@ -74,6 +74,13 @@
                                 </VerticalStackLayout>
                             </Border>
 
+                            <Border x:Name="AssembleiasCartao" Style="{StaticResource Cartao}" IsVisible="False">
+                                <VerticalStackLayout Spacing="8">
+                                    <Label Text="Assembleias" Style="{StaticResource Titulo}" />
+                                    <VerticalStackLayout x:Name="AssembleiasLista" Spacing="12" />
+                                </VerticalStackLayout>
+                            </Border>
+
                             <Label Text="Carteirinhas" Style="{StaticResource Titulo}" />
                             <VerticalStackLayout x:Name="CarteirinhasLista" Spacing="14" />
 
@@ -84,12 +91,6 @@
                                 </VerticalStackLayout>
                             </Border>
 
-                            <Border x:Name="AssembleiasCartao" Style="{StaticResource Cartao}" IsVisible="False">
-                                <VerticalStackLayout Spacing="8">
-                                    <Label Text="Assembleias" Style="{StaticResource Titulo}" />
-                                    <VerticalStackLayout x:Name="AssembleiasLista" Spacing="12" />
-                                </VerticalStackLayout>
-                            </Border>
                         </VerticalStackLayout>
 
                         <!-- ===== Eventos ===== -->

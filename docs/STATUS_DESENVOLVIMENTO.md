@@ -201,6 +201,16 @@ Projeto `src/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
 - **Associação e diretoria**: dados e endereço da associação editáveis em Configurações; diretoria com cargos e mandato
   (presidente: 2 anos, um por vez, aviso 60 dias antes do fim e quando falta presidente); gestões anteriores guardadas.
 - Migration nova `ContratosEventosDiretoria` (aplicada sobre o banco existente, sem perder dados).
+- **Carteirinha que funciona na portaria**: o QR Code virou um link para a Portaria do Web (a câmera do celular abre a página,
+  pede login se precisar e já mostra quem é), e cada pessoa tem um código curto de 8 caracteres (ex.: `7KQ2-M9XA`, sem letras
+  que se confundem) mostrado embaixo do QR no app e no Web, aceito na portaria, na presença de eventos e de assembleias.
+  O código muda junto quando a carteirinha é regenerada. Cadastros antigos ganham o código na inicialização da API.
+- **Votação pelo app**: a assembleia pode permitir participação pelo aplicativo; com ela em andamento, o associado toca em
+  "Participar pelo app" (presença registrada como "pelo app") e vota. Todos os titulares recebem aviso quando ela começa.
+  A ata sugerida informa quantos participaram pelo app. Demonstração: assembleia extraordinária em andamento com votação aberta.
+- **Visual Studio parando em erro de validação**: erros esperados (CPF inválido, conflito, não encontrado) agora são tratados
+  no nosso middleware e viram 400/404/409 sem parar o depurador; erros de verdade (500) continuam parando.
+- Migration `CarteirinhaEVotoPeloApp`. Testes de integração **88/88** (+3).
 - **App em abas** (Início, Eventos, Reservas, Financeiro, Perfil) no lugar da tela única. Na aba Eventos, cada evento mostra
   "Quem vai" com o titular e os dependentes ativos: inscrever um a um (perguntando quantos convidados de fora leva, até o
   limite do evento), "Inscrever todos" e cancelar. Evento só para associados mostra apenas o titular. No Web, a inscrição

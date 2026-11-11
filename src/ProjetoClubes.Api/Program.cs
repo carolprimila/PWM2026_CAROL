@@ -38,14 +38,23 @@ try
                 ? Serilog.Events.LogEventLevel.Debug
                 : Serilog.Events.LogEventLevel.Information);
     app.UseExceptionHandler();
-    // Cliente desistiu da requisição (fechou o app, timeout, F5 no navegador): não é erro do servidor. Tratado aqui,
-    // no nosso código, para o depurador do Visual Studio não parar em OperationCanceledException a cada cancelamento.
+    // Erros esperados — cliente que desistiu da requisição (fechou o app, F5) e recusas de regra (CPF inválido, conflito,
+    // não encontrado...) — são tratados aqui, no nosso código: o depurador do Visual Studio não para neles como se fossem
+    // "exceção sem tratamento". Falhas de verdade (500) continuam indo para o UseExceptionHandler e param no depurador.
     app.Use(async (contexto, proximo) =>
     {
         try { await proximo(contexto); }
         catch (OperationCanceledException) when (contexto.RequestAborted.IsCancellationRequested)
         {
             if (!contexto.Response.HasStarted) contexto.Response.StatusCode = 499;
+        }
+        catch (Exception ex) when (!contexto.Response.HasStarted && TratamentoGlobalExcecoes.Esperada(ex))
+        {
+            // Como o UseExceptionHandler: sai do contexto do controller para a resposta sair no formato padrão (com "errors").
+            contexto.SetEndpoint(null);
+            contexto.Request.RouteValues.Clear();
+            var tratador = ActivatorUtilities.CreateInstance<TratamentoGlobalExcecoes>(contexto.RequestServices);
+            await tratador.TryHandleAsync(contexto, ex, contexto.RequestAborted);
         }
     });
 

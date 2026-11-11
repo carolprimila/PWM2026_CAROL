@@ -236,8 +236,7 @@ public sealed class EventoService(
         var minhas = await permissoes.ObterDoUsuarioAtualAsync(ct);
         if (!minhas.Contains(Permissoes.Eventos.Gerenciar) && !minhas.Contains(Permissoes.ControleAcesso.Validar))
             throw new AcessoNegadoException();
-        var token = CodigoCarteirinha.Extrair(r.Codigo);
-        var pessoa = token is null ? null : await db.Pessoas.AsNoTracking().FirstOrDefaultAsync(p => p.TokenCarteirinha == token && p.ClubeId == ClubeId, ct);
+        var pessoa = await CodigoCarteirinha.Buscar(db.Pessoas.AsNoTracking(), r.Codigo).FirstOrDefaultAsync(p => p.ClubeId == ClubeId, ct);
         if (pessoa is null) throw new DomainException("evento.carteirinha", "Carteirinha não reconhecida neste clube.");
         var i = await db.InscricoesEventos.FirstOrDefaultAsync(x => x.EventoId == eventoId && x.PessoaId == pessoa.Id && x.Situacao != SituacaoInscricao.Cancelada, ct)
                 ?? throw new DomainException("evento.sem_inscricao", $"{pessoa.NomeCompleto} não está inscrito(a) neste evento.");

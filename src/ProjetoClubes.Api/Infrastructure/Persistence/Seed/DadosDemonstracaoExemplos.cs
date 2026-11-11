@@ -24,12 +24,12 @@ internal static partial class DadosDemonstracao
 
     private static readonly Dictionary<string, PerfilDemo> PerfisExistentes = new()
     {
-        ["Carlos Alberto Ribeiro"] = new("Engenheiro civil", "Rua Almirante Barroso", "1520", "Centro", "85851-010", "45999120034"),
-        ["Mariana Costa Ribeiro"] = new("Arquiteta", "Rua Almirante Barroso", "1520", "Centro", "85851-010", "45999120035"),
-        ["Ana Paula Souza"] = new("Professora", "Rua Jorge Sanways", "430", "Centro", "85851-190", "45998874410"),
-        ["João Batista Lima"] = new("Comerciante", "Avenida Paraná", "2210", "Jardim Central", "85864-000", "45991032287"),
-        ["Roberto Fernandes"] = new("Agricultor", "Rua Coronel Otávio Tosta", "815", "Centro", "85980-000", "44998127730"),
-        ["Cláudia Fernandes"] = new("Enfermeira", "Rua Coronel Otávio Tosta", "815", "Centro", "85980-000", "44998127731"),
+        ["Carlos Alberto Ribeiro"] = new("Engenheiro civil", "Rua Almirante Barroso", "1520", "Centro", "85851010", "45999120034"),
+        ["Mariana Costa Ribeiro"] = new("Arquiteta", "Rua Almirante Barroso", "1520", "Centro", "85851010", "45999120035"),
+        ["Ana Paula Souza"] = new("Professora", "Rua Jorge Sanways", "430", "Centro", "85851190", "45998874410"),
+        ["João Batista Lima"] = new("Comerciante", "Avenida Paraná", "2210", "Jardim Central", "85864000", "45991032287"),
+        ["Roberto Fernandes"] = new("Agricultor", "Rua Coronel Otávio Tosta", "815", "Centro", "85980000", "44998127730"),
+        ["Cláudia Fernandes"] = new("Enfermeira", "Rua Coronel Otávio Tosta", "815", "Centro", "85980000", "44998127731"),
     };
 
     private sealed record NovoAssociadoDemo(string Nome, string Categoria, Sexo Sexo, int Idade, int MesesDeClube, PerfilDemo Perfil);
@@ -37,13 +37,13 @@ internal static partial class DadosDemonstracao
     private static readonly NovoAssociadoDemo[] NovosAssociadosFoz =
     [
         new("Fernanda Oliveira Costa", "associado", Sexo.Feminino, 33, 2,
-            new("Advogada", "Rua Marechal Deodoro", "980", "Centro", "85851-030", "45999341122")),
+            new("Advogada", "Rua Marechal Deodoro", "980", "Centro", "85851030", "45999341122")),
         new("Lucas Martins Pereira", "associado", Sexo.Masculino, 29, 1,
-            new("Analista de sistemas", "Rua Tarobá", "1200", "Centro", "85851-220", "45998456120")),
+            new("Analista de sistemas", "Rua Tarobá", "1200", "Centro", "85851220", "45998456120")),
         new("Beatriz Santos Almeida", "fundador", Sexo.Feminino, 64, 60,
-            new("Aposentada", "Avenida Brasil", "455", "Centro", "85851-000", "45999870055")),
+            new("Aposentada", "Avenida Brasil", "455", "Centro", "85851000", "45999870055")),
         new("Rafael Gomes Teixeira", "convidado", Sexo.Masculino, 38, 1,
-            new("Médico", "Rua Rui Barbosa", "77", "Vila Yolanda", "85853-000", "45991205566")),
+            new("Médico", "Rua Rui Barbosa", "77", "Vila Yolanda", "85853000", "45991205566")),
     ];
 
     private static async Task CriarExemplosAsync(IServiceProvider sp, AppDbContext db, DateTimeOffset agora, ILogger logger, CancellationToken ct)
@@ -256,6 +256,33 @@ internal static partial class DadosDemonstracao
 
             await db.SaveChangesAsync(ct);
             logger.LogInformation("Exemplos de contratos, reservas e eventos criados no clube {Clube}", clube.Nome);
+        }
+    }
+
+    /// <summary>
+    /// Assembleia em andamento com participação pelo app e votação aberta, para testar o voto no celular.
+    /// Roda uma vez por clube (também em bancos que já existiam).
+    /// </summary>
+    private static async Task CriarAssembleiaPeloAppAsync(AppDbContext db, DateTimeOffset agora, ILogger logger, CancellationToken ct)
+    {
+        foreach (var sigla in Clubes.Select(c => c.Sigla))
+        {
+            var clube = await db.Clubes.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Sigla == sigla && c.Demonstracao, ct);
+            if (clube is null || await db.Assembleias.IgnoreQueryFilters().AnyAsync(a => a.ClubeId == clube.Id && a.ParticipacaoPeloApp, ct)) continue;
+            var a = new Domain.Assembleias.Assembleia(clube.Id, "Assembleia Extraordinária — cobertura da piscina",
+                Domain.Assembleias.TipoAssembleia.Extraordinaria, agora.AddMinutes(-30), "Salão social e pelo aplicativo",
+                "Ficam convocados os associados para deliberar sobre a cobertura da piscina. Participação presencial ou pelo aplicativo.",
+                exigeAdimplencia: false);
+            a.DefinirParticipacaoPeloApp(true);
+            var cobertura = a.AdicionarPauta("Aprovar a cobertura da piscina", "Investimento de R$ 180 mil, pago em 24 parcelas com o fundo de obras.", true, null);
+            a.AdicionarPauta("Horário da piscina no inverno", null, true, ["Das 9h às 18h", "Das 10h às 20h", "Abstenção"]);
+            a.AdicionarPauta("Informes da diretoria", null, false, null);
+            a.Convocar(agora.AddDays(-10));
+            a.Instalar();
+            a.AbrirVotacao(cobertura.Id);
+            db.Assembleias.Add(a);
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Assembleia com votação pelo app criada no clube {Clube}", clube.Nome);
         }
     }
 

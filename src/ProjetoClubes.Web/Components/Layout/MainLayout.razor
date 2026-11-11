@@ -74,7 +74,11 @@ else if (Sessao.Usuario is { } u)
         Sessao.Mudou += AoMudar;
         await Api.RestaurarSessaoAsync();
         _pronto = true;
-        if (!Sessao.Autenticado) Nav.NavigateTo("entrar");
+        if (!Sessao.Autenticado)
+        {
+            var pagina = Nav.ToBaseRelativePath(Nav.Uri);
+            Nav.NavigateTo(pagina.Length == 0 ? "entrar" : $"entrar?voltar={Uri.EscapeDataString("/" + pagina)}");
+        }
     }
 
     private void AoMudar() => InvokeAsync(() =>

@@ -140,9 +140,7 @@ public sealed class ControleAcessoService(
 
     private async Task<Avaliacao> AvaliarAsync(string codigo, CancellationToken ct)
     {
-        var token = CodigoCarteirinha.Extrair(codigo);
-        var pessoa = token is null ? null
-            : await db.Pessoas.AsNoTracking().FirstOrDefaultAsync(p => p.TokenCarteirinha == token && p.ClubeId == ClubeId, ct);
+        var pessoa = await CodigoCarteirinha.Buscar(db.Pessoas.AsNoTracking(), codigo).FirstOrDefaultAsync(p => p.ClubeId == ClubeId, ct);
         if (pessoa is null)
             return Negado("Carteirinha não reconhecida neste clube.", null, null, null, Vazio("Carteirinha não reconhecida neste clube."));
 

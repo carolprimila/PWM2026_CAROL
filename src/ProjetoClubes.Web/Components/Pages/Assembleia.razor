@@ -17,6 +17,7 @@
             <h1 class="h3 mb-1">@a.Titulo <Situacao Valor="@a.Situacao" /></h1>
             <div class="text-secondary">@Rotulos.Texto(a.Tipo) · @a.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(a.Local is null ? "" : $" · {a.Local}")</div>
             <div class="text-secondary small">@(a.ExigeAdimplencia ? "Vota quem é de categoria com direito a voto e está sem mensalidades vencidas." : "Vota quem é de categoria com direito a voto.") · @a.Presentes presente(s), @a.Aptos apto(s) a votar</div>
+            <div class="small @(a.ParticipacaoPeloApp ? "text-success" : "text-secondary")">@(a.ParticipacaoPeloApp ? "Participação e voto também pelo aplicativo." : "Só presencial: presença registrada na mesa.")</div>
             @if (a.MotivoCancelamento is not null) { <div class="text-danger small">Cancelada: @a.MotivoCancelamento</div> }
         </div>
         @if (gerencia)
@@ -130,7 +131,7 @@
                 @foreach (var p in a.Presencas)
                 {
                     <div class="border-top py-1 small">
-                        <div>@p.Nome <span class="text-secondary">@p.Matricula</span></div>
+                        <div>@p.Nome <span class="text-secondary">@p.Matricula</span>@if (p.PeloApp) { <span class="badge text-bg-info ms-1">pelo app</span> }</div>
                         <div class="@(p.AptoVotar ? "text-success" : "text-danger")">@(p.AptoVotar ? "Apto a votar" : $"Não vota: {p.MotivoInapto}")</div>
                     </div>
                 }

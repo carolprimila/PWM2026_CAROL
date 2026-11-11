@@ -288,6 +288,10 @@ public sealed class PortalComunicacaoController(IComunicacaoService comunicacao,
     [HttpGet("assembleias")]
     public Task<IReadOnlyList<AssembleiaPortalDto>> Assembleias(CancellationToken ct) => assembleias.PortalAsync(ct);
 
+    /// <summary>Presença pelo aplicativo (assembleia em andamento que permite participação pelo app).</summary>
+    [HttpPost("assembleias/{id:guid}/participar")]
+    public Task<AssembleiaPortalDto> Participar(Guid id, CancellationToken ct) => assembleias.ParticiparPeloAppAsync(id, ct);
+
     [HttpPost("assembleias/{id:guid}/pautas/{pautaId:guid}/voto")]
     public Task<AssembleiaPortalDto> Votar(Guid id, Guid pautaId, VotarRequest r, CancellationToken ct) =>
         assembleias.VotarAsync(id, pautaId, r.Opcao, ct);

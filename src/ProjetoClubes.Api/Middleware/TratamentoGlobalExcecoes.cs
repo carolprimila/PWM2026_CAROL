@@ -57,6 +57,9 @@ public sealed class TratamentoGlobalExcecoes(IProblemDetailsService problemDetai
         });
     }
 
+    /// <summary>Erro esperado (validação, regra de negócio, não encontrado, conflito...): vira resposta 4xx, não é falha do servidor.</summary>
+    public static bool Esperada(Exception ex) => ex is not OperationCanceledException && Mapear(ex).Status < 500;
+
     private static (int Status, string Codigo, string Titulo, string? Detalhe) Mapear(Exception ex) => ex switch
     {
         ValidationException => (400, "validacao", "Verifique os dados informados.", null),
