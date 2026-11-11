@@ -1,0 +1,153 @@
+@page "/configuracoes"
+@using System.Text.Json
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Configurações · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Configurações do clube</h1>
+<p class="text-secondary mb-3">Identidade visual, aprovações e regras de dependentes. Valem só para este clube.</p>
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_clube is not null)
+{
+    <form class="card mb-3" @onsubmit="SalvarClube"><div class="card-body">
+        <h2 class="h6 mb-3">Clube</h2>
+        <div class="row g-3">
+            <div class="col-12 col-md-5"><label class="form-label small">Nome exibido no app</label><input class="form-control" @bind="_clube.NomeExibicao" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Cor</label><input type="color" class="form-control form-control-color w-100" @bind="_clube.CorPrimaria" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Prefixo da matrícula</label><input class="form-control" @bind="_clube.PrefixoMatricula" /></div>
+            <div class="col-12 col-md-3">
+                <label class="form-label small">Fuso horário</label>
+                <select class="form-select" @bind="_clube.FusoHorario">
+                    @foreach (var f in Fusos) { <option value="@f">@f</option> }
+                </select>
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-4">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="aprA" @bind="_clube.ExigeAprovacaoAssociados" /><label class="form-check-label small" for="aprA">Novos associados precisam de aprovação</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="aprD" @bind="_clube.ExigeAprovacaoDependentes" /><label class="form-check-label small" for="aprD">Dependentes incluídos pelo app precisam de aprovação</label></div>
+            </div>
+        </div>
+        @if (Configura) { <button class="btn btn-dark mt-3" type="submit">Salvar</button> }
+    </div></form>
+}
+
+@if (_dep is not null)
+{
+    <form class="card" @onsubmit="SalvarDependentes"><div class="card-body">
+        <h2 class="h6 mb-3">Regras de dependentes</h2>
+        <div class="row g-3">
+            <div class="col-6 col-md-2"><label class="form-label small">Limite por titular</label><input type="number" min="0" class="form-control" @bind="_dep.LimitePadraoDependentes" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Máx. cônjuges</label><input type="number" min="0" class="form-control" @bind="_dep.MaximoConjuges" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Idade máx. filhos</label><input type="number" min="0" class="form-control" @bind="_dep.IdadeMaximaFilhos" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Idade máx. irmãos</label><input type="number" min="0" class="form-control" @bind="_dep.IdadeMaximaIrmaos" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Maioridade</label><input type="number" min="0" class="form-control" @bind="_dep.IdadeMaioridade" /></div>
+            <div class="col-6 col-md-2"><label class="form-label small">Login próprio a partir de</label><input type="number" min="0" class="form-control" @bind="_dep.IdadeMinimaLoginProprio" /></div>
+            <div class="col-12">
+                <label class="form-label small d-block">Parentescos aceitos</label>
+                @foreach (var p in Rotulos.Parentescos)
+                {
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="par-@p" checked="@_dep.ParentescosPermitidos.Contains(p)"
+                               @onchange="e => { if ((bool)e.Value!) _dep.ParentescosPermitidos.Add(p); else _dep.ParentescosPermitidos.Remove(p); }" />
+                        <label class="form-check-label small" for="par-@p">@Rotulos.Parentesco(p)</label>
+                    </div>
+                }
+            </div>
+            <div class="col-12 col-md-8 d-flex flex-wrap gap-4">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="doc" @bind="_dep.ExigeDocumentoComprobatorio" /><label class="form-check-label small" for="doc">Exigir documento comprobatório</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="men" @bind="_dep.MenoresPodemSolicitarReservas" /><label class="form-check-label small" for="men">Menores podem pedir reservas</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="inc" @bind="_dep.IncluidosNaMensalidadeDoTitular" /><label class="form-check-label small" for="inc">Já incluídos na mensalidade do titular</label></div>
+            </div>
+            <div class="col-12 col-md-4"><label class="form-label small">Valor adicional por dependente (R$)</label><input type="number" min="0" step="0.01" class="form-control" @bind="_dep.ValorAdicionalPorDependente" disabled="@_dep.IncluidosNaMensalidadeDoTitular" /></div>
+            <div class="col-12">
+                <label class="form-label small d-block">Permissões padrão de um dependente novo</label>
+                @foreach (var chave in _dep.PermissoesPadrao.Keys.ToList())
+                {
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="checkbox" id="pp-@chave" checked="@_dep.PermissoesPadrao[chave]" @onchange="e => _dep.PermissoesPadrao[chave] = (bool)e.Value!" />
+                        <label class="form-check-label small" for="pp-@chave">@NomePermissao(chave)</label>
+                    </div>
+                }
+            </div>
+        </div>
+        @if (Configura) { <button class="btn btn-dark mt-3" type="submit">Salvar regras</button> }
+    </div></form>
+}
+
+@code {
+    private sealed class ConfigClube
+    {
+        public string CorPrimaria { get; set; } = "#2F5D50";
+        public string? NomeExibicao { get; set; }
+        public string FusoHorario { get; set; } = "America/Sao_Paulo";
+        public bool ExigeAprovacaoAssociados { get; set; }
+        public bool ExigeAprovacaoDependentes { get; set; }
+        public string? PrefixoMatricula { get; set; }
+    }
+
+    private sealed class ConfigDependentes
+    {
+        public int LimitePadraoDependentes { get; set; }
+        public int MaximoConjuges { get; set; }
+        public int? IdadeMaximaFilhos { get; set; }
+        public int? IdadeMaximaIrmaos { get; set; }
+        public int IdadeMaioridade { get; set; }
+        public int IdadeMinimaLoginProprio { get; set; }
+        public List<string> ParentescosPermitidos { get; set; } = [];
+        public bool ExigeDocumentoComprobatorio { get; set; }
+        public bool MenoresPodemSolicitarReservas { get; set; }
+        public bool IncluidosNaMensalidadeDoTitular { get; set; }
+        public decimal ValorAdicionalPorDependente { get; set; }
+        public Dictionary<string, bool> PermissoesPadrao { get; set; } = [];
+    }
+
+    private sealed record ClubeComConfig(Guid Id, ConfigClube Configuracao);
+
+    private static readonly string[] Fusos = ["America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Campo_Grande",
+        "America/Porto_Velho", "America/Rio_Branco", "America/Fortaleza", "America/Recife", "America/Belem", "America/Noronha"];
+
+    private ConfigClube? _clube;
+    private ConfigDependentes? _dep;
+    private string? _erro, _mensagem;
+    private bool Configura => Sessao.Possui("clubes.configurar");
+    private Guid ClubeId => Sessao.Usuario!.ClubeAtual!.Id;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _clube = (await Api.GetAsync<ClubeComConfig>($"api/v1/clubes/{ClubeId}")).Configuracao;
+            _dep = await Api.GetAsync<ConfigDependentes>("api/v1/dependentes/configuracoes");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarClube()
+    {
+        _erro = _mensagem = null;
+        try { await Api.PutAsync<JsonElement>($"api/v1/clubes/{ClubeId}/configuracoes", _clube!); _mensagem = "Configurações do clube salvas. A nova cor aparece no próximo login."; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarDependentes()
+    {
+        _erro = _mensagem = null;
+        try { _dep = await Api.PutAsync<ConfigDependentes>("api/v1/dependentes/configuracoes", _dep!); _mensagem = "Regras de dependentes salvas."; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private static string NomePermissao(string chave) => chave switch
+    {
+        "acessoClube" => "Entrar no clube",
+        "participacaoEventos" => "Eventos",
+        "usoEspacosEsportivos" => "Espaços esportivos",
+        "inscricaoAtividades" => "Atividades",
+        "solicitacaoReservas" => "Pedir reservas",
+        "recebimentoComunicados" => "Comunicados",
+        "utilizacaoServicos" => "Serviços",
+        _ => chave,
+    };
+}

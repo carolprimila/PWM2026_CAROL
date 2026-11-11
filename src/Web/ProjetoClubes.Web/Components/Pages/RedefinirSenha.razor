@@ -1,0 +1,56 @@
+@page "/redefinir-senha"
+@layout LayoutAcesso
+@inject Api Api
+
+<PageTitle>Definir senha · Projeto Clubes</PageTitle>
+
+<h1 class="h4 mb-1">@(Convite == "1" ? "Criar sua senha" : "Nova senha")</h1>
+<p class="text-secondary small mb-4">@(Convite == "1" ? "Bem-vindo! Defina a senha do seu acesso." : "Escolha uma nova senha para o seu acesso.") Use pelo menos 10 caracteres, com letras e números.</p>
+
+@if (_erro is not null) { <div class="alert alert-danger py-2">@_erro</div> }
+
+@if (string.IsNullOrWhiteSpace(Token))
+{
+    <div class="alert alert-warning">Link inválido. Abra novamente o link recebido por e-mail.</div>
+}
+else if (_concluido)
+{
+    <div class="alert alert-success">Senha definida. Você já pode entrar no aplicativo do clube ou no sistema.</div>
+    <a class="btn btn-dark w-100" href="entrar">Ir para o login</a>
+}
+else
+{
+    <form @onsubmit="SalvarAsync">
+        <div class="mb-3">
+            <label class="form-label" for="senha">Nova senha</label>
+            <input id="senha" type="password" class="form-control" @bind="_senha" autocomplete="new-password" required />
+        </div>
+        <div class="mb-4">
+            <label class="form-label" for="confirmacao">Repita a senha</label>
+            <input id="confirmacao" type="password" class="form-control" @bind="_confirmacao" autocomplete="new-password" required />
+        </div>
+        <button class="btn btn-dark w-100" type="submit" disabled="@_enviando">Salvar senha</button>
+    </form>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+    [SupplyParameterFromQuery] public string? Convite { get; set; }
+    private string _senha = "", _confirmacao = "";
+    private string? _erro;
+    private bool _enviando, _concluido;
+
+    private async Task SalvarAsync()
+    {
+        _erro = null;
+        if (_senha != _confirmacao) { _erro = "As senhas não conferem."; return; }
+        _enviando = true;
+        try
+        {
+            await Api.PostAsync("api/v1/auth/redefinir-senha", new { token = Token, novaSenha = _senha });
+            _concluido = true;
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _enviando = false; }
+    }
+}

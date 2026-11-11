@@ -1,0 +1,101 @@
+﻿@inherits LayoutComponentBase
+@implements IDisposable
+@inject Sessao Sessao
+@inject Api Api
+@inject NavigationManager Nav
+
+@if (!_pronto)
+{
+    <div class="d-flex justify-content-center align-items-center vh-100 text-secondary">Carregando…</div>
+}
+else if (Sessao.Usuario is { } u)
+{
+    <div class="app" style="--cor: @(u.ClubeAtual?.CorPrimaria ?? "#2F5D50")">
+        <aside class="lateral @(_menuAberto ? "aberto" : "")">
+            <div class="marca">
+                <span class="marca-sigla">@(u.ClubeAtual?.Sigla[..Math.Min(3, u.ClubeAtual.Sigla.Length)] ?? "PC")</span>
+                <div class="text-truncate">
+                    <div class="fw-semibold text-truncate">@(u.ClubeAtual?.Nome ?? "Projeto Clubes")</div>
+                    <small class="text-secondary">Projeto Clubes</small>
+                </div>
+            </div>
+
+            @if (u.Clubes.Count > 1)
+            {
+                <select class="form-select form-select-sm mb-3" aria-label="Trocar de clube" value="@u.ClubeAtual?.Id" @onchange="TrocarClube">
+                    @if (u.ClubeAtual is null) { <option value="">Selecione um clube</option> }
+                    @foreach (var c in u.Clubes) { <option value="@c.Id">@c.Nome</option> }
+                </select>
+            }
+
+            <nav class="menu" @onclick="() => _menuAberto = false">
+                <NavLink class="item" href="" Match="NavLinkMatch.All">Início</NavLink>
+                @if (Sessao.Possui("associados.visualizar")) { <NavLink class="item" href="associados">Associados</NavLink> }
+                @if (Sessao.Possui("dependentes.visualizar")) { <NavLink class="item" href="dependentes">Dependentes</NavLink> }
+                @if (Sessao.Possui("financeiro.visualizar")) { <NavLink class="item" href="financeiro">Financeiro</NavLink> }
+                @if (Sessao.Possui("eventos.visualizar")) { <NavLink class="item" href="eventos">Eventos</NavLink> }
+                @if (Sessao.Possui("reservas.visualizar")) { <NavLink class="item" href="reservas">Reservas</NavLink> }
+                @if (Sessao.Possui("solicitacoes.visualizar")) { <NavLink class="item" href="solicitacoes">Solicitações</NavLink> }
+                @if (Sessao.Possui("comunicacao.visualizar")) { <NavLink class="item" href="comunicados">Comunicados</NavLink> }
+                @if (Sessao.Possui("assembleias.visualizar")) { <NavLink class="item" href="assembleias">Assembleias</NavLink> }
+                @if (Sessao.Possui("funcionarios.gerenciar")) { <NavLink class="item" href="funcionarios">Funcionários</NavLink> }
+                @if (Sessao.Possui("patrimonio.gerenciar")) { <NavLink class="item" href="patrimonio">Patrimônio</NavLink> }
+                @if (Sessao.Possui("estoque.gerenciar")) { <NavLink class="item" href="estoque">Estoque</NavLink> }
+                @if (Sessao.Possui("acesso.validar")) { <NavLink class="item" href="portaria">Portaria</NavLink> }
+                @if (Sessao.Possui("associados.visualizar") || Sessao.Possui("financeiro.visualizar") || Sessao.Possui("relatorios.visualizar")) { <NavLink class="item" href="relatorios">Relatórios</NavLink> }
+                @if (Sessao.Possui("usuarios.visualizar")) { <NavLink class="item" href="usuarios">Usuários</NavLink> }
+                @if (Sessao.Possui("clubes.visualizar") || Sessao.Possui("clubes.configurar")) { <NavLink class="item" href="configuracoes">Configurações</NavLink> }
+                @if (Sessao.Possui("auditoria.visualizar")) { <NavLink class="item" href="auditoria">Auditoria</NavLink> }
+                @if (u.SuperAdmin) { <NavLink class="item" href="clubes">Clubes</NavLink> }
+            </nav>
+
+            <div class="mt-auto pt-3 border-top">
+                <div class="small fw-semibold text-truncate">@u.Nome</div>
+                <div class="small text-secondary text-truncate mb-2">@u.Email</div>
+                <button class="btn btn-sm btn-outline-secondary w-100" @onclick="Sair">Sair</button>
+            </div>
+        </aside>
+
+        <main class="conteudo">
+            <button class="btn btn-sm btn-outline-secondary d-md-none mb-3" @onclick="() => _menuAberto = !_menuAberto">☰ Menu</button>
+            @if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+            @Body
+        </main>
+    </div>
+}
+
+@code {
+    private bool _pronto;
+    private bool _menuAberto;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Sessao.Mudou += AoMudar;
+        await Api.RestaurarSessaoAsync();
+        _pronto = true;
+        if (!Sessao.Autenticado) Nav.NavigateTo("entrar");
+    }
+
+    private void AoMudar() => InvokeAsync(() =>
+    {
+        if (!Sessao.Autenticado) Nav.NavigateTo("entrar");
+        StateHasChanged();
+    });
+
+    private async Task TrocarClube(ChangeEventArgs e)
+    {
+        if (!Guid.TryParse(e.Value?.ToString(), out var id)) return;
+        try
+        {
+            _erro = null;
+            await Api.TrocarClubeAsync(id);
+            Nav.NavigateTo("", forceLoad: false);
+        }
+        catch (ErroApi ex) { _erro = ex.Message; }
+    }
+
+    private async Task Sair() => await Api.SairAsync();
+
+    public void Dispose() => Sessao.Mudou -= AoMudar;
+}

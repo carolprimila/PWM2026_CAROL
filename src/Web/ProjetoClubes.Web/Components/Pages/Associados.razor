@@ -1,0 +1,88 @@
+@page "/associados"
+@inject Api Api
+@inject Sessao Sessao
+@inject NavigationManager Nav
+
+<PageTitle>Associados · Projeto Clubes</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h3 mb-0">Associados</h1>
+    @if (Sessao.Possui("associados.cadastrar")) { <a class="btn btn-dark" href="associados/novo">Novo associado</a> }
+</div>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control" style="max-width:360px" placeholder="Buscar por nome, CPF ou matrícula"
+           @bind="_busca" @bind:event="oninput" @bind:after="Buscar" />
+    <select class="form-select" style="max-width:200px" @bind="_situacao" @bind:after="Buscar">
+        <option value="">Todas as situações</option>
+        @foreach (var s in Rotulos.Situacoes) { <option value="@s">@s</option> }
+    </select>
+</div>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+else if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0)
+{
+    <div class="card"><div class="card-body text-center text-secondary py-5">
+        Nenhum associado encontrado.
+        @if (Sessao.Possui("associados.cadastrar")) { <div class="mt-2"><a href="associados/novo">Cadastrar associado</a></div> }
+    </div></div>
+}
+else
+{
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead><tr><th>Nome</th><th>Matrícula</th><th class="d-none d-md-table-cell">Categoria</th><th class="d-none d-md-table-cell">Dependentes</th><th>Situação</th></tr></thead>
+                <tbody>
+                @foreach (var a in _pagina.Itens)
+                {
+                    <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"associados/{a.Id}")'>
+                        <td><div class="fw-medium">@a.Nome</div><small class="text-secondary">@(a.CpfMascarado ?? "CPF não informado")</small></td>
+                        <td>@a.Matricula</td>
+                        <td class="d-none d-md-table-cell">@a.Categoria</td>
+                        <td class="d-none d-md-table-cell">@a.TotalDependentes</td>
+                        <td><Situacao Valor="@a.Situacao" /></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center small text-secondary">
+            <span>@_pagina.TotalItens associado(s)</span>
+            @if (_pagina.TotalPaginas > 1)
+            {
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-secondary" disabled="@(_numero <= 1)" @onclick="() => Ir(_numero - 1)">Anterior</button>
+                    <span class="btn btn-sm disabled">@_numero / @_pagina.TotalPaginas</span>
+                    <button class="btn btn-sm btn-outline-secondary" disabled="@(_numero >= _pagina.TotalPaginas)" @onclick="() => Ir(_numero + 1)">Próxima</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private Pagina<AssociadoLista>? _pagina;
+    private string _busca = "";
+    private string _situacao = "";
+    private int _numero = 1;
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private Task Buscar() { _numero = 1; return Carregar(); }
+
+    private Task Ir(int pagina) { _numero = pagina; return Carregar(); }
+
+    private async Task Carregar()
+    {
+        try
+        {
+            _erro = null;
+            var url = $"api/v1/associados?pagina={_numero}&tamanhoPagina=20&busca={Uri.EscapeDataString(_busca)}&situacao={_situacao}";
+            _pagina = await Api.GetAsync<Pagina<AssociadoLista>>(url);
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

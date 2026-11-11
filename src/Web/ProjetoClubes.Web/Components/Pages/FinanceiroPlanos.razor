@@ -1,0 +1,119 @@
+@page "/financeiro/planos"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Planos e regras · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Financeiro</h1>
+<AbasFinanceiro />
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card"><div class="card-body">
+            <h2 class="h6 mb-3">Planos de mensalidade</h2>
+            <p class="small text-secondary">Um plano ativo por categoria. Associados de categorias sem plano não recebem mensalidade.</p>
+            <table class="table align-middle">
+                <thead><tr><th>Plano</th><th>Categoria</th><th class="text-end">Valor</th><th>Vence dia</th><th>Ativos</th></tr></thead>
+                <tbody>
+                @foreach (var p in _planos)
+                {
+                    <tr class="@(p.Ativo ? "" : "text-secondary")"><td>@p.Nome@(p.Ativo ? "" : " (inativo)")</td><td>@p.Categoria</td><td class="text-end text-nowrap">@Rotulos.Moeda(p.ValorMensal)</td><td>@p.DiaVencimento</td><td>@p.AssociadosAtivos</td></tr>
+                }
+                @if (_planos.Count == 0) { <tr><td colspan="5" class="text-secondary">Nenhum plano cadastrado.</td></tr> }
+                </tbody>
+            </table>
+
+            @if (Sessao.Possui("financeiro.gerenciar"))
+            {
+                <form class="row g-2" @onsubmit="SalvarPlano">
+                    <div class="col-12 col-xxl-4"><input class="form-control" placeholder="Nome do plano" @bind="_nome" aria-label="Nome do plano" /></div>
+                    <div class="col-12 col-xxl-3">
+                        <select class="form-select" @bind="_categoriaId" aria-label="Categoria">
+                            <option value="">Categoria</option>
+                            @foreach (var c in _categorias) { <option value="@c.Id">@c.Nome</option> }
+                        </select>
+                    </div>
+                    <div class="col-5 col-xxl-2"><input type="number" step="0.01" min="0" class="form-control" placeholder="Valor (R$)" @bind="_valor" aria-label="Valor mensal" /></div>
+                    <div class="col-3 col-xxl-1"><input type="number" min="1" max="28" title="Dia de vencimento" class="form-control" @bind="_dia" aria-label="Dia de vencimento" /></div>
+                    <div class="col-4 col-xxl-2"><button class="btn btn-dark w-100" type="submit">Adicionar</button></div>
+                </form>
+            }
+        </div></div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+        <form class="card" @onsubmit="SalvarRegras">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Multa e juros por atraso</h2>
+                <label class="form-label small" for="multa">Multa (%)</label>
+                <input id="multa" type="number" step="0.01" class="form-control mb-2" @bind="_multa" disabled="@(!Sessao.Possui("financeiro.gerenciar"))" />
+                <label class="form-label small" for="juros">Juros ao mês (%)</label>
+                <input id="juros" type="number" step="0.01" class="form-control mb-2" @bind="_juros" disabled="@(!Sessao.Possui("financeiro.gerenciar"))" />
+                <label class="form-label small" for="tol">Dias de tolerância</label>
+                <input id="tol" type="number" class="form-control mb-3" @bind="_tolerancia" disabled="@(!Sessao.Possui("financeiro.gerenciar"))" />
+                @if (Sessao.Possui("financeiro.gerenciar")) { <button class="btn btn-outline-dark w-100" type="submit">Salvar regras</button> }
+            </div>
+        </form>
+    </div>
+</div>
+
+@code {
+    private List<Plano> _planos = [];
+    private List<Categoria> _categorias = [];
+    private string _nome = "", _categoriaId = "";
+    private decimal? _valor;
+    private int _dia = 10;
+    private decimal _multa, _juros;
+    private int _tolerancia;
+    private string? _erro, _mensagem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _categorias = await Api.GetAsync<List<Categoria>>("api/v1/categorias-associados");
+            var cfg = await Api.GetAsync<System.Text.Json.JsonElement>("api/v1/financeiro/configuracoes");
+            _multa = cfg.GetProperty("multaPercentual").GetDecimal();
+            _juros = cfg.GetProperty("jurosMensalPercentual").GetDecimal();
+            _tolerancia = cfg.GetProperty("diasTolerancia").GetInt32();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+        await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _planos = await Api.GetAsync<List<Plano>>("api/v1/financeiro/planos"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarPlano()
+    {
+        _erro = _mensagem = null;
+        if (!Guid.TryParse(_categoriaId, out var categoria)) { _erro = "Selecione a categoria."; return; }
+        try
+        {
+            await Api.PostAsync("api/v1/financeiro/planos", new { nome = _nome, categoriaId = categoria, valorMensal = _valor ?? 0, diaVencimento = _dia });
+            _mensagem = "Plano cadastrado.";
+            _nome = _categoriaId = "";
+            _valor = null;
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarRegras()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PutAsync<System.Text.Json.JsonElement>("api/v1/financeiro/configuracoes",
+                new { multaPercentual = _multa, jurosMensalPercentual = _juros, diasTolerancia = _tolerancia });
+            _mensagem = "Regras de multa e juros salvas.";
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

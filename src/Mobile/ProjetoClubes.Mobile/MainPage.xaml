@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="ProjetoClubes.Mobile.MainPage"
+             BackgroundColor="#F6F7F9"
+             Shell.NavBarIsVisible="False">
+
+    <ContentPage.Resources>
+        <Style TargetType="Entry">
+            <Setter Property="TextColor" Value="#1D2127" />
+            <Setter Property="PlaceholderColor" Value="#8A909C" />
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+        <Style TargetType="Picker">
+            <Setter Property="TextColor" Value="#1D2127" />
+            <Setter Property="TitleColor" Value="#8A909C" />
+            <Setter Property="BackgroundColor" Value="White" />
+        </Style>
+        <Style x:Key="Cartao" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="White" />
+            <Setter Property="Stroke" Value="#E7E9EE" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 16" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+        <Style x:Key="Titulo" TargetType="Label">
+            <Setter Property="TextColor" Value="#1D2127" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="FontAttributes" Value="Bold" />
+        </Style>
+        <Style x:Key="Sutil" TargetType="Label">
+            <Setter Property="TextColor" Value="#5B6270" />
+            <Setter Property="FontSize" Value="13" />
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid>
+        <!-- Área do associado -->
+        <Grid x:Name="AppPanel" RowDefinitions="Auto,*" IsVisible="False">
+            <Grid Grid.Row="0" BackgroundColor="White" Padding="18,12" ColumnDefinitions="Auto,*,Auto">
+                <Border x:Name="SiglaBorda" BackgroundColor="#2F5D50" StrokeThickness="0" StrokeShape="RoundRectangle 12"
+                        WidthRequest="42" HeightRequest="42">
+                    <Label x:Name="SiglaLabel" Text="PC" TextColor="White" FontSize="13" FontAttributes="Bold"
+                           HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+                <VerticalStackLayout Grid.Column="1" Margin="12,0" VerticalOptions="Center" Spacing="0">
+                    <Label x:Name="ClubeLabel" Text="Projeto Clubes" FontSize="16" FontAttributes="Bold" TextColor="#1D2127" />
+                    <Label Text="Área do associado" FontSize="12" TextColor="#5B6270" />
+                </VerticalStackLayout>
+                <Button Grid.Column="2" Text="Sair" Clicked="SairClicked" BackgroundColor="#F1F2F5" TextColor="#3F4550"
+                        CornerRadius="12" Padding="14,0" HeightRequest="40" />
+            </Grid>
+
+            <RefreshView Grid.Row="1" x:Name="Atualizador" Refreshing="AtualizarRefreshing">
+                <ScrollView>
+                    <VerticalStackLayout Padding="16,18,16,32" Spacing="16">
+                        <VerticalStackLayout Spacing="2">
+                            <Label x:Name="SaudacaoLabel" Text="Olá" TextColor="#1D2127" FontSize="26" FontAttributes="Bold" />
+                            <Label x:Name="SituacaoLabel" Style="{StaticResource Sutil}" />
+                        </VerticalStackLayout>
+
+                        <Border x:Name="AvisosCartao" Style="{StaticResource Cartao}" IsVisible="False">
+                            <VerticalStackLayout Spacing="6">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label x:Name="AvisosTitulo" Text="Avisos" Style="{StaticResource Titulo}" VerticalOptions="Center" />
+                                    <Button Grid.Column="1" x:Name="MarcarLidasBotao" Text="Marcar como lidos" Clicked="MarcarAvisosLidosClicked"
+                                            BackgroundColor="#EAF1EE" TextColor="#2F5D50" CornerRadius="10" FontSize="12" HeightRequest="34" />
+                                </Grid>
+                                <VerticalStackLayout x:Name="AvisosLista" Spacing="6" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Label Text="Carteirinhas" Style="{StaticResource Titulo}" />
+                        <VerticalStackLayout x:Name="CarteirinhasLista" Spacing="14" />
+
+                        <Border x:Name="FinanceiroCartao" Style="{StaticResource Cartao}" IsVisible="False">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Minhas mensalidades" Style="{StaticResource Titulo}" />
+                                <Label x:Name="FinanceiroResumoLabel" Style="{StaticResource Sutil}" />
+                                <VerticalStackLayout x:Name="MensalidadesLista" Spacing="4" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border x:Name="DependentesCartao" Style="{StaticResource Cartao}" IsVisible="False">
+                            <VerticalStackLayout Spacing="10">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout>
+                                        <Label Text="Meus dependentes" Style="{StaticResource Titulo}" />
+                                        <Label Text="Inclusões ficam pendentes até a aprovação do clube." Style="{StaticResource Sutil}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" x:Name="IncluirBotao" Text="＋ Incluir" Clicked="AlternarFormularioClicked"
+                                            BackgroundColor="#EAF1EE" TextColor="#2F5D50" CornerRadius="10" VerticalOptions="Center" />
+                                </Grid>
+                                <VerticalStackLayout x:Name="DependenteForm" IsVisible="False" Spacing="8">
+                                    <Entry x:Name="DepNomeEntry" Placeholder="Nome completo *" />
+                                    <Picker x:Name="DepParentescoPicker" Title="Parentesco *" />
+                                    <Label Text="Data de nascimento *" Style="{StaticResource Sutil}" />
+                                    <DatePicker x:Name="DepNascimentoPicker" Format="dd/MM/yyyy" BackgroundColor="White" TextColor="#1D2127" />
+                                    <Entry x:Name="DepCpfEntry" Placeholder="CPF (opcional)" Keyboard="Numeric" />
+                                    <Button Text="Enviar para aprovação" Clicked="IncluirDependenteClicked" BackgroundColor="#2F5D50"
+                                            TextColor="White" CornerRadius="10" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout x:Name="DependentesLista" Spacing="8" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource Cartao}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Comunicados do clube" Style="{StaticResource Titulo}" />
+                                <VerticalStackLayout x:Name="ComunicadosLista" Spacing="10" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource Cartao}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Próximos eventos" Style="{StaticResource Titulo}" />
+                                <VerticalStackLayout x:Name="EventosLista" Spacing="10" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border x:Name="AssembleiasCartao" Style="{StaticResource Cartao}" IsVisible="False">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Assembleias" Style="{StaticResource Titulo}" />
+                                <VerticalStackLayout x:Name="AssembleiasLista" Spacing="12" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border x:Name="ReservasCartao" Style="{StaticResource Cartao}">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="Reservas" Style="{StaticResource Titulo}" VerticalOptions="Center" />
+                                    <Button Grid.Column="1" x:Name="ReservarBotao" Text="＋ Reservar" Clicked="AlternarReservaClicked"
+                                            BackgroundColor="#EAF1EE" TextColor="#2F5D50" CornerRadius="10" />
+                                </Grid>
+                                <VerticalStackLayout x:Name="ReservaForm" IsVisible="False" Spacing="8">
+                                    <Picker x:Name="EspacoPicker" Title="Espaço" />
+                                    <DatePicker x:Name="ReservaDiaPicker" Format="dd/MM/yyyy" BackgroundColor="White" TextColor="#1D2127" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <TimePicker x:Name="ReservaInicioPicker" Format="HH:mm" BackgroundColor="White" TextColor="#1D2127" />
+                                        <TimePicker Grid.Column="1" x:Name="ReservaFimPicker" Format="HH:mm" BackgroundColor="White" TextColor="#1D2127" />
+                                    </Grid>
+                                    <Entry x:Name="ReservaFinalidadeEntry" Placeholder="Finalidade (ex.: aniversário)" />
+                                    <Button Text="Solicitar reserva" Clicked="SolicitarReservaClicked" BackgroundColor="#2F5D50" TextColor="White" CornerRadius="10" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout x:Name="ReservasLista" Spacing="6" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource Cartao}">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <Label Text="Solicitações e reclamações" Style="{StaticResource Titulo}" VerticalOptions="Center" />
+                                    <Button Grid.Column="1" x:Name="SolicitarBotao" Text="＋ Nova" Clicked="AlternarSolicitacaoClicked"
+                                            BackgroundColor="#EAF1EE" TextColor="#2F5D50" CornerRadius="10" />
+                                </Grid>
+                                <VerticalStackLayout x:Name="SolicitacaoForm" IsVisible="False" Spacing="8">
+                                    <Picker x:Name="TipoSolicitacaoPicker" Title="Tipo" />
+                                    <Entry x:Name="AssuntoEntry" Placeholder="Assunto" />
+                                    <Editor x:Name="DescricaoEditor" Placeholder="Descreva com detalhes" HeightRequest="100" BackgroundColor="White" TextColor="#1D2127" />
+                                    <Button Text="Enviar" Clicked="EnviarSolicitacaoClicked" BackgroundColor="#2F5D50" TextColor="White" CornerRadius="10" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout x:Name="SolicitacoesLista" Spacing="6" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource Cartao}">
+                            <VerticalStackLayout Spacing="8">
+                                <Label Text="Meus dados de contato" Style="{StaticResource Titulo}" />
+                                <Entry x:Name="TelefoneEntry" Placeholder="Telefone com DDD" Keyboard="Telephone" />
+                                <Entry x:Name="EmailEntry" Placeholder="E-mail" Keyboard="Email" />
+                                <Button x:Name="SalvarContatoBotao" Text="Salvar contato" Clicked="SalvarContatoClicked"
+                                        BackgroundColor="#F1F2F5" TextColor="#1D2127" CornerRadius="10" />
+                                <Button Text="Exportar meus dados (LGPD)" Clicked="ExportarDadosClicked"
+                                        BackgroundColor="Transparent" TextColor="#2F5D50" FontSize="13" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border BackgroundColor="#EAF1EE" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="12">
+                            <Label x:Name="StatusLabel" Text="Puxe para baixo para atualizar." TextColor="#2F5D50" FontSize="13" />
+                        </Border>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </RefreshView>
+        </Grid>
+
+        <!-- Login -->
+        <ScrollView x:Name="AuthPanel" BackgroundColor="#F6F7F9">
+            <VerticalStackLayout VerticalOptions="Center" Padding="28" Spacing="16" MaximumWidthRequest="460">
+                <Label Text="Projeto Clubes" TextColor="#1D2127" FontSize="28" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                <Label Text="Carteirinha, dependentes e seus dados do clube" Style="{StaticResource Sutil}" HorizontalTextAlignment="Center" />
+                <Border Style="{StaticResource Cartao}" Padding="22">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="Entrar" Style="{StaticResource Titulo}" FontSize="22" />
+                        <Entry x:Name="LoginEmailEntry" Placeholder="E-mail" Keyboard="Email" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                            <Entry x:Name="LoginSenhaEntry" Placeholder="Senha" IsPassword="True" ReturnType="Go" Completed="EntrarClicked" />
+                            <Button Grid.Column="1" x:Name="MostrarSenhaBotao" Text="Mostrar" Clicked="MostrarSenhaClicked"
+                                    BackgroundColor="#F1F2F5" TextColor="#3F4550" CornerRadius="10" Padding="12,0" />
+                        </Grid>
+                        <Label x:Name="LoginMensagemLabel" TextColor="#C33A38" FontSize="13" />
+                        <Button x:Name="EntrarBotao" Text="Entrar" Clicked="EntrarClicked" BackgroundColor="#2F5D50" TextColor="White"
+                                CornerRadius="12" HeightRequest="48" FontAttributes="Bold" />
+                        <Button Text="Esqueci minha senha" Clicked="EsqueciSenhaClicked" BackgroundColor="Transparent"
+                                TextColor="#2F5D50" FontSize="13" />
+                        <Label Text="O acesso é criado pela secretaria do clube. Você recebe um e-mail para definir a senha."
+                               Style="{StaticResource Sutil}" FontSize="12" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

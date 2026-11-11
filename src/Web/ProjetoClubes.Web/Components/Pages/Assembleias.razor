@@ -1,0 +1,81 @@
+@page "/assembleias"
+@inject Api Api
+@inject Sessao Sessao
+@inject NavigationManager Nav
+
+<PageTitle>Assembleias · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Assembleias</h1>
+<p class="text-secondary mb-3">Convocação, presença, votação pelo aplicativo e ata. Só titulares de categorias com direito a voto votam.</p>
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (Sessao.Possui("assembleias.gerenciar"))
+{
+    <form class="card mb-3" @onsubmit="Criar"><div class="card-body">
+        <h2 class="h6 mb-3">Nova assembleia</h2>
+        <div class="row g-2">
+            <div class="col-12 col-md-5"><input class="form-control" placeholder="Título" @bind="_titulo" aria-label="Título" /></div>
+            <div class="col-6 col-md-2"><select class="form-select" @bind="_tipo" aria-label="Tipo"><option value="Ordinaria">Ordinária</option><option value="Extraordinaria">Extraordinária</option></select></div>
+            <div class="col-6 col-md-3"><input type="datetime-local" class="form-control" @bind="_data" aria-label="Data e hora" /></div>
+            <div class="col-12 col-md-2"><input class="form-control" placeholder="Local" @bind="_local" aria-label="Local" /></div>
+            <div class="col-12"><textarea class="form-control" rows="2" placeholder="Texto da convocação (edital)" @bind="_convocacao" aria-label="Convocação"></textarea></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="adimp" @bind="_adimplencia" />
+                <label class="form-check-label small" for="adimp">Só vota quem está sem mensalidades vencidas</label></div>
+            <button class="btn btn-dark" type="submit">Criar</button>
+        </div>
+    </div></form>
+}
+
+@if (_lista is null) { <p class="text-secondary">Carregando…</p> }
+else if (_lista.Count == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhuma assembleia.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Assembleia</th><th>Data</th><th class="d-none d-md-table-cell">Pautas</th><th class="d-none d-md-table-cell">Presentes</th><th>Situação</th></tr></thead>
+            <tbody>
+            @foreach (var a in _lista)
+            {
+                <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"assembleias/{a.Id}")'>
+                    <td><div class="fw-medium">@a.Titulo</div><small class="text-secondary">@Rotulos.Texto(a.Tipo)@(a.Local is null ? "" : $" · {a.Local}")</small></td>
+                    <td class="text-nowrap">@a.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    <td class="d-none d-md-table-cell">@a.Pautas</td>
+                    <td class="d-none d-md-table-cell">@a.Presentes</td>
+                    <td><Situacao Valor="@a.Situacao" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private List<AssembleiaResumo>? _lista;
+    private string _titulo = "", _tipo = "Ordinaria", _local = "", _convocacao = "";
+    private DateTime _data = DateTime.Today.AddDays(15).AddHours(19).AddMinutes(30);
+    private bool _adimplencia = true;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _lista = await Api.GetAsync<List<AssembleiaResumo>>("api/v1/assembleias"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = null;
+        try
+        {
+            var a = await Api.PostAsync<AssembleiaInfo>("api/v1/assembleias", new
+            {
+                titulo = _titulo, tipo = _tipo, dataHora = new DateTimeOffset(_data), local = _local, convocacao = _convocacao,
+                exigeAdimplencia = _adimplencia,
+            });
+            Nav.NavigateTo($"assembleias/{a.Id}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

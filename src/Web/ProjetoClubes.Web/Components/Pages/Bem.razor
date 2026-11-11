@@ -1,0 +1,128 @@
+@page "/patrimonio/{Id:guid}"
+@inject Api Api
+
+<PageTitle>Bem patrimonial · Projeto Clubes</PageTitle>
+
+<a href="patrimonio" class="small text-secondary text-decoration-none">← Patrimônio</a>
+@if (_mensagem is not null) { <div class="alert alert-success mt-2">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger mt-2">@_erro</div> }
+
+@if (_b is { } b)
+{
+    var aberta = b.Manutencoes.FirstOrDefault(m => m.Fim is null);
+    <div class="mt-2 mb-3">
+        <h1 class="h3 mb-1">@b.Codigo · @b.Nome <Situacao Valor="@b.Situacao" /></h1>
+        <div class="text-secondary">@(b.Localizacao ?? "Local não informado") · estado @Rotulos.Texto(b.Estado)@(b.ValorAquisicao is { } v ? $" · {Rotulos.Moeda(v)}" : "")@(b.DataAquisicao is { } d ? $" · adquirido em {d:dd/MM/yyyy}" : "")</div>
+        @if (b.CustoManutencoes > 0) { <div class="text-secondary small">Gasto com manutenções: @Rotulos.Moeda(b.CustoManutencoes)</div> }
+        @if (b.MotivoBaixa is not null) { <div class="text-danger small">Baixado: @b.MotivoBaixa</div> }
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            @if (b.Situacao == "EmUso")
+            {
+                <form class="card mb-3" @onsubmit="Movimentar"><div class="card-body">
+                    <h2 class="h6">Mudar local ou estado</h2>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-5"><input class="form-control" placeholder="Localização" @bind="_local" aria-label="Localização" /></div>
+                        <div class="col-6 col-md-3"><select class="form-select" @bind="_estado" aria-label="Estado">@foreach (var e in Rotulos.Estados) { <option value="@e">@Rotulos.Texto(e)</option> }</select></div>
+                        <div class="col-6 col-md-4"><button class="btn btn-dark w-100" type="submit">Salvar</button></div>
+                    </div>
+                </div></form>
+                <form class="card mb-3" @onsubmit="AbrirManutencao"><div class="card-body">
+                    <h2 class="h6">Enviar para manutenção</h2>
+                    <div class="row g-2">
+                        <div class="col-12 col-md-5"><input class="form-control" placeholder="O que será feito" @bind="_descricao" aria-label="Descrição da manutenção" /></div>
+                        <div class="col-6 col-md-4"><input class="form-control" placeholder="Fornecedor" @bind="_fornecedor" aria-label="Fornecedor" /></div>
+                        <div class="col-6 col-md-3"><button class="btn btn-outline-dark w-100" type="submit">Enviar</button></div>
+                    </div>
+                </div></form>
+                <div class="card mb-3"><div class="card-body d-flex gap-2">
+                    <input class="form-control" placeholder="Motivo da baixa (venda, descarte, perda…)" @bind="_motivoBaixa" aria-label="Motivo da baixa" />
+                    <button class="btn btn-outline-danger text-nowrap" @onclick="Baixar">Dar baixa</button>
+                </div></div>
+            }
+            @if (aberta is not null)
+            {
+                <form class="card mb-3 border-warning" @onsubmit="() => ConcluirManutencao(aberta)"><div class="card-body">
+                    <h2 class="h6">Manutenção em andamento: @aberta.Descricao</h2>
+                    <div class="small text-secondary mb-2">Desde @aberta.Inicio.ToString("dd/MM/yyyy")@(aberta.Fornecedor is null ? "" : $" · {aberta.Fornecedor}")</div>
+                    <div class="row g-2">
+                        <div class="col-6 col-md-4"><input type="number" min="0" step="0.01" class="form-control" placeholder="Custo (R$)" @bind="_custo" aria-label="Custo" /></div>
+                        <div class="col-6 col-md-4"><select class="form-select" @bind="_estado" aria-label="Estado após a manutenção">@foreach (var e in Rotulos.Estados) { <option value="@e">@Rotulos.Texto(e)</option> }</select></div>
+                        <div class="col-12 col-md-4"><button class="btn btn-success w-100" type="submit">Concluir</button></div>
+                    </div>
+                </div></form>
+            }
+            <div class="card"><div class="card-body">
+                <h2 class="h6">Manutenções</h2>
+                @if (b.Manutencoes.Count == 0) { <p class="text-secondary small mb-0">Nenhuma manutenção registrada.</p> }
+                @foreach (var m in b.Manutencoes)
+                {
+                    <div class="border-top py-2 small">
+                        <div>@m.Descricao@(m.Fornecedor is null ? "" : $" · {m.Fornecedor}")</div>
+                        <div class="text-secondary">@m.Inicio.ToString("dd/MM/yyyy") @(m.Fim is { } f ? $"a {f:dd/MM/yyyy}" : "· em andamento")@(m.Custo is { } c ? $" · {Rotulos.Moeda(c)}" : "")</div>
+                    </div>
+                }
+            </div></div>
+        </div>
+        <div class="col-12 col-lg-5">
+            <div class="card"><div class="card-body">
+                <h2 class="h6">Histórico</h2>
+                @foreach (var h in b.Historico)
+                {
+                    <div class="border-top py-2 small">
+                        <div>@h.Descricao</div>
+                        <div class="text-secondary">@h.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(h.Usuario is null ? "" : $" · {h.Usuario}")</div>
+                    </div>
+                }
+            </div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private BemInfo? _b;
+    private string _local = "", _estado = "Bom", _descricao = "", _fornecedor = "", _motivoBaixa = "";
+    private decimal? _custo;
+    private string? _erro, _mensagem;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try { Aplicar(await Api.GetAsync<BemInfo>($"api/v1/patrimonio/{Id}")); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private void Aplicar(BemInfo b)
+    {
+        _b = b;
+        _local = b.Localizacao ?? "";
+        _estado = b.Estado;
+    }
+
+    private async Task Executar(Func<Task<BemInfo>> acao, string sucesso)
+    {
+        _erro = _mensagem = null;
+        try { Aplicar(await acao()); _mensagem = sucesso; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private Task Movimentar() => Executar(() => Api.PostAsync<BemInfo>($"api/v1/patrimonio/{Id}/movimentar", new { localizacao = _local, estado = _estado }), "Bem atualizado.");
+
+    private async Task AbrirManutencao()
+    {
+        await Executar(() => Api.PostAsync<BemInfo>($"api/v1/patrimonio/{Id}/manutencoes",
+            new { descricao = _descricao, inicio = DateOnly.FromDateTime(DateTime.Today), fornecedor = _fornecedor }), "Bem enviado para manutenção.");
+        if (_erro is null) _descricao = _fornecedor = "";
+    }
+
+    private async Task ConcluirManutencao(ManutencaoInfo m)
+    {
+        await Executar(() => Api.PostAsync<BemInfo>($"api/v1/patrimonio/{Id}/manutencoes/{m.Id}/concluir",
+            new { fim = DateOnly.FromDateTime(DateTime.Today), custo = _custo, estado = _estado }), "Manutenção concluída.");
+        if (_erro is null) _custo = null;
+    }
+
+    private Task Baixar() => Executar(() => Api.PostAsync<BemInfo>($"api/v1/patrimonio/{Id}/baixar", new { motivo = _motivoBaixa }), "Bem baixado do patrimônio.");
+}

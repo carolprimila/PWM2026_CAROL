@@ -1,0 +1,5 @@
+<span class="badge rounded-pill text-bg-@Rotulos.CorSituacao(Valor) align-middle" style="font-size:.72rem;font-weight:600">@Rotulos.Texto(Valor)</span>
+
+@code {
+    [Parameter, EditorRequired] public string Valor { get; set; } = "";
+}

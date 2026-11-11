@@ -1,0 +1,104 @@
+@page "/patrimonio"
+@inject Api Api
+@inject NavigationManager Nav
+
+<PageTitle>Patrimônio · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Patrimônio</h1>
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_resumo is { } r)
+{
+    <div class="row g-3 mb-3">
+        <Cartao Rotulo="Bens ativos" Valor="@r.Bens" />
+        <Cartao Rotulo="Em manutenção" Valor="@r.EmManutencao" />
+        <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body">
+            <div class="small text-secondary mb-2">Valor de aquisição</div><span class="indicador">@Rotulos.Moeda(r.ValorEmUso)</span>
+        </div></div></div>
+        <Cartao Rotulo="Baixados" Valor="@r.Baixados" />
+    </div>
+}
+
+<form class="card mb-3" @onsubmit="Criar"><div class="card-body">
+    <h2 class="h6 mb-3">Novo bem</h2>
+    <div class="row g-2">
+        <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome do bem" @bind="_nome" aria-label="Nome do bem" /></div>
+        <div class="col-6 col-md-2"><input class="form-control" placeholder="Localização" @bind="_local" aria-label="Localização" /></div>
+        <div class="col-6 col-md-2"><input type="number" min="0" step="0.01" class="form-control" placeholder="Valor (R$)" @bind="_valor" aria-label="Valor de aquisição" /></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" @bind="_data" aria-label="Data de aquisição" /></div>
+        <div class="col-6 col-md-1">
+            <select class="form-select" @bind="_estado" aria-label="Estado">@foreach (var e in Rotulos.Estados) { <option value="@e">@Rotulos.Texto(e)</option> }</select>
+        </div>
+        <div class="col-12 col-md-1"><button class="btn btn-dark w-100" type="submit">Incluir</button></div>
+    </div>
+</div></form>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control" style="max-width:300px" placeholder="Código, nome ou local" @bind="_busca" @bind:event="oninput" @bind:after="Carregar" aria-label="Buscar" />
+    <select class="form-select" style="max-width:200px" @bind="_situacao" @bind:after="Carregar" aria-label="Situação">
+        <option value="">Ativos</option>
+        <option value="EmManutencao">Em manutenção</option>
+        <option value="Baixado">Baixados</option>
+    </select>
+</div>
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum bem.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Código</th><th>Bem</th><th>Local</th><th class="d-none d-md-table-cell">Estado</th><th class="text-end d-none d-md-table-cell">Valor</th><th>Situação</th></tr></thead>
+            <tbody>
+            @foreach (var b in _pagina.Itens)
+            {
+                <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"patrimonio/{b.Id}")'>
+                    <td class="text-nowrap">@b.Codigo</td>
+                    <td class="fw-medium">@b.Nome</td>
+                    <td>@(b.Localizacao ?? "—")</td>
+                    <td class="d-none d-md-table-cell">@Rotulos.Texto(b.Estado)</td>
+                    <td class="text-end d-none d-md-table-cell">@(b.ValorAquisicao is { } v ? Rotulos.Moeda(v) : "—")</td>
+                    <td><Situacao Valor="@b.Situacao" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private Pagina<BemResumo>? _pagina;
+    private ResumoPatrimonio? _resumo;
+    private string _busca = "", _situacao = "", _nome = "", _local = "", _estado = "Bom";
+    private decimal? _valor;
+    private DateTime? _data;
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        var filtro = _situacao == "" ? "" : $"&situacao={_situacao}";
+        try
+        {
+            _pagina = await Api.GetAsync<Pagina<BemResumo>>($"api/v1/patrimonio?tamanhoPagina=100{filtro}&busca={Uri.EscapeDataString(_busca)}");
+            _resumo = await Api.GetAsync<ResumoPatrimonio>("api/v1/patrimonio/resumo");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = null;
+        try
+        {
+            var b = await Api.PostAsync<BemInfo>("api/v1/patrimonio", new
+            {
+                nome = _nome, localizacao = _local, valorAquisicao = _valor,
+                dataAquisicao = _data is { } d ? DateOnly.FromDateTime(d) : (DateOnly?)null, estado = _estado,
+            });
+            Nav.NavigateTo($"patrimonio/{b.Id}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

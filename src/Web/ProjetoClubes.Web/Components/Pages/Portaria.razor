@@ -1,0 +1,103 @@
+@page "/portaria"
+@inject Api Api
+
+<PageTitle>Portaria · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Portaria</h1>
+<p class="text-secondary mb-4">Leia o QR Code da carteirinha com o leitor (ou digite o código) e confirme a entrada ou saída.</p>
+
+<div class="row g-3">
+    <div class="col-12 col-lg-7">
+        <form class="card" @onsubmit="Registrar">
+            <div class="card-body">
+                <div class="btn-group mb-3" role="group" aria-label="Tipo de movimento">
+                    <input type="radio" class="btn-check" id="entrada" checked="@(_tipo == "Entrada")" @onchange='() => _tipo = "Entrada"' />
+                    <label class="btn btn-outline-dark" for="entrada">Entrada</label>
+                    <input type="radio" class="btn-check" id="saida" checked="@(_tipo == "Saida")" @onchange='() => _tipo = "Saida"' />
+                    <label class="btn btn-outline-dark" for="saida">Saída</label>
+                </div>
+                <div class="input-group input-group-lg">
+                    <input class="form-control" placeholder="Código da carteirinha" @bind="_codigo" autofocus autocomplete="off" />
+                    <button class="btn btn-dark" type="submit" disabled="@_enviando">Registrar</button>
+                </div>
+            </div>
+        </form>
+
+        @if (_erro is not null) { <div class="alert alert-danger mt-3">@_erro</div> }
+
+        @if (_resultado is { } r)
+        {
+            <div class="card mt-3 border-2 @(r.Autorizado ? "border-success" : "border-danger")">
+                <div class="card-body">
+                    <div class="fs-4 fw-semibold @(r.Autorizado ? "text-success" : "text-danger")">@(r.Autorizado ? "✔ " : "✖ ")@r.Mensagem</div>
+                    @if (r.Nome is not null)
+                    {
+                        <div class="mt-2 fs-5">@r.Nome</div>
+                        <div class="text-secondary">@r.Tipo · Nº @r.NumeroIdentificacao@(r.Categoria is null ? "" : $" · {r.Categoria}")</div>
+                        @if (r.TitularNome is not null) { <div class="text-secondary">Titular: @r.TitularNome</div> }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-12 col-lg-5">
+        <div class="card"><div class="card-body">
+            <div class="d-flex justify-content-between"><h2 class="h6">No clube agora</h2><span class="badge text-bg-light">@_presentes.Count</span></div>
+            @if (_presentes.Count == 0) { <p class="small text-secondary mb-0">Ninguém registrado dentro do clube nas últimas 24 horas.</p> }
+            <ul class="list-unstyled mb-0 small">
+                @foreach (var p in _presentes) { <li class="d-flex justify-content-between py-1 border-top"><span>@p.Nome</span><span class="text-secondary">@p.EntradaEm.ToLocalTime().ToString("HH:mm")</span></li> }
+            </ul>
+        </div></div>
+        <div class="card mt-3"><div class="card-body">
+            <h2 class="h6">Últimos registros</h2>
+            <ul class="list-unstyled mb-0 small">
+                @foreach (var a in _ultimos)
+                {
+                    <li class="py-1 border-top">
+                        <span class="@(a.Autorizado ? "" : "text-danger")">@(a.Nome ?? "Não reconhecido")</span>
+                        <span class="text-secondary"> · @(a.Tipo == "Saida" ? "Saída" : "Entrada") @a.OcorridoEm.ToLocalTime().ToString("dd/MM HH:mm")</span>
+                        @if (!a.Autorizado) { <div class="text-danger">@a.Motivo</div> }
+                    </li>
+                }
+            </ul>
+        </div></div>
+    </div>
+</div>
+
+@code {
+    private string _codigo = "";
+    private string _tipo = "Entrada";
+    private bool _enviando;
+    private string? _erro;
+    private ResultadoValidacao? _resultado;
+    private List<Presente> _presentes = [];
+    private List<Acesso> _ultimos = [];
+
+    protected override Task OnInitializedAsync() => Atualizar();
+
+    private async Task Registrar()
+    {
+        if (string.IsNullOrWhiteSpace(_codigo)) return;
+        _erro = null;
+        _enviando = true;
+        try
+        {
+            _resultado = await Api.PostAsync<ResultadoValidacao>("api/v1/controle-acesso/registrar", new { codigo = _codigo.Trim(), tipo = _tipo });
+            _codigo = "";
+            await Atualizar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _enviando = false; }
+    }
+
+    private async Task Atualizar()
+    {
+        try
+        {
+            _presentes = await Api.GetAsync<List<Presente>>("api/v1/controle-acesso/presentes");
+            _ultimos = (await Api.GetAsync<Pagina<Acesso>>("api/v1/controle-acesso?tamanhoPagina=8")).Itens;
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

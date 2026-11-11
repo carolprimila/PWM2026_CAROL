@@ -1,0 +1,84 @@
+@page "/dependentes"
+@inject Api Api
+@inject Sessao Sessao
+@inject NavigationManager Nav
+
+<PageTitle>Dependentes · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Dependentes</h1>
+<p class="text-secondary mb-3">Para incluir um dependente, abra o cadastro do associado titular.</p>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control" style="max-width:360px" placeholder="Buscar por nome, nº ou titular"
+           @bind="_busca" @bind:event="oninput" @bind:after="Carregar" />
+    <select class="form-select" style="max-width:200px" @bind="_situacao" @bind:after="Carregar">
+        <option value="">Todas as situações</option>
+        @foreach (var s in Rotulos.Situacoes) { <option value="@s">@s</option> }
+    </select>
+</div>
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum dependente encontrado.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Nome</th><th>Parentesco</th><th class="d-none d-md-table-cell">Titular</th><th>Situação</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var d in _pagina.Itens)
+            {
+                <tr>
+                    <td><div class="fw-medium">@d.Nome</div><small class="text-secondary">Nº @d.NumeroIdentificacao</small></td>
+                    <td>@Rotulos.Parentesco(d.Parentesco, d.ParentescoDescricao)@(d.Idade is { } i ? $" · {i} anos" : "")</td>
+                    <td class="d-none d-md-table-cell"><a href="associados/@d.TitularId">@d.TitularNome</a></td>
+                    <td><Situacao Valor="@d.Situacao" /></td>
+                    <td class="text-end text-nowrap">
+                        @if (d.Situacao == "Pendente" && Sessao.Possui("dependentes.aprovar"))
+                        {
+                            <button class="btn btn-sm btn-success me-1" @onclick='() => Acao(d, "aprovar")'>Aprovar</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick='() => Acao(d, "rejeitar")'>Rejeitar</button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white small text-secondary">@_pagina.TotalItens dependente(s)</div></div>
+}
+
+@code {
+    private Pagina<DependenteLista>? _pagina;
+    private string _busca = "";
+    private string _situacao = "";
+    private string? _erro;
+    private string? _mensagem;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try
+        {
+            _pagina = await Api.GetAsync<Pagina<DependenteLista>>(
+                $"api/v1/dependentes?tamanhoPagina=50&busca={Uri.EscapeDataString(_busca)}&situacao={_situacao}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Acao(DependenteLista d, string acao)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/dependentes/{d.Id}/{acao}",
+                new { motivo = acao == "rejeitar" ? "Rejeitado pela administração" : null });
+            _mensagem = acao == "aprovar" ? $"{d.Nome} aprovado(a)." : $"{d.Nome} rejeitado(a).";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

@@ -1,0 +1,72 @@
+html, body {
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: #f6f7f9;
+    color: #1d2127;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.card {
+    border-color: #e7e9ee;
+    border-radius: 12px;
+}
+
+.table > :not(caption) > * > * {
+    padding: .7rem .75rem;
+}
+
+.table thead th {
+    font-weight: 500;
+    color: #5b6270;
+    font-size: .85rem;
+}
+
+.linha-clicavel {
+    cursor: pointer;
+}
+
+.indicador {
+    font-size: 1.9rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.text-bg-orange {
+    background: #fd7e14;
+    color: #fff;
+}
+
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+.validation-message {
+    color: #e50000;
+}
+
+.blazor-error-boundary {
+    background: #fde8e8;
+    padding: 1rem;
+    color: #842029;
+    border-radius: 8px;
+}
+
+.blazor-error-boundary::after {
+    content: "Ocorreu um erro inesperado nesta tela.";
+}
+
+/* Abas e destaques na cor do clube (definida em --cor no layout). */
+.nav-pills .nav-link {
+    color: #3f4550;
+}
+
+.nav-pills .nav-link.active {
+    background: var(--cor);
+    color: #fff;
+}

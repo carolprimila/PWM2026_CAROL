@@ -1,0 +1,84 @@
+@page "/solicitacoes/{Id:guid}"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Solicitação · Projeto Clubes</PageTitle>
+
+<a href="solicitacoes" class="small text-secondary text-decoration-none">← Solicitações</a>
+@if (_erro is not null) { <div class="alert alert-danger mt-2">@_erro</div> }
+
+@if (_s is { } s)
+{
+    var aberta = s.Situacao is "Aberta" or "EmAndamento";
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1">@s.Assunto <Situacao Valor="@s.Situacao" /></h1>
+            <div class="text-secondary small">Protocolo @s.Protocolo · @Rotulos.Texto(s.Tipo) · @(s.Solicitante ?? "registrada pela secretaria") · @s.AbertaEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(s.Responsavel is null ? "" : $" · responsável: {s.Responsavel}")</div>
+        </div>
+        @if (aberta && Sessao.Possui("solicitacoes.atender"))
+        {
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick='() => Situacao("Concluida")'>Concluir</button>
+                <button class="btn btn-outline-secondary" @onclick='() => Situacao("Cancelada")'>Cancelar</button>
+            </div>
+        }
+    </div>
+
+    <div class="card mb-3"><div class="card-body" style="white-space:pre-wrap">@s.Descricao</div></div>
+
+    @foreach (var r in s.Respostas)
+    {
+        <div class="card mb-2 @(r.Interna ? "border-warning" : r.DaAdministracao ? "" : "border-primary-subtle")" style="@(r.DaAdministracao ? "margin-left:2rem" : "margin-right:2rem")">
+            <div class="card-body py-2">
+                <div class="small text-secondary">@(r.Autor ?? "—") · @r.CriadaEm.ToLocalTime().ToString("dd/MM HH:mm")@(r.Interna ? " · anotação interna" : "")</div>
+                <div style="white-space:pre-wrap">@r.Texto</div>
+            </div>
+        </div>
+    }
+
+    @if (aberta && Sessao.Possui("solicitacoes.atender"))
+    {
+        <form class="card mt-3" @onsubmit="Responder"><div class="card-body">
+            <textarea class="form-control mb-2" rows="3" placeholder="Escreva a resposta ao associado" @bind="_texto" aria-label="Resposta"></textarea>
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="interna" @bind="_interna" />
+                    <label class="form-check-label small" for="interna">Anotação interna (o associado não vê)</label></div>
+                <button class="btn btn-dark" type="submit">Enviar</button>
+            </div>
+        </div></form>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private SolicitacaoInfo? _s;
+    private string _texto = "";
+    private bool _interna;
+    private string? _erro;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try { _s = await Api.GetAsync<SolicitacaoInfo>($"api/v1/solicitacoes/{Id}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Responder()
+    {
+        if (string.IsNullOrWhiteSpace(_texto)) return;
+        _erro = null;
+        try
+        {
+            _s = await Api.PostAsync<SolicitacaoInfo>($"api/v1/solicitacoes/{Id}/respostas", new { texto = _texto.Trim(), interna = _interna });
+            _texto = "";
+            _interna = false;
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Situacao(string situacao)
+    {
+        _erro = null;
+        try { _s = await Api.PutAsync<SolicitacaoInfo>($"api/v1/solicitacoes/{Id}/situacao", new { situacao }); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

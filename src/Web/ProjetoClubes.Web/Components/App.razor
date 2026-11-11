@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["ProjetoClubes.Web.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="Modo" />
+</head>
+
+<body>
+    <Routes @rendermode="Modo" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script>
+        // Download de relatórios (CSV) e exportações (JSON) gerados no servidor.
+        window.baixarArquivo = (nome, tipo, texto) => {
+            const url = URL.createObjectURL(new Blob([texto], { type: tipo }));
+            const a = document.createElement('a');
+            a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+    </script>
+</body>
+
+</html>
+
+@code {
+    // Sem pré-renderização: a sessão é lida do armazenamento protegido do navegador já na primeira renderização.
+    private static readonly IComponentRenderMode Modo = new InteractiveServerRenderMode(prerender: false);
+}

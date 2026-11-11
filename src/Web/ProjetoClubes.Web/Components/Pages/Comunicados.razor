@@ -1,0 +1,141 @@
+@page "/comunicados"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Comunicados · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Comunicados</h1>
+<p class="text-secondary mb-3">Mural de avisos do aplicativo. Ao publicar, os associados recebem uma notificação.</p>
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (Sessao.Possui("comunicacao.gerenciar"))
+{
+    <form class="card mb-3" @onsubmit="Criar"><div class="card-body">
+        <h2 class="h6 mb-3">Novo comunicado</h2>
+        <input class="form-control mb-2" placeholder="Título" @bind="_titulo" aria-label="Título" />
+        <textarea class="form-control mb-2" rows="3" placeholder="Texto do comunicado" @bind="_texto" aria-label="Texto"></textarea>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <select class="form-select" style="max-width:220px" @bind="_publico" aria-label="Público">
+                <option value="Todos">Associados e dependentes</option>
+                <option value="Titulares">Só titulares</option>
+            </select>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="conf" @bind="_exigeConfirmacao" />
+                <label class="form-check-label small" for="conf">Pedir confirmação de leitura</label></div>
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="fix" @bind="_fixado" />
+                <label class="form-check-label small" for="fix">Fixar no topo</label></div>
+            <div class="ms-auto d-flex gap-2">
+                <button class="btn btn-outline-secondary" type="button" @onclick="() => Criar(false)">Salvar rascunho</button>
+                <button class="btn btn-dark" type="submit">Publicar</button>
+            </div>
+        </div>
+    </div></form>
+}
+
+@if (_lista is null) { <p class="text-secondary">Carregando…</p> }
+else if (_lista.Count == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum comunicado.</div></div> }
+else
+{
+    @foreach (var c in _lista)
+    {
+        <div class="card mb-2"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <div class="fw-medium">@(c.Fixado ? "📌 " : "")@c.Titulo</div>
+                    <div class="small text-secondary">
+                        @(c.PublicadoEm is { } p ? $"Publicado em {p.ToLocalTime():dd/MM/yyyy HH:mm}" : "Rascunho") · @Rotulos.Texto(c.Publico)
+                        @if (c.PublicadoEm is not null)
+                        {
+                            <span> · @(c.ExigeConfirmacao ? $"{c.Confirmacoes} de {c.Destinatarios} confirmaram" : $"{c.Leituras} de {c.Destinatarios} leram")</span>
+                        }
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    @if (c.PublicadoEm is null && Sessao.Possui("comunicacao.gerenciar"))
+                    {
+                        <button class="btn btn-sm btn-dark" @onclick="() => Publicar(c)">Publicar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Excluir(c)">Excluir</button>
+                    }
+                    else if (c.PublicadoEm is not null)
+                    {
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => Detalhar(c)">@(_aberto?.Comunicado.Id == c.Id ? "Fechar" : "Leituras")</button>
+                    }
+                </div>
+            </div>
+            <div class="mt-2" style="white-space:pre-wrap">@c.Texto</div>
+            @if (_aberto is { } d && d.Comunicado.Id == c.Id)
+            {
+                <div class="row g-3 mt-1 small">
+                    <div class="col-12 col-md-6">
+                        <div class="fw-medium mb-1">Leram (@d.Leituras.Count)</div>
+                        @foreach (var l in d.Leituras)
+                        {
+                            <div>@l.Nome — @l.LidoEm.ToLocalTime().ToString("dd/MM HH:mm")@(l.ConfirmadoEm is { } x ? $" · confirmou {x.ToLocalTime():dd/MM HH:mm}" : c.ExigeConfirmacao ? " · sem confirmação" : "")</div>
+                        }
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="fw-medium mb-1">@(c.ExigeConfirmacao ? "Ainda não confirmaram" : "Ainda não leram") (@d.Pendentes.Count)</div>
+                        <div class="text-secondary">@(d.Pendentes.Count == 0 ? "Ninguém." : string.Join(", ", d.Pendentes))</div>
+                    </div>
+                </div>
+            }
+        </div></div>
+    }
+}
+
+@code {
+    private List<ComunicadoInfo>? _lista;
+    private ComunicadoLeituras? _aberto;
+    private string _titulo = "", _texto = "", _publico = "Todos";
+    private bool _exigeConfirmacao, _fixado;
+    private string? _erro, _mensagem;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try { _lista = await Api.GetAsync<List<ComunicadoInfo>>("api/v1/comunicados"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private Task Criar() => Criar(true);
+
+    private async Task Criar(bool publicar)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync("api/v1/comunicados", new
+            {
+                titulo = _titulo, texto = _texto, publico = _publico, exigeConfirmacao = _exigeConfirmacao, fixado = _fixado, publicar,
+            });
+            _mensagem = publicar ? "Comunicado publicado. Os associados foram avisados no aplicativo." : "Rascunho salvo.";
+            _titulo = _texto = "";
+            _exigeConfirmacao = _fixado = false;
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Publicar(ComunicadoInfo c)
+    {
+        _erro = _mensagem = null;
+        try { await Api.PostAsync($"api/v1/comunicados/{c.Id}/publicar"); _mensagem = "Comunicado publicado."; await Carregar(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Excluir(ComunicadoInfo c)
+    {
+        _erro = _mensagem = null;
+        try { await Api.DeleteAsync($"api/v1/comunicados/{c.Id}"); await Carregar(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Detalhar(ComunicadoInfo c)
+    {
+        if (_aberto?.Comunicado.Id == c.Id) { _aberto = null; return; }
+        try { _aberto = await Api.GetAsync<ComunicadoLeituras>($"api/v1/comunicados/{c.Id}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

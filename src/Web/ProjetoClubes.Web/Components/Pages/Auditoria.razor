@@ -1,0 +1,137 @@
+@page "/auditoria"
+@inject Api Api
+
+<PageTitle>Auditoria · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Auditoria</h1>
+<p class="text-secondary mb-3">Quem alterou o quê e quando, e os acessos ao sistema neste clube.</p>
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item"><button class="nav-link @(_aba == "alteracoes" ? "active" : "")" @onclick='() => Trocar("alteracoes")'>Alterações</button></li>
+    <li class="nav-item"><button class="nav-link @(_aba == "acessos" ? "active" : "")" @onclick='() => Trocar("acessos")'>Acessos ao sistema</button></li>
+</ul>
+
+<div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+    @if (_aba == "alteracoes")
+    {
+        <select class="form-select" style="max-width:220px" @bind="_entidade" @bind:after="Carregar" aria-label="Tipo de registro">
+            <option value="">Todos os registros</option>
+            @foreach (var e in Entidades) { <option value="@e">@e</option> }
+        </select>
+    }
+    <input type="date" class="form-control" style="max-width:170px" @bind="_de" @bind:after="Carregar" aria-label="De" />
+    <input type="date" class="form-control" style="max-width:170px" @bind="_ate" @bind:after="Carregar" aria-label="Até" />
+    <span class="small text-secondary">@_total registro(s)</span>
+</div>
+
+@if (_aba == "alteracoes")
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle small">
+            <thead><tr><th>Quando</th><th>Quem</th><th>Ação</th><th>Registro</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var l in _logs)
+            {
+                <tr>
+                    <td class="text-nowrap">@l.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>@(l.UsuarioNome ?? "Sistema")</td>
+                    <td>@l.Acao</td>
+                    <td>@l.Entidade <span class="text-secondary">@l.EntidadeId[..Math.Min(8, l.EntidadeId.Length)]</span></td>
+                    <td class="text-end">@if (l.Alteracoes is not null) { <button class="btn btn-sm btn-link" @onclick="() => _aberto = _aberto == l.Id ? null : l.Id">@(_aberto == l.Id ? "Ocultar" : "Ver")</button> }</td>
+                </tr>
+                @if (_aberto == l.Id)
+                {
+                    <tr><td colspan="5" class="bg-light"><pre class="small mb-0" style="white-space:pre-wrap">@Formatar(l.Alteracoes)</pre></td></tr>
+                }
+            }
+            @if (_logs.Count == 0) { <tr><td colspan="5" class="text-secondary">Nenhum registro no período.</td></tr> }
+            </tbody>
+        </table>
+    </div></div>
+}
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle small">
+            <thead><tr><th>Quando</th><th>Usuário</th><th>Evento</th><th>Resultado</th><th class="d-none d-md-table-cell">IP</th></tr></thead>
+            <tbody>
+            @foreach (var a in _acessos)
+            {
+                <tr>
+                    <td class="text-nowrap">@a.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td>
+                    <td>@(a.UsuarioNome ?? "—")</td>
+                    <td>@a.Evento@(a.Detalhe is null ? "" : $" · {a.Detalhe}")</td>
+                    <td class="@(a.Sucesso ? "text-success" : "text-danger")">@(a.Sucesso ? "OK" : "Falhou")</td>
+                    <td class="d-none d-md-table-cell">@(a.Ip ?? "—")</td>
+                </tr>
+            }
+            @if (_acessos.Count == 0) { <tr><td colspan="5" class="text-secondary">Nenhum acesso no período.</td></tr> }
+            </tbody>
+        </table>
+    </div></div>
+}
+@if (_total > _logs.Count + _acessos.Count && _pagina < 20)
+{
+    <button class="btn btn-outline-secondary btn-sm mt-2" @onclick="Mais">Carregar mais</button>
+}
+
+@code {
+    private sealed record Acesso(Guid Id, Guid? UsuarioId, string? UsuarioNome, string Evento, bool Sucesso, DateTimeOffset OcorridoEm, string? Ip, string? Detalhe);
+
+    private static readonly string[] Entidades = ["Associado", "Dependente", "Pessoa", "Mensalidade", "Pagamento", "LancamentoFinanceiro",
+        "Evento", "Reserva", "Solicitacao", "Comunicado", "Funcionario", "Bem", "Produto", "Assembleia", "Usuario", "UsuarioClube", "Perfil",
+        "ConfiguracaoClube", "ConfiguracaoDependentes"];
+
+    private string _aba = "alteracoes", _entidade = "";
+    private DateTime? _de = DateTime.Today.AddDays(-30), _ate;
+    private List<LogAuditoria> _logs = [];
+    private List<Acesso> _acessos = [];
+    private int _total, _pagina = 1;
+    private Guid? _aberto;
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private Task Trocar(string aba) { _aba = aba; return Carregar(); }
+
+    private async Task Carregar()
+    {
+        _pagina = 1;
+        _logs = [];
+        _acessos = [];
+        await Buscar();
+    }
+
+    private async Task Mais() { _pagina++; await Buscar(); }
+
+    private async Task Buscar()
+    {
+        _erro = null;
+        var periodo = (_de is { } d ? $"&de={Uri.EscapeDataString(new DateTimeOffset(d).ToString("O"))}" : "")
+                      + (_ate is { } a ? $"&ate={Uri.EscapeDataString(new DateTimeOffset(a.AddDays(1)).ToString("O"))}" : "");
+        try
+        {
+            if (_aba == "alteracoes")
+            {
+                var p = await Api.GetAsync<Pagina<LogAuditoria>>($"api/v1/auditoria?tamanhoPagina=50&pagina={_pagina}&entidade={_entidade}{periodo}");
+                _logs.AddRange(p.Itens);
+                _total = p.TotalItens;
+            }
+            else
+            {
+                var p = await Api.GetAsync<Pagina<Acesso>>($"api/v1/auditoria/acessos?tamanhoPagina=50&pagina={_pagina}{periodo}");
+                _acessos.AddRange(p.Itens);
+                _total = p.TotalItens;
+            }
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private static string Formatar(string? json)
+    {
+        if (json is null) return "";
+        try { return System.Text.Json.JsonSerializer.Serialize(System.Text.Json.JsonDocument.Parse(json).RootElement, new System.Text.Json.JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping }); }
+        catch { return json; }
+    }
+}

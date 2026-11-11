@@ -1,0 +1,57 @@
+@page "/solicitacoes"
+@inject Api Api
+@inject NavigationManager Nav
+
+<PageTitle>Solicitações · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Solicitações</h1>
+<p class="text-secondary mb-3">Pedidos, reclamações e sugestões enviados pelos associados no aplicativo.</p>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control" style="max-width:320px" placeholder="Protocolo ou assunto" @bind="_busca" @bind:event="oninput" @bind:after="Carregar" aria-label="Buscar" />
+    <select class="form-select" style="max-width:200px" @bind="_filtro" @bind:after="Carregar" aria-label="Situação">
+        <option value="abertas">Em aberto</option>
+        <option value="Concluida">Concluídas</option>
+        <option value="Cancelada">Canceladas</option>
+        <option value="">Todas</option>
+    </select>
+</div>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhuma solicitação.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Protocolo</th><th>Assunto</th><th class="d-none d-md-table-cell">Solicitante</th><th>Aberta em</th><th>Situação</th></tr></thead>
+            <tbody>
+            @foreach (var s in _pagina.Itens)
+            {
+                <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"solicitacoes/{s.Id}")'>
+                    <td class="text-nowrap">@s.Protocolo</td>
+                    <td><div class="fw-medium">@s.Assunto</div><small class="text-secondary">@Rotulos.Texto(s.Tipo)@(s.Respostas > 0 ? $" · {s.Respostas} mensagem(ns)" : "")</small></td>
+                    <td class="d-none d-md-table-cell">@(s.Solicitante ?? "—")</td>
+                    <td class="small text-nowrap">@s.AbertaEm.ToLocalTime().ToString("dd/MM/yyyy")@if (s.Atrasada) { <div class="text-danger">prazo vencido</div> }</td>
+                    <td><Situacao Valor="@s.Situacao" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private Pagina<SolicitacaoResumo>? _pagina;
+    private string _busca = "", _filtro = "abertas";
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        var filtro = _filtro == "abertas" ? "somenteAbertas=true" : $"situacao={_filtro}";
+        try { _pagina = await Api.GetAsync<Pagina<SolicitacaoResumo>>($"api/v1/solicitacoes?tamanhoPagina=100&{filtro}&busca={Uri.EscapeDataString(_busca)}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

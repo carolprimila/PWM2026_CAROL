@@ -1,0 +1,66 @@
+@page "/"
+@inject Sessao Sessao
+@inject Api Api
+
+<PageTitle>Início · Projeto Clubes</PageTitle>
+
+@if (Sessao.Usuario is { } u)
+{
+    <h1 class="h3 mb-1">Olá, @u.Nome.Split(' ')[0]</h1>
+    <p class="text-secondary mb-4">@(u.ClubeAtual?.Nome ?? "Nenhum clube selecionado")</p>
+
+    @if (u.ClubeAtual is null)
+    {
+        <div class="card"><div class="card-body">
+            Você é administrador geral. Cadastre um clube em <a href="clubes">Clubes</a> ou selecione um clube no menu.
+        </div></div>
+    }
+    else if (_erro is not null)
+    {
+        <div class="alert alert-danger">@_erro</div>
+    }
+    else if (_resumo is { } r)
+    {
+        <div class="row g-3 mb-4">
+            <Cartao Rotulo="Associados ativos" Valor="@Num(r.AssociadosPorSituacao, "Ativo")" Detalhe="@($"de {r.TotalAssociados}")" />
+            <Cartao Rotulo="Dependentes ativos" Valor="@Num(r.DependentesPorSituacao, "Ativo")" Detalhe="@($"de {r.TotalDependentes}")" />
+            <Cartao Rotulo="Aguardando aprovação" Valor="@(Num(r.AssociadosPorSituacao, "Pendente") + Num(r.DependentesPorSituacao, "Pendente"))" />
+            <Cartao Rotulo="Suspensos" Valor="@(Num(r.AssociadosPorSituacao, "Suspenso") + Num(r.DependentesPorSituacao, "Suspenso"))" />
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Associados ativos por categoria</h2>
+                @if (r.AssociadosPorCategoria.Count == 0)
+                {
+                    <p class="text-secondary mb-0">Ainda não há associados ativos. <a href="associados/novo">Cadastrar o primeiro</a>.</p>
+                }
+                @foreach (var (categoria, total) in r.AssociadosPorCategoria.OrderByDescending(x => x.Value))
+                {
+                    <div class="d-flex justify-content-between small mb-1"><span>@categoria</span><span>@total</span></div>
+                    <div class="progress mb-3" style="height:6px">
+                        <div class="progress-bar" style="width:@(100 * total / Math.Max(1, r.AssociadosPorCategoria.Values.Sum()))%;background:var(--cor)"></div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (Sessao.Possui("associados.visualizar"))
+    {
+        <p class="text-secondary">Carregando…</p>
+    }
+}
+
+@code {
+    private ResumoCadastros? _resumo;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Sessao.Possui("associados.visualizar")) return;
+        try { _resumo = await Api.GetAsync<ResumoCadastros>("api/v1/associados/resumo"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private static int Num(Dictionary<string, int> d, string chave) => d.GetValueOrDefault(chave);
+}

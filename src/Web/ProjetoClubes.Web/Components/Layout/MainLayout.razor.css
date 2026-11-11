@@ -1,0 +1,85 @@
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+.lateral {
+    width: 240px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #e7e9ee;
+    padding: 1.25rem 1rem;
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+}
+
+.marca {
+    display: flex;
+    gap: .6rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.marca-sigla {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--cor);
+    color: #fff;
+    font-weight: 700;
+    font-size: .75rem;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.menu ::deep .item {
+    padding: .5rem .75rem;
+    border-radius: 8px;
+    color: #3f4550;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.menu ::deep .item:hover {
+    background: #f3f4f6;
+}
+
+.menu ::deep .item.active {
+    background: color-mix(in srgb, var(--cor) 12%, white);
+    color: var(--cor);
+}
+
+.conteudo {
+    flex: 1;
+    min-width: 0;
+    padding: 2rem;
+    max-width: 1200px;
+}
+
+@media (max-width: 767.98px) {
+    .lateral {
+        position: fixed;
+        z-index: 20;
+        left: -260px;
+        transition: left .2s;
+        box-shadow: 0 0 24px rgba(0, 0, 0, .12);
+    }
+
+    .lateral.aberto {
+        left: 0;
+    }
+
+    .conteudo {
+        padding: 1rem;
+    }
+}

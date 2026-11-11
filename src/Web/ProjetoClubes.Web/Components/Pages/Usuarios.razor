@@ -1,0 +1,162 @@
+@page "/usuarios"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Usuários · Projeto Clubes</PageTitle>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <div>
+        <h1 class="h3 mb-1">Usuários</h1>
+        <p class="text-secondary mb-4">Quem acessa o sistema neste clube e com qual perfil.</p>
+    </div>
+    <a class="btn btn-outline-dark" href="perfis">Perfis e permissões</a>
+</div>
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (Sessao.Possui("usuarios.gerenciar"))
+{
+    <form class="card mb-3" @onsubmit="Criar">
+        <div class="card-body">
+            <h2 class="h6 mb-3">Novo usuário</h2>
+            <div class="row g-2">
+                <div class="col-12 col-md-3"><input class="form-control" placeholder="Nome" @bind="_nome" required /></div>
+                <div class="col-12 col-md-3"><input type="email" class="form-control" placeholder="E-mail" @bind="_email" required /></div>
+                <div class="col-12 col-md-3">
+                    <select class="form-select" @bind="_perfilId">
+                        <option value="">Perfil</option>
+                        @foreach (var p in _perfis) { <option value="@p.Id">@p.Nome</option> }
+                    </select>
+                </div>
+                <div class="col-12 col-md-3"><button class="btn btn-dark w-100" type="submit">Criar e enviar convite</button></div>
+            </div>
+            <div class="small text-secondary mt-2">O usuário recebe um e-mail para definir a própria senha.</div>
+        </div>
+    </form>
+}
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>Nome</th><th>Perfis</th><th class="d-none d-md-table-cell">Último acesso</th><th>Situação</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var u in _pagina.Itens)
+            {
+                <tr>
+                    <td><div class="fw-medium">@u.Nome</div><small class="text-secondary">@u.Email</small></td>
+                    <td>@string.Join(", ", u.Perfis.Select(p => p.Nome))</td>
+                    <td class="d-none d-md-table-cell small text-secondary">@(u.UltimoAcessoEm?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "nunca")</td>
+                    <td><Situacao Valor="@u.SituacaoNoClube" /></td>
+                    <td class="text-end">
+                        @if (Sessao.Possui("usuarios.gerenciar") && u.Id != Sessao.Usuario?.Id)
+                        {
+                            <button class="btn btn-sm btn-outline-dark me-1" @onclick="() => EditarAcesso(u)">Perfis</button>
+                            @if (u.SituacaoNoClube == "Ativo") { <button class="btn btn-sm btn-outline-danger" @onclick='() => Alterar(u, "inativar")'>Remover acesso</button> }
+                            else { <button class="btn btn-sm btn-outline-success" @onclick='() => Alterar(u, "reativar")'>Reativar</button> }
+                        }
+                    </td>
+                </tr>
+                @if (_editando?.Id == u.Id)
+                {
+                    <tr><td colspan="5" class="bg-light">
+                        <div class="d-flex flex-wrap gap-3 align-items-center">
+                            @foreach (var p in _perfis)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="pf-@p.Id" checked="@_perfisMarcados.Contains(p.Id)"
+                                           @onchange="e => { if ((bool)e.Value!) _perfisMarcados.Add(p.Id); else _perfisMarcados.Remove(p.Id); }" />
+                                    <label class="form-check-label small" for="pf-@p.Id">@p.Nome</label>
+                                </div>
+                            }
+                            <button class="btn btn-sm btn-dark ms-auto" @onclick="SalvarAcesso">Salvar</button>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => _editando = null">Fechar</button>
+                        </div>
+                        @if (_editando.PermissoesIndividuais.Count > 0)
+                        {
+                            <div class="small text-secondary mt-2">Exceções individuais mantidas: @string.Join(", ", _editando.PermissoesIndividuais.Select(x => (x.Concedida ? "+" : "−") + x.Codigo))</div>
+                        }
+                    </td></tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private Pagina<UsuarioLista>? _pagina;
+    private List<Perfil> _perfis = [];
+    private string _nome = "", _email = "", _perfilId = "";
+    private string? _erro, _mensagem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _perfis = await Api.GetAsync<List<Perfil>>("api/v1/perfis"); }
+        catch (ErroApi e) { _erro = e.Message; }
+        await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _pagina = await Api.GetAsync<Pagina<UsuarioLista>>("api/v1/usuarios?tamanhoPagina=100"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = _mensagem = null;
+        if (!Guid.TryParse(_perfilId, out var perfil)) { _erro = "Selecione o perfil."; return; }
+        try
+        {
+            await Api.PostAsync("api/v1/usuarios", new { nome = _nome.Trim(), email = _email.Trim(), perfilIds = new[] { perfil } });
+            _mensagem = $"Usuário criado. Convite enviado para {_email}.";
+            _nome = _email = _perfilId = "";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private UsuarioDetalhe? _editando;
+    private HashSet<Guid> _perfisMarcados = [];
+
+    private async Task EditarAcesso(UsuarioLista u)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            _editando = await Api.GetAsync<UsuarioDetalhe>($"api/v1/usuarios/{u.Id}");
+            _perfisMarcados = _editando.Perfis.Select(p => p.Id).ToHashSet();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task SalvarAcesso()
+    {
+        if (_editando is null) return;
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PutAsync<UsuarioDetalhe>($"api/v1/usuarios/{_editando.Id}/acesso",
+                new { perfilIds = _perfisMarcados.ToList(), permissoesIndividuais = _editando.PermissoesIndividuais });
+            _mensagem = $"Perfis de {_editando.Nome} atualizados.";
+            _editando = null;
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Alterar(UsuarioLista u, string acao)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/usuarios/{u.Id}/{acao}");
+            _mensagem = acao == "inativar" ? $"Acesso de {u.Nome} removido." : $"{u.Nome} reativado(a).";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

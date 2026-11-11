@@ -1,0 +1,101 @@
+@page "/funcionarios/{Id:guid}"
+@inject Api Api
+
+<PageTitle>Funcionário · Projeto Clubes</PageTitle>
+
+<a href="funcionarios" class="small text-secondary text-decoration-none">← Funcionários</a>
+@if (_mensagem is not null) { <div class="alert alert-success mt-2">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger mt-2">@_erro</div> }
+
+@if (_f is { } f)
+{
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">@f.Nome <Situacao Valor="@f.Situacao" /></h1>
+            <div class="text-secondary">@f.Cargo@(f.Departamento is null ? "" : $" · {f.Departamento}") · admitido em @f.Admissao.ToString("dd/MM/yyyy")@(f.Desligamento is { } d ? $" · desligado em {d:dd/MM/yyyy}" : "")</div>
+            <div class="text-secondary small">@(f.Telefone ?? "sem telefone")@(f.Email is null ? "" : $" · {f.Email}")@(f.Escala is null ? "" : $" · {f.Escala}")@(f.Cpf is null ? "" : $" · CPF {Rotulos.Cpf(f.Cpf)}")</div>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            @if (f.Situacao == "Desligado")
+            {
+                <button class="btn btn-outline-dark" @onclick="Readmitir">Readmitir hoje</button>
+            }
+            else
+            {
+                <input class="form-control form-control-sm" style="max-width:220px" placeholder="Motivo do desligamento" @bind="_motivo" aria-label="Motivo do desligamento" />
+                <button class="btn btn-outline-danger btn-sm" @onclick="Desligar">Desligar hoje</button>
+            }
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card mb-3"><div class="card-body">
+                <h2 class="h6">Férias e afastamentos</h2>
+                @if (f.Situacao != "Desligado")
+                {
+                    <form class="row g-2 mb-3" @onsubmit="RegistrarAusencia">
+                        <div class="col-12 col-md-3"><select class="form-select" @bind="_tipo" aria-label="Tipo"><option value="Ferias">Férias</option><option value="Afastamento">Afastamento</option></select></div>
+                        <div class="col-6 col-md-3"><input type="date" class="form-control" @bind="_inicio" aria-label="Início" /></div>
+                        <div class="col-6 col-md-3"><input type="date" class="form-control" @bind="_fim" aria-label="Fim" /></div>
+                        <div class="col-12 col-md-3"><button class="btn btn-dark w-100" type="submit">Registrar</button></div>
+                    </form>
+                }
+                @if (f.Ausencias.Count == 0) { <p class="text-secondary small mb-0">Nenhum período registrado.</p> }
+                @foreach (var a in f.Ausencias)
+                {
+                    <div class="d-flex justify-content-between align-items-center border-top py-2 small @(a.Cancelada ? "text-decoration-line-through text-secondary" : "")">
+                        <span>@Rotulos.Texto(a.Tipo): @a.Inicio.ToString("dd/MM/yyyy") a @a.Fim.ToString("dd/MM/yyyy") (@a.Dias dias)@(a.Observacao is null ? "" : $" · {a.Observacao}")</span>
+                        @if (!a.Cancelada && f.Situacao != "Desligado") { <button class="btn btn-sm btn-outline-secondary" @onclick="() => CancelarAusencia(a)">Cancelar</button> }
+                    </div>
+                }
+            </div></div>
+        </div>
+        <div class="col-12 col-lg-5">
+            <div class="card"><div class="card-body">
+                <h2 class="h6">Histórico</h2>
+                @foreach (var h in f.Historico)
+                {
+                    <div class="border-top py-2 small">
+                        <div>@h.Descricao</div>
+                        <div class="text-secondary">@h.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(h.Usuario is null ? "" : $" · {h.Usuario}")</div>
+                    </div>
+                }
+            </div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private FuncionarioInfo? _f;
+    private string _tipo = "Ferias", _motivo = "";
+    private DateTime _inicio = DateTime.Today, _fim = DateTime.Today.AddDays(29);
+    private string? _erro, _mensagem;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        try { _f = await Api.GetAsync<FuncionarioInfo>($"api/v1/funcionarios/{Id}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Executar(Func<Task<FuncionarioInfo>> acao, string sucesso)
+    {
+        _erro = _mensagem = null;
+        try { _f = await acao(); _mensagem = sucesso; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private Task RegistrarAusencia() => Executar(() => Api.PostAsync<FuncionarioInfo>($"api/v1/funcionarios/{Id}/ausencias", new
+    {
+        tipo = _tipo, inicio = DateOnly.FromDateTime(_inicio), fim = DateOnly.FromDateTime(_fim),
+    }), "Período registrado.");
+
+    private Task CancelarAusencia(AusenciaInfo a) => Executar(() => Api.DeleteAsync<FuncionarioInfo>($"api/v1/funcionarios/{Id}/ausencias/{a.Id}"), "Período cancelado.");
+
+    private Task Desligar() => Executar(() => Api.PostAsync<FuncionarioInfo>($"api/v1/funcionarios/{Id}/desligar",
+        new { data = DateOnly.FromDateTime(DateTime.Today), motivo = _motivo }), "Funcionário desligado.");
+
+    private Task Readmitir() => Executar(() => Api.PostAsync<FuncionarioInfo>($"api/v1/funcionarios/{Id}/readmitir",
+        new { data = DateOnly.FromDateTime(DateTime.Today) }), "Funcionário readmitido.");
+}

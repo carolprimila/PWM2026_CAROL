@@ -1,0 +1,72 @@
+@* Campos de dados pessoais usados no cadastro de associados e dependentes. *@
+<div class="row g-3">
+    <div class="col-12 col-md-8">
+        <label class="form-label" for="@(_id)-nome">Nome completo *</label>
+        <input class="form-control" id="@(_id)-nome" @bind="Dados.NomeCompleto" required />
+    </div>
+    <div class="col-12 col-md-4">
+        <label class="form-label" for="@(_id)-cpf">CPF @(ExigeCpf ? "*" : "(opcional)")</label>
+        <input class="form-control" id="@(_id)-cpf" @bind="Dados.Cpf" placeholder="000.000.000-00" inputmode="numeric" />
+    </div>
+    <div class="col-6 col-md-4">
+        <label class="form-label" for="@(_id)-nasc">Nascimento *</label>
+        <input type="date" class="form-control" id="@(_id)-nasc" @bind="Dados.DataNascimento" />
+    </div>
+    <div class="col-6 col-md-4">
+        <label class="form-label" for="@(_id)-sexo">Sexo</label>
+        <select class="form-select" id="@(_id)-sexo" @bind="Dados.Sexo">
+            <option value="NaoInformado">Não informado</option>
+            <option value="Feminino">Feminino</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Outro">Outro</option>
+        </select>
+    </div>
+    <div class="col-12 col-md-4">
+        <label class="form-label" for="@(_id)-tel">Telefone</label>
+        <input class="form-control" id="@(_id)-tel" @bind="Dados.Telefone" placeholder="(45) 99999-0000" inputmode="tel" />
+    </div>
+    <div class="col-12 col-md-6">
+        <label class="form-label" for="@(_id)-email">E-mail</label>
+        <input type="email" class="form-control" id="@(_id)-email" @bind="Dados.Email" />
+    </div>
+    <div class="col-8 col-md-4">
+        <label class="form-label" for="@(_id)-cidade">Cidade</label>
+        <input class="form-control" id="@(_id)-cidade" @bind="Dados.Cidade" />
+    </div>
+    <div class="col-4 col-md-2">
+        <label class="form-label" for="@(_id)-uf">UF</label>
+        <input class="form-control text-uppercase" maxlength="2" id="@(_id)-uf" @bind="Dados.Uf" />
+    </div>
+</div>
+
+@code {
+    private readonly string _id = "p" + Guid.NewGuid().ToString("N")[..6];
+    [Parameter, EditorRequired] public DadosPessoaForm Dados { get; set; } = new();
+    [Parameter] public bool ExigeCpf { get; set; }
+
+    public sealed class DadosPessoaForm
+    {
+        public string NomeCompleto { get; set; } = "";
+        public string? Cpf { get; set; }
+        public DateOnly? DataNascimento { get; set; }
+        public string Sexo { get; set; } = "NaoInformado";
+        public string? Telefone { get; set; }
+        public string? Email { get; set; }
+        public string? Cidade { get; set; }
+        public string? Uf { get; set; }
+
+        /// <summary>Formato esperado pela API (DadosPessoaisRequest).</summary>
+        public object ParaApi() => new
+        {
+            nomeCompleto = NomeCompleto.Trim(),
+            cpf = Vazio(Cpf),
+            dataNascimento = DataNascimento,
+            sexo = Sexo,
+            telefone = Vazio(Telefone),
+            email = Vazio(Email),
+            endereco = new { cidade = Vazio(Cidade), uf = Vazio(Uf)?.ToUpperInvariant() },
+        };
+
+        private static string? Vazio(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+    }
+}

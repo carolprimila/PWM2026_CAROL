@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ProjetoClubes.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>

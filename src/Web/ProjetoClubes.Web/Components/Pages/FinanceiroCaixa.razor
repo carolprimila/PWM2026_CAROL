@@ -1,0 +1,63 @@
+@page "/financeiro/caixa"
+@inject Api Api
+
+<PageTitle>Fluxo de caixa · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Financeiro</h1>
+<AbasFinanceiro />
+
+<div class="d-flex gap-2 align-items-end mb-3 flex-wrap">
+    <div><label class="form-label small mb-1" for="de">De</label><input id="de" type="date" class="form-control" @bind="_de" @bind:after="Carregar" /></div>
+    <div><label class="form-label small mb-1" for="ate">Até</label><input id="ate" type="date" class="form-control" @bind="_ate" @bind:after="Carregar" /></div>
+</div>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_fluxo is { } f)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-4"><div class="card"><div class="card-body"><div class="small text-secondary">Entradas</div><div class="fs-5 fw-semibold text-success">@Rotulos.Moeda(f.Entradas)</div></div></div></div>
+        <div class="col-4"><div class="card"><div class="card-body"><div class="small text-secondary">Saídas</div><div class="fs-5 fw-semibold text-danger">@Rotulos.Moeda(f.Saidas)</div></div></div></div>
+        <div class="col-4"><div class="card"><div class="card-body"><div class="small text-secondary">Saldo do período</div><div class="fs-5 fw-semibold">@Rotulos.Moeda(f.Saldo)</div></div></div></div>
+    </div>
+
+    @if (f.Movimentos.Count == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum movimento no período.</div></div> }
+    else
+    {
+        <div class="card"><div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>Data</th><th>Descrição</th><th class="text-end">Valor</th><th class="text-end">Saldo</th></tr></thead>
+                <tbody>
+                @foreach (var m in f.Movimentos)
+                {
+                    <tr>
+                        <td class="text-nowrap">@m.Data.ToString("dd/MM/yyyy")</td>
+                        <td>@m.Descricao</td>
+                        <td class="text-end @(m.Tipo == "Despesa" ? "text-danger" : "text-success")">@(m.Tipo == "Despesa" ? "−" : "+")@Rotulos.Moeda(m.Valor)</td>
+                        <td class="text-end">@Rotulos.Moeda(m.SaldoAcumulado)</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div></div>
+    }
+}
+
+@code {
+    private FluxoCaixa? _fluxo;
+    private DateOnly _de = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateOnly _ate = new DateOnly(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(1).AddDays(-1);
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try
+        {
+            _erro = null;
+            _fluxo = await Api.GetAsync<FluxoCaixa>($"api/v1/financeiro/fluxo-caixa?de={_de:yyyy-MM-dd}&ate={_ate:yyyy-MM-dd}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

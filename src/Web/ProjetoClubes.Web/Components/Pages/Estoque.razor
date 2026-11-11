@@ -1,0 +1,234 @@
+@page "/estoque"
+@inject Api Api
+
+<PageTitle>Estoque · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Estoque</h1>
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item"><button class="nav-link @(_aba == "produtos" ? "active" : "")" @onclick='() => Aba("produtos")'>Produtos</button></li>
+    <li class="nav-item"><button class="nav-link @(_aba == "compras" ? "active" : "")" @onclick='() => Aba("compras")'>Compras@(_compras.Count(c => c.Situacao == "Aberta") is > 0 and var n ? $" ({n})" : "")</button></li>
+    <li class="nav-item"><button class="nav-link @(_aba == "movimentacoes" ? "active" : "")" @onclick='() => Aba("movimentacoes")'>Movimentações</button></li>
+</ul>
+
+@if (_aba == "produtos")
+{
+    <form class="card mb-3" @onsubmit="CriarProduto"><div class="card-body">
+        <h2 class="h6 mb-3">Novo produto</h2>
+        <div class="row g-2">
+            <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome" @bind="_nome" aria-label="Nome do produto" /></div>
+            <div class="col-4 col-md-1"><input class="form-control" placeholder="Unid." @bind="_unidade" aria-label="Unidade" /></div>
+            <div class="col-8 col-md-2"><input class="form-control" placeholder="Categoria" @bind="_categoria" aria-label="Categoria" /></div>
+            <div class="col-6 col-md-2"><input type="number" min="0" step="0.001" class="form-control" placeholder="Mínimo" @bind="_minimo" aria-label="Estoque mínimo" /></div>
+            <div class="col-6 col-md-2"><input type="number" min="0" step="0.001" class="form-control" placeholder="Saldo inicial" @bind="_inicial" aria-label="Saldo inicial" /></div>
+            <div class="col-12 col-md-1"><button class="btn btn-dark w-100" type="submit">Incluir</button></div>
+        </div>
+    </div></form>
+
+    <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
+        <input class="form-control" style="max-width:300px" placeholder="Produto ou categoria" @bind="_busca" @bind:event="oninput" @bind:after="CarregarProdutos" aria-label="Buscar" />
+        <div class="form-check"><input class="form-check-input" type="checkbox" id="abaixo" @bind="_soAbaixo" @bind:after="CarregarProdutos" />
+            <label class="form-check-label small" for="abaixo">Só abaixo do mínimo</label></div>
+    </div>
+
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>Produto</th><th class="text-end">Saldo</th><th class="text-end d-none d-md-table-cell">Mínimo</th><th style="min-width:330px">Movimentar</th></tr></thead>
+            <tbody>
+            @foreach (var p in _produtos)
+            {
+                <tr>
+                    <td><div class="fw-medium">@p.Nome</div><small class="text-secondary">@(p.Categoria ?? "Sem categoria")@(p.CompraEmAberto is { } c ? $" · compra pedida: {Rotulos.Qtd(c)} {p.Unidade}" : "")</small></td>
+                    <td class="text-end text-nowrap @(p.AbaixoDoMinimo ? "text-danger fw-semibold" : "")">@Rotulos.Qtd(p.Quantidade) @p.Unidade</td>
+                    <td class="text-end d-none d-md-table-cell text-nowrap">@Rotulos.Qtd(p.EstoqueMinimo)</td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <select class="form-select" style="max-width:110px" @bind="Mov(p.Id).Tipo" aria-label="Tipo de movimentação">
+                                <option value="Saida">Saída</option><option value="Entrada">Entrada</option><option value="Ajuste">Ajuste</option>
+                            </select>
+                            <input type="number" min="0" step="0.001" class="form-control" style="max-width:90px" placeholder="Qtd." @bind="Mov(p.Id).Quantidade" aria-label="Quantidade" />
+                            <input class="form-control" placeholder="Motivo" @bind="Mov(p.Id).Motivo" aria-label="Motivo" />
+                            <button class="btn btn-outline-dark" @onclick="() => Movimentar(p)">OK</button>
+                        </div>
+                    </td>
+                </tr>
+            }
+            @if (_produtos.Count == 0) { <tr><td colspan="4" class="text-secondary">Nenhum produto.</td></tr> }
+            </tbody>
+        </table>
+    </div></div>
+}
+else if (_aba == "compras")
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="text-secondary small">Ao receber a compra, a quantidade entra no estoque.</span>
+        <button class="btn btn-dark" @onclick="GerarCompras">Pedir o que está abaixo do mínimo</button>
+    </div>
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>Produto</th><th class="text-end">Quantidade</th><th>Pedida em</th><th>Situação</th><th style="min-width:260px"></th></tr></thead>
+            <tbody>
+            @foreach (var c in _compras)
+            {
+                <tr>
+                    <td><div class="fw-medium">@c.Produto</div>@if (c.Observacao is not null) { <small class="text-secondary">@c.Observacao</small> }</td>
+                    <td class="text-end text-nowrap">@Rotulos.Qtd(c.QuantidadeRecebida ?? c.Quantidade) @c.Unidade</td>
+                    <td class="small">@c.CriadaEm.ToLocalTime().ToString("dd/MM/yyyy")</td>
+                    <td><Situacao Valor="@c.Situacao" />@if (c.ValorTotal is { } v) { <div class="small text-secondary">@Rotulos.Moeda(v)</div> }</td>
+                    <td>
+                        @if (c.Situacao == "Aberta")
+                        {
+                            <div class="input-group input-group-sm">
+                                <input type="number" min="0" step="0.01" class="form-control" placeholder="Valor pago (R$)" @bind="ValorCompra(c.Id).Valor" aria-label="Valor pago" />
+                                <button class="btn btn-success" @onclick="() => Atender(c)">Recebida</button>
+                                <button class="btn btn-outline-secondary" @onclick="() => CancelarCompra(c)">Cancelar</button>
+                            </div>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (_compras.Count == 0) { <tr><td colspan="5" class="text-secondary">Nenhuma solicitação de compra.</td></tr> }
+            </tbody>
+        </table>
+    </div></div>
+}
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>Quando</th><th>Produto</th><th>Tipo</th><th class="text-end">Qtd.</th><th class="text-end">Saldo</th><th class="d-none d-md-table-cell">Motivo</th></tr></thead>
+            <tbody>
+            @foreach (var m in _movimentacoes)
+            {
+                <tr>
+                    <td class="small text-nowrap">@m.OcorridaEm.ToLocalTime().ToString("dd/MM HH:mm")</td>
+                    <td>@m.Produto</td>
+                    <td>@Rotulos.Texto(m.Tipo)</td>
+                    <td class="text-end text-nowrap @(m.Quantidade < 0 ? "text-danger" : "text-success")">@(m.Quantidade > 0 ? "+" : "")@Rotulos.Qtd(m.Quantidade)</td>
+                    <td class="text-end text-nowrap">@Rotulos.Qtd(m.SaldoApos) @m.Unidade</td>
+                    <td class="d-none d-md-table-cell small">@(m.Motivo ?? "—")@(m.Usuario is null ? "" : $" · {m.Usuario}")</td>
+                </tr>
+            }
+            @if (_movimentacoes.Count == 0) { <tr><td colspan="6" class="text-secondary">Nenhuma movimentação.</td></tr> }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private sealed class Movimento { public string Tipo { get; set; } = "Saida"; public decimal? Quantidade { get; set; } public string Motivo { get; set; } = ""; }
+    private sealed class Recebimento { public decimal? Valor { get; set; } }
+
+    private string _aba = "produtos";
+    private List<ProdutoInfo> _produtos = [];
+    private List<CompraInfo> _compras = [];
+    private List<MovimentacaoInfo> _movimentacoes = [];
+    private readonly Dictionary<Guid, Movimento> _movs = [];
+    private readonly Dictionary<Guid, Recebimento> _recebimentos = [];
+    private string _busca = "", _nome = "", _unidade = "un", _categoria = "";
+    private decimal? _minimo, _inicial;
+    private bool _soAbaixo;
+    private string? _erro, _mensagem;
+
+    private Movimento Mov(Guid id) => _movs.TryGetValue(id, out var m) ? m : _movs[id] = new Movimento();
+    private Recebimento ValorCompra(Guid id) => _recebimentos.TryGetValue(id, out var r) ? r : _recebimentos[id] = new Recebimento();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CarregarProdutos();
+        await CarregarCompras();
+    }
+
+    private async Task Aba(string aba)
+    {
+        _aba = aba;
+        _erro = _mensagem = null;
+        if (aba == "compras") await CarregarCompras();
+        if (aba == "movimentacoes") await CarregarMovimentacoes();
+    }
+
+    private async Task CarregarProdutos()
+    {
+        try { _produtos = await Api.GetAsync<List<ProdutoInfo>>($"api/v1/estoque/produtos?abaixoDoMinimo={_soAbaixo}&busca={Uri.EscapeDataString(_busca)}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CarregarCompras()
+    {
+        try { _compras = await Api.GetAsync<List<CompraInfo>>("api/v1/estoque/compras"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CarregarMovimentacoes()
+    {
+        try { _movimentacoes = await Api.GetAsync<List<MovimentacaoInfo>>("api/v1/estoque/movimentacoes"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CriarProduto()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync("api/v1/estoque/produtos", new
+            {
+                nome = _nome, unidade = _unidade, categoria = _categoria, estoqueMinimo = _minimo ?? 0, quantidadeInicial = _inicial,
+            });
+            _mensagem = $"Produto \"{_nome}\" incluído.";
+            _nome = _categoria = "";
+            _minimo = _inicial = null;
+            await CarregarProdutos();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Movimentar(ProdutoInfo p)
+    {
+        var m = Mov(p.Id);
+        if (m.Quantidade is null) return;
+        _erro = _mensagem = null;
+        try
+        {
+            var atualizado = await Api.PostAsync<ProdutoInfo>($"api/v1/estoque/produtos/{p.Id}/movimentacoes",
+                new { tipo = m.Tipo, quantidade = m.Quantidade, motivo = m.Motivo });
+            _mensagem = $"{p.Nome}: saldo agora {Rotulos.Qtd(atualizado.Quantidade)} {p.Unidade}.";
+            _movs.Remove(p.Id);
+            await CarregarProdutos();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task GerarCompras()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            var novas = await Api.PostAsync<List<CompraInfo>>("api/v1/estoque/compras/abaixo-do-minimo");
+            _mensagem = novas.Count == 0 ? "Nada a pedir: os itens abaixo do mínimo já têm pedido aberto." : $"{novas.Count} pedido(s) de compra criado(s).";
+            await CarregarCompras();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Atender(CompraInfo c)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/estoque/compras/{c.Id}/atender", new { quantidadeRecebida = c.Quantidade, valorTotal = ValorCompra(c.Id).Valor });
+            _mensagem = $"{c.Produto}: {Rotulos.Qtd(c.Quantidade)} {c.Unidade} entraram no estoque.";
+            await CarregarCompras();
+            await CarregarProdutos();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CancelarCompra(CompraInfo c)
+    {
+        _erro = _mensagem = null;
+        try { await Api.PostAsync($"api/v1/estoque/compras/{c.Id}/cancelar"); await CarregarCompras(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

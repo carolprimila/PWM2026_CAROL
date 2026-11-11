@@ -1,0 +1,109 @@
+@page "/eventos"
+@inject Api Api
+@inject Sessao Sessao
+@inject NavigationManager Nav
+
+<PageTitle>Eventos · Projeto Clubes</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h3 mb-0">Eventos</h1>
+    @if (Sessao.Possui("eventos.gerenciar")) { <button class="btn btn-dark" @onclick="() => _novo = !_novo">@(_novo ? "Fechar" : "Novo evento")</button> }
+</div>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_novo)
+{
+    <form class="card mb-3" @onsubmit="Criar">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-12 col-md-6"><label class="form-label small" for="nome">Nome *</label><input id="nome" class="form-control" @bind="_nome" /></div>
+                <div class="col-6 col-md-3"><label class="form-label small" for="ini">Início *</label><input id="ini" type="datetime-local" class="form-control" @bind="_inicio" /></div>
+                <div class="col-6 col-md-3"><label class="form-label small" for="fim">Término *</label><input id="fim" type="datetime-local" class="form-control" @bind="_fim" /></div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label small" for="esp">Espaço (reserva o período)</label>
+                    <select id="esp" class="form-select" @bind="_espacoId">
+                        <option value="">Nenhum</option>
+                        @foreach (var e in _espacos) { <option value="@e.Id">@e.Nome</option> }
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label small" for="pub">Público</label>
+                    <select id="pub" class="form-select" @bind="_publico">
+                        <option value="AssociadosEDependentes">Associados e dependentes</option>
+                        <option value="Associados">Só associados</option>
+                        <option value="Geral">Todos</option>
+                    </select>
+                </div>
+                <div class="col-4 col-md-2"><label class="form-label small" for="cap">Vagas</label><input id="cap" type="number" min="1" class="form-control" @bind="_capacidade" placeholder="sem limite" /></div>
+                <div class="col-4 col-md-1"><label class="form-label small" for="val">Valor</label><input id="val" type="number" min="0" step="0.01" class="form-control" @bind="_valor" /></div>
+                <div class="col-4 col-md-1"><label class="form-label small" for="ac">Acomp.</label><input id="ac" type="number" min="0" max="20" class="form-control" @bind="_acompanhantes" /></div>
+                <div class="col-12"><label class="form-label small" for="desc">Descrição</label><textarea id="desc" class="form-control" rows="2" @bind="_descricao"></textarea></div>
+            </div>
+            <div class="text-end mt-2"><button class="btn btn-dark" type="submit">Criar evento</button></div>
+        </div>
+    </form>
+}
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum evento programado.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Evento</th><th>Quando</th><th>Vagas</th><th>Situação</th></tr></thead>
+            <tbody>
+            @foreach (var e in _pagina.Itens)
+            {
+                <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"eventos/{e.Id}")'>
+                    <td><div class="fw-medium">@e.Nome</div><small class="text-secondary">@(e.Espaco ?? e.Local ?? "Local a definir") · @Rotulos.Texto(e.Publico)</small></td>
+                    <td class="small">@Rotulos.Periodo(e.Inicio, e.Fim)</td>
+                    <td class="small">@e.LugaresOcupados@(e.Capacidade is { } c ? $" / {c}" : "")@(e.NaListaEspera > 0 ? $" · {e.NaListaEspera} na espera" : "")</td>
+                    <td><Situacao Valor="@e.Situacao" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private Pagina<EventoInfo>? _pagina;
+    private List<EspacoInfo> _espacos = [];
+    private bool _novo;
+    private string _nome = "", _publico = "AssociadosEDependentes", _espacoId = "";
+    private string? _descricao;
+    private DateTime _inicio = DateTime.Today.AddDays(7).AddHours(12), _fim = DateTime.Today.AddDays(7).AddHours(16);
+    private int? _capacidade;
+    private decimal _valor;
+    private int _acompanhantes = 1;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _espacos = await Api.GetAsync<List<EspacoInfo>>("api/v1/espacos"); } catch (ErroApi) { /* espaços são opcionais aqui */ }
+        await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _pagina = await Api.GetAsync<Pagina<EventoInfo>>("api/v1/eventos?futuros=true&tamanhoPagina=50"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = null;
+        try
+        {
+            var e = await Api.PostAsync<EventoInfo>("api/v1/eventos", new
+            {
+                nome = _nome, descricao = _descricao, inicio = new DateTimeOffset(_inicio), fim = new DateTimeOffset(_fim), publico = _publico,
+                capacidade = _capacidade, valor = _valor, maximoAcompanhantes = _acompanhantes,
+                espacoId = Guid.TryParse(_espacoId, out var id) ? id : (Guid?)null,
+            });
+            Nav.NavigateTo($"eventos/{e.Id}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

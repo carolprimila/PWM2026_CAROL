@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+TestResults/
+*.swp
+# Node
+node_modules/
+dist/
+.vite/
+# Ambiente e segredos
+.env
+*.env.local
+appsettings.*.local.json
+# Dados locais da API
+src/Backend/ProjetoClubes.API/App_Data/
+logs/
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+**/App_Data/
+*.eml
+# Pacotes gerados do app
+*.apk
+*.aab
+*.msix

@@ -1,0 +1,222 @@
+@page "/assembleias/{Id:guid}"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Assembleia · Projeto Clubes</PageTitle>
+
+<a href="assembleias" class="small text-secondary text-decoration-none">← Assembleias</a>
+@if (_mensagem is not null) { <div class="alert alert-success mt-2">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger mt-2">@_erro</div> }
+
+@if (_a is { } a)
+{
+    var gerencia = Sessao.Possui("assembleias.gerenciar");
+    var preparando = a.Situacao is "Rascunho" or "Convocada";
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">@a.Titulo <Situacao Valor="@a.Situacao" /></h1>
+            <div class="text-secondary">@Rotulos.Texto(a.Tipo) · @a.DataHora.ToLocalTime().ToString("dd/MM/yyyy HH:mm")@(a.Local is null ? "" : $" · {a.Local}")</div>
+            <div class="text-secondary small">@(a.ExigeAdimplencia ? "Vota quem é de categoria com direito a voto e está sem mensalidades vencidas." : "Vota quem é de categoria com direito a voto.") · @a.Presentes presente(s), @a.Aptos apto(s) a votar</div>
+            @if (a.MotivoCancelamento is not null) { <div class="text-danger small">Cancelada: @a.MotivoCancelamento</div> }
+        </div>
+        @if (gerencia)
+        {
+            <div class="d-flex gap-2">
+                @if (a.Situacao == "Rascunho") { <button class="btn btn-dark" @onclick='() => Acao("convocar", "Convocação publicada. Os associados foram avisados no aplicativo.")'>Publicar convocação</button> }
+                @if (a.Situacao == "Convocada") { <button class="btn btn-dark" @onclick='() => Acao("instalar", "Assembleia instalada.")'>Instalar assembleia</button> }
+                @if (a.Situacao == "EmAndamento") { <button class="btn btn-dark" @onclick='() => Acao("encerrar", "Assembleia encerrada. Revise e registre a ata.")'>Encerrar assembleia</button> }
+                @if (preparando) { <button class="btn btn-outline-danger" @onclick="Cancelar">Cancelar</button> }
+            </div>
+        }
+    </div>
+    @if (a.Convocacao is not null) { <div class="card mb-3"><div class="card-body small" style="white-space:pre-wrap">@a.Convocacao</div></div> }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <h2 class="h6">Pautas</h2>
+            @foreach (var p in a.Pautas)
+            {
+                <div class="card mb-2"><div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <div class="fw-medium">@p.Ordem. @p.Titulo @if (p.Votacao is { } v) { <Situacao Valor="@v" /> }</div>
+                            @if (p.Descricao is not null) { <div class="small text-secondary">@p.Descricao</div> }
+                            @if (p.ComVotacao) { <div class="small text-secondary">Opções: @string.Join(" · ", p.Opcoes)@(p.Votacao == "Aberta" ? $" · {p.TotalVotos} voto(s) até agora" : "")</div> }
+                        </div>
+                        @if (gerencia)
+                        {
+                            <div class="d-flex gap-2">
+                                @if (preparando) { <button class="btn btn-sm btn-outline-secondary" @onclick="() => RemoverPauta(p)">Remover</button> }
+                                @if (a.Situacao == "EmAndamento" && p.Votacao == "NaoIniciada") { <button class="btn btn-sm btn-dark" @onclick='() => Pauta(p, "abrir-votacao", "Votação aberta. Os presentes aptos foram avisados no aplicativo.")'>Abrir votação</button> }
+                                @if (p.Votacao == "Aberta") { <button class="btn btn-sm btn-outline-dark" @onclick='() => Pauta(p, "encerrar-votacao", "Votação encerrada.")'>Encerrar votação</button> }
+                            </div>
+                        }
+                    </div>
+                    @if (p.Apuracao is { } ap)
+                    {
+                        <div class="mt-2">
+                            @foreach (var o in ap)
+                            {
+                                var pct = p.TotalVotos == 0 ? 0 : o.Votos * 100 / p.TotalVotos;
+                                <div class="small d-flex align-items-center gap-2 mb-1">
+                                    <span style="width:120px">@o.Opcao</span>
+                                    <div class="progress flex-grow-1" style="height:8px"><div class="progress-bar bg-dark" style="width:@(pct)%"></div></div>
+                                    <span class="text-nowrap" style="width:80px">@o.Votos (@pct%)</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    @if (p.Decisao is not null) { <div class="small mt-2"><strong>Decisão:</strong> @p.Decisao</div> }
+                    else if (gerencia && a.Situacao == "EmAndamento" && (!p.ComVotacao || p.Votacao == "Encerrada"))
+                    {
+                        <div class="input-group input-group-sm mt-2">
+                            <input class="form-control" placeholder="Decisão tomada" @bind="Decisoes[p.Id]" aria-label="Decisão" />
+                            <button class="btn btn-outline-dark" @onclick="() => Decidir(p)">Registrar</button>
+                        </div>
+                    }
+                </div></div>
+            }
+            @if (gerencia && preparando)
+            {
+                <form class="card mb-3" @onsubmit="AdicionarPauta"><div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-12 col-md-6"><input class="form-control" placeholder="Nova pauta" @bind="_pauta" aria-label="Título da pauta" /></div>
+                        <div class="col-12 col-md-4"><input class="form-control" placeholder="Opções (vazio = Sim, Não, Abstenção)" @bind="_opcoes" aria-label="Opções de voto separadas por vírgula" disabled="@(!_comVotacao)" /></div>
+                        <div class="col-6 col-md-1 d-flex align-items-center"><div class="form-check"><input class="form-check-input" type="checkbox" id="vot" @bind="_comVotacao" /><label class="form-check-label small" for="vot">Votar</label></div></div>
+                        <div class="col-6 col-md-1"><button class="btn btn-dark w-100" type="submit">+</button></div>
+                    </div>
+                </div></form>
+            }
+
+            @if (a.Situacao == "Encerrada")
+            {
+                <div class="card mt-3"><div class="card-body">
+                    <h2 class="h6">Ata</h2>
+                    @if (a.Ata is not null)
+                    {
+                        <div class="small text-secondary mb-2">Registrada em @a.AtaRegistradaEm?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") — não pode mais ser alterada.</div>
+                        <div style="white-space:pre-wrap">@a.Ata</div>
+                    }
+                    else if (gerencia)
+                    {
+                        <p class="small text-secondary">Rascunho montado com as presenças, a apuração e as decisões. Revise antes de registrar: depois de registrada, a ata não muda.</p>
+                        <textarea class="form-control mb-2" rows="14" @bind="_ata" aria-label="Texto da ata"></textarea>
+                        <button class="btn btn-dark" @onclick="RegistrarAta">Registrar ata</button>
+                    }
+                </div></div>
+            }
+        </div>
+
+        <div class="col-12 col-lg-4">
+            @if (gerencia && a.Situacao is "Convocada" or "EmAndamento")
+            {
+                <form class="card mb-3" @onsubmit="PresencaQr"><div class="card-body">
+                    <h2 class="h6">Registrar presença</h2>
+                    <input class="form-control mb-2" placeholder="Código da carteirinha (leitor de QR)" @bind="_codigo" aria-label="Código da carteirinha" />
+                    <button class="btn btn-dark w-100 mb-3" type="submit">Confirmar presença</button>
+                    <input class="form-control" placeholder="Ou busque o associado" @bind="_busca" @bind:event="oninput" @bind:after="Buscar" aria-label="Buscar associado" />
+                    @foreach (var r in _resultados)
+                    {
+                        <div class="d-flex justify-content-between align-items-center py-1 border-top small">
+                            <span>@r.Nome <span class="text-secondary">@r.Matricula</span></span>
+                            <button type="button" class="btn btn-sm btn-outline-dark" @onclick="() => Presenca(new { associadoId = r.Id })">Presente</button>
+                        </div>
+                    }
+                </div></form>
+            }
+            <div class="card"><div class="card-body">
+                <h2 class="h6">Presentes (@a.Presentes)</h2>
+                @if (a.Presencas.Count == 0) { <p class="small text-secondary mb-0">Nenhuma presença registrada.</p> }
+                @foreach (var p in a.Presencas)
+                {
+                    <div class="border-top py-1 small">
+                        <div>@p.Nome <span class="text-secondary">@p.Matricula</span></div>
+                        <div class="@(p.AptoVotar ? "text-success" : "text-danger")">@(p.AptoVotar ? "Apto a votar" : $"Não vota: {p.MotivoInapto}")</div>
+                    </div>
+                }
+            </div></div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private AssembleiaInfo? _a;
+    private string _pauta = "", _opcoes = "", _codigo = "", _busca = "", _ata = "";
+    private bool _comVotacao = true;
+    private List<AssociadoLista> _resultados = [];
+    private readonly Dictionary<Guid, string> Decisoes = new();
+    private string? _erro, _mensagem;
+
+    protected override Task OnParametersSetAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try { Aplicar(await Api.GetAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}")); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private void Aplicar(AssembleiaInfo a)
+    {
+        _a = a;
+        foreach (var p in a.Pautas) Decisoes.TryAdd(p.Id, "");
+        if (a.AtaSugerida is not null && string.IsNullOrWhiteSpace(_ata)) _ata = a.AtaSugerida;
+    }
+
+    private async Task Executar(Func<Task<AssembleiaInfo>> acao, string sucesso)
+    {
+        _erro = _mensagem = null;
+        try { Aplicar(await acao()); _mensagem = sucesso; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private Task Acao(string acao, string sucesso) => Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/{acao}"), sucesso);
+
+    private Task Cancelar() => Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/cancelar", new { motivo = "Cancelada pela diretoria" }), "Assembleia cancelada.");
+
+    private Task Pauta(PautaInfo p, string acao, string sucesso) =>
+        Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/pautas/{p.Id}/{acao}"), sucesso);
+
+    private Task Decidir(PautaInfo p) =>
+        Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/pautas/{p.Id}/decisao", new { texto = Decisoes[p.Id] }), "Decisão registrada.");
+
+    private Task RemoverPauta(PautaInfo p) => Executar(() => Api.DeleteAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/pautas/{p.Id}"), "Pauta removida.");
+
+    private async Task AdicionarPauta()
+    {
+        var opcoes = _opcoes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        await Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/pautas",
+            new { titulo = _pauta, comVotacao = _comVotacao, opcoes = opcoes.Length == 0 ? null : opcoes }), "Pauta incluída.");
+        if (_erro is null) _pauta = _opcoes = "";
+    }
+
+    private Task RegistrarAta() => Executar(() => Api.PostAsync<AssembleiaInfo>($"api/v1/assembleias/{Id}/ata", new { texto = _ata }), "Ata registrada.");
+
+    private async Task PresencaQr()
+    {
+        if (string.IsNullOrWhiteSpace(_codigo)) return;
+        await Presenca(new { codigo = _codigo.Trim() });
+        if (_erro is null) _codigo = "";
+    }
+
+    private async Task Presenca(object corpo)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            var p = await Api.PostAsync<PresencaInfo>($"api/v1/assembleias/{Id}/presencas", corpo);
+            _mensagem = p.AptoVotar ? $"Presença de {p.Nome} registrada. Apto a votar." : $"Presença de {p.Nome} registrada. Não vota: {p.MotivoInapto}";
+            _busca = "";
+            _resultados = [];
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Buscar()
+    {
+        if (_busca.Trim().Length < 2) { _resultados = []; return; }
+        try { _resultados = (await Api.GetAsync<Pagina<AssociadoLista>>($"api/v1/associados?tamanhoPagina=5&busca={Uri.EscapeDataString(_busca)}")).Itens; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

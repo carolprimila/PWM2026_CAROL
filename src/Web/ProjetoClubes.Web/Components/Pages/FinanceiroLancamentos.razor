@@ -1,0 +1,132 @@
+@page "/financeiro/lancamentos"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Receitas e despesas · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Financeiro</h1>
+<AbasFinanceiro />
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (Sessao.Possui("financeiro.gerenciar"))
+{
+    <form class="card mb-3" @onsubmit="Salvar">
+        <div class="card-body">
+            <h2 class="h6 mb-3">Novo lançamento</h2>
+            <div class="row g-2">
+                <div class="col-6 col-md-2">
+                    <select class="form-select" @bind="_tipo" @bind:after="() => _categoriaId = string.Empty" aria-label="Tipo">
+                        <option value="Despesa">Despesa</option>
+                        <option value="Receita">Receita</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-3">
+                    <select class="form-select" @bind="_categoriaId" aria-label="Categoria">
+                        <option value="">Categoria</option>
+                        @foreach (var c in _categorias.Where(c => c.Tipo == _tipo)) { <option value="@c.Id">@c.Nome</option> }
+                    </select>
+                </div>
+                <div class="col-12 col-md-3"><input class="form-control" placeholder="Descrição" @bind="_descricao" aria-label="Descrição" /></div>
+                <div class="col-6 col-md-2"><input type="number" step="0.01" min="0" class="form-control" placeholder="Valor" @bind="_valor" aria-label="Valor" /></div>
+                <div class="col-6 col-md-2"><input type="date" class="form-control" @bind="_vencimento" aria-label="Vencimento" /></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="jaPago" @bind="_jaPago" />
+                    <label class="form-check-label small" for="jaPago">Já foi pago/recebido</label></div>
+                <button class="btn btn-dark" type="submit">Salvar</button>
+            </div>
+        </div>
+    </form>
+}
+
+<div class="d-flex gap-2 mb-3">
+    <select class="form-select" style="max-width:200px" @bind="_filtroPago" @bind:after="Carregar" aria-label="Filtrar">
+        <option value="">Todos</option>
+        <option value="false">A pagar / a receber</option>
+        <option value="true">Pagos / recebidos</option>
+    </select>
+</div>
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum lançamento.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table mb-0 align-middle">
+            <thead><tr><th>Descrição</th><th>Vencimento</th><th class="text-end">Valor</th><th>Situação</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var l in _pagina.Itens)
+            {
+                <tr>
+                    <td><div class="fw-medium">@l.Descricao</div><small class="text-secondary">@l.Tipo · @l.Categoria</small></td>
+                    <td>@l.Vencimento.ToString("dd/MM/yyyy")</td>
+                    <td class="text-end @(l.Tipo == "Despesa" ? "text-danger" : "text-success")">@(l.Tipo == "Despesa" ? "−" : "+")@Rotulos.Moeda(l.Valor)</td>
+                    <td><Situacao Valor="@l.Situacao" /></td>
+                    <td class="text-end text-nowrap">
+                        @if (l.PagoEm is null && Sessao.Possui("financeiro.gerenciar"))
+                        {
+                            <button class="btn btn-sm btn-outline-success me-1" @onclick="() => MarcarPago(l)">@(l.Tipo == "Despesa" ? "Pagar" : "Receber")</button>
+                        }
+                        @if (Sessao.Possui("financeiro.gerenciar")) { <button class="btn btn-sm btn-outline-danger" @onclick="() => Excluir(l)">Excluir</button> }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private List<CategoriaFinanceira> _categorias = [];
+    private Pagina<Lancamento>? _pagina;
+    private string _tipo = "Despesa", _categoriaId = "", _descricao = "", _filtroPago = "";
+    private decimal? _valor;
+    private DateOnly _vencimento = DateOnly.FromDateTime(DateTime.Today);
+    private bool _jaPago;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _categorias = await Api.GetAsync<List<CategoriaFinanceira>>("api/v1/financeiro/categorias"); }
+        catch (ErroApi e) { _erro = e.Message; }
+        await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _pagina = await Api.GetAsync<Pagina<Lancamento>>($"api/v1/financeiro/lancamentos?tamanhoPagina=100&pago={_filtroPago}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Salvar()
+    {
+        _erro = null;
+        if (!Guid.TryParse(_categoriaId, out var categoria)) { _erro = "Selecione a categoria."; return; }
+        try
+        {
+            await Api.PostAsync("api/v1/financeiro/lancamentos", new
+            {
+                tipo = _tipo, categoriaId = categoria, descricao = _descricao, valor = _valor ?? 0,
+                vencimento = _vencimento, pagoEm = _jaPago ? _vencimento : (DateOnly?)null,
+            });
+            _descricao = "";
+            _valor = null;
+            _jaPago = false;
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task MarcarPago(Lancamento l)
+    {
+        try { await Api.PostAsync($"api/v1/financeiro/lancamentos/{l.Id}/pagar"); await Carregar(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Excluir(Lancamento l)
+    {
+        try { await Api.DeleteAsync($"api/v1/financeiro/lancamentos/{l.Id}"); await Carregar(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

@@ -1,0 +1,63 @@
+@page "/entrar"
+@layout LayoutAcesso
+@inject Api Api
+@inject NavigationManager Nav
+
+<PageTitle>Entrar · Projeto Clubes</PageTitle>
+
+<h1 class="h4 mb-1">Entrar</h1>
+<p class="text-secondary small mb-4">Use o e-mail e a senha cadastrados pela administração do clube.</p>
+
+@if (_erro is not null) { <div class="alert alert-danger py-2">@_erro</div> }
+
+<form @onsubmit="EntrarAsync">
+    <div class="mb-3">
+        <label class="form-label" for="email">E-mail</label>
+        <input id="email" type="email" class="form-control" @bind="_email" autocomplete="username" required autofocus />
+    </div>
+    <div class="mb-4">
+        <label class="form-label" for="senha">Senha</label>
+        <input id="senha" type="password" class="form-control" @bind="_senha" autocomplete="current-password" required />
+    </div>
+    <button class="btn btn-dark w-100" type="submit" disabled="@_enviando">@(_enviando ? "Entrando…" : "Entrar")</button>
+</form>
+
+<div class="text-center mt-3">
+    @if (!_recuperar) { <button type="button" class="btn btn-link btn-sm text-secondary" @onclick="() => _recuperar = true">Esqueci minha senha</button> }
+    else if (_recuperacaoEnviada) { <div class="alert alert-success py-2 small text-start">Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha.</div> }
+    else
+    {
+        <div class="text-start small text-secondary mb-2">Informe o e-mail acima e enviaremos um link para criar uma nova senha.</div>
+        <button type="button" class="btn btn-outline-dark btn-sm w-100" @onclick="RecuperarAsync" disabled="@_enviando">Enviar link</button>
+    }
+</div>
+
+@code {
+    private string _email = "";
+    private string _senha = "";
+    private string? _erro;
+    private bool _enviando, _recuperar, _recuperacaoEnviada;
+
+    private async Task RecuperarAsync()
+    {
+        _erro = null;
+        if (string.IsNullOrWhiteSpace(_email)) { _erro = "Informe o e-mail."; return; }
+        _enviando = true;
+        try { await Api.PostAsync("api/v1/auth/esqueci-senha", new { email = _email.Trim() }); _recuperacaoEnviada = true; }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _enviando = false; }
+    }
+
+    private async Task EntrarAsync()
+    {
+        _erro = null;
+        _enviando = true;
+        try
+        {
+            await Api.EntrarAsync(_email.Trim(), _senha);
+            Nav.NavigateTo("");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _enviando = false; }
+    }
+}

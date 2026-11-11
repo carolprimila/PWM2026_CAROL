@@ -1,0 +1,139 @@
+@page "/eventos/{Id:guid}"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Evento · Projeto Clubes</PageTitle>
+
+<a href="eventos" class="small text-secondary text-decoration-none">← Eventos</a>
+@if (_mensagem is not null) { <div class="alert alert-success mt-2">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger mt-2">@_erro</div> }
+
+@if (_d is { } d)
+{
+    var e = d.Evento;
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">@e.Nome <Situacao Valor="@e.Situacao" /></h1>
+            <div class="text-secondary">@Rotulos.Periodo(e.Inicio, e.Fim) · @(e.Espaco ?? e.Local ?? "Local a definir") · @Rotulos.Texto(e.Publico)</div>
+            <div class="text-secondary small">@(e.Valor > 0 ? Rotulos.Moeda(e.Valor) + " por pessoa · " : "")até @e.MaximoAcompanhantes acompanhante(s) · @e.LugaresOcupados@(e.Capacidade is { } c ? $" de {c}" : "") lugares@(e.NaListaEspera > 0 ? $" · {e.NaListaEspera} na lista de espera" : "")</div>
+            @if (e.MotivoCancelamento is not null) { <div class="text-danger small">Cancelado: @e.MotivoCancelamento</div> }
+        </div>
+        @if (Sessao.Possui("eventos.gerenciar") && e.Situacao != "Cancelado")
+        {
+            <div class="d-flex gap-2">
+                @if (e.Situacao == "InscricoesAbertas") { <button class="btn btn-outline-secondary" @onclick='() => Acao("encerrar-inscricoes")'>Encerrar inscrições</button> }
+                else { <button class="btn btn-outline-secondary" @onclick='() => Acao("reabrir-inscricoes")'>Reabrir inscrições</button> }
+                <button class="btn btn-outline-danger" @onclick="Cancelar">Cancelar evento</button>
+            </div>
+        }
+    </div>
+    @if (e.Descricao is not null) { <p>@e.Descricao</p> }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-8">
+            <div class="card"><div class="card-body">
+                <h2 class="h6">Inscrições</h2>
+                @if (d.Inscricoes.Count == 0) { <p class="text-secondary small mb-0">Ninguém inscrito ainda. Os associados se inscrevem pelo aplicativo.</p> }
+                else
+                {
+                    <table class="table align-middle mb-0">
+                        <thead><tr><th>Nome</th><th>Acomp.</th><th>Situação</th><th>Presença</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var i in d.Inscricoes)
+                        {
+                            <tr class="@(i.Situacao == "Cancelada" ? "text-secondary" : "")">
+                                <td>@i.Nome</td><td>@i.Acompanhantes</td><td><Situacao Valor="@i.Situacao" /></td>
+                                <td class="small">@(i.PresencaEm?.ToLocalTime().ToString("dd/MM HH:mm") ?? "—")</td>
+                                <td class="text-end">@if (i.Situacao != "Cancelada" && Sessao.Possui("eventos.gerenciar")) { <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelarInscricao(i)">Cancelar</button> }</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+            </div></div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <form class="card mb-3" @onsubmit="Presenca"><div class="card-body">
+                <h2 class="h6">Registrar presença</h2>
+                <input class="form-control mb-2" placeholder="Código da carteirinha (leitor de QR)" @bind="_codigo" aria-label="Código da carteirinha" />
+                <button class="btn btn-dark w-100" type="submit">Confirmar presença</button>
+            </div></form>
+            @if (Sessao.Possui("eventos.gerenciar") && e.Situacao == "InscricoesAbertas")
+            {
+                <div class="card"><div class="card-body">
+                    <h2 class="h6">Inscrever associado</h2>
+                    <input class="form-control mb-2" placeholder="Buscar por nome ou matrícula" @bind="_busca" @bind:event="oninput" @bind:after="Buscar" aria-label="Buscar associado" />
+                    @foreach (var a in _resultados)
+                    {
+                        <div class="d-flex justify-content-between align-items-center py-1 border-top small">
+                            <span>@a.Nome</span><button class="btn btn-sm btn-outline-dark" @onclick="() => Inscrever(a.PessoaId)">Inscrever</button>
+                        </div>
+                    }
+                </div></div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private EventoDetalheInfo? _d;
+    private string _codigo = "", _busca = "";
+    private List<AssociadoLista> _resultados = [];
+    private string? _erro, _mensagem;
+
+    protected override Task OnParametersSetAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try { _d = await Api.GetAsync<EventoDetalheInfo>($"api/v1/eventos/{Id}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Executar(Func<Task> acao, string sucesso)
+    {
+        _erro = _mensagem = null;
+        try { await acao(); _mensagem = sucesso; await Carregar(); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private Task Acao(string acao) => Executar(() => Api.PostAsync($"api/v1/eventos/{Id}/{acao}"), "Evento atualizado.");
+
+    private Task Cancelar() => Executar(() => Api.PostAsync($"api/v1/eventos/{Id}/cancelar", new { motivo = "Cancelado pela administração" }), "Evento cancelado.");
+
+    private Task CancelarInscricao(InscricaoInfo i) =>
+        Executar(() => Api.DeleteAsync($"api/v1/eventos/inscricoes/{i.Id}"), $"Inscrição de {i.Nome} cancelada. A lista de espera foi atualizada.");
+
+    private async Task Presenca()
+    {
+        if (string.IsNullOrWhiteSpace(_codigo)) return;
+        await Executar(async () =>
+        {
+            var i = await Api.PostAsync<InscricaoInfo>($"api/v1/eventos/{Id}/presenca", new { codigo = _codigo.Trim() });
+            _codigo = "";
+            _mensagem = $"Presença de {i.Nome} confirmada.";
+        }, "");
+        if (_mensagem == "") _mensagem = null;
+    }
+
+    private async Task Buscar()
+    {
+        if (_busca.Trim().Length < 2) { _resultados = []; return; }
+        try { _resultados = (await Api.GetAsync<Pagina<AssociadoLista>>($"api/v1/associados?situacao=Ativo&tamanhoPagina=5&busca={Uri.EscapeDataString(_busca)}")).Itens; }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Inscrever(Guid pessoaId)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            var i = await Api.PostAsync<InscricaoInfo>($"api/v1/eventos/{Id}/inscricoes", new { pessoaId, acompanhantes = 0 });
+            _mensagem = $"{i.Nome}: {Rotulos.Texto(i.Situacao)}.";
+            _busca = "";
+            _resultados = [];
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

@@ -1,0 +1,8 @@
+<Project>
+  <!-- O app MAUI tem vários TargetFrameworks; por isso não herda o TargetFramework único da raiz. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

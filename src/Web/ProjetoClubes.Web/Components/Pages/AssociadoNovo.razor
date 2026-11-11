@@ -1,0 +1,66 @@
+@page "/associados/novo"
+@inject Api Api
+@inject NavigationManager Nav
+
+<PageTitle>Novo associado · Projeto Clubes</PageTitle>
+
+<a href="associados" class="small text-secondary text-decoration-none">← Associados</a>
+<h1 class="h3 mt-2 mb-4">Novo associado</h1>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<form class="card" @onsubmit="Salvar">
+    <div class="card-body">
+        <h2 class="h6 mb-3">Dados pessoais</h2>
+        <FormularioPessoa Dados="_pessoa" ExigeCpf="true" />
+
+        <h2 class="h6 mt-4 mb-3">Associação</h2>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="categoria">Categoria *</label>
+                <select id="categoria" class="form-select" @bind="_categoriaId">
+                    <option value="">Selecione</option>
+                    @foreach (var c in _categorias) { <option value="@c.Id">@c.Nome@(c.DireitoVoto ? " (com voto)" : "")</option> }
+                </select>
+            </div>
+            <div class="col-12 col-md-6">
+                <label class="form-label" for="desde">Associado desde</label>
+                <input id="desde" type="date" class="form-control" @bind="_dataAssociacao" />
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-white d-flex justify-content-end gap-2">
+        <a class="btn btn-outline-secondary" href="associados">Cancelar</a>
+        <button class="btn btn-dark" type="submit" disabled="@_salvando">@(_salvando ? "Salvando…" : "Cadastrar")</button>
+    </div>
+</form>
+
+@code {
+    private readonly FormularioPessoa.DadosPessoaForm _pessoa = new();
+    private List<Categoria> _categorias = [];
+    private string _categoriaId = "";
+    private DateOnly _dataAssociacao = DateOnly.FromDateTime(DateTime.Today);
+    private string? _erro;
+    private bool _salvando;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _categorias = await Api.GetAsync<List<Categoria>>("api/v1/categorias-associados"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Salvar()
+    {
+        _erro = null;
+        if (!Guid.TryParse(_categoriaId, out var categoria)) { _erro = "Selecione a categoria."; return; }
+        _salvando = true;
+        try
+        {
+            var a = await Api.PostAsync<AssociadoDetalhe>("api/v1/associados",
+                new { pessoa = _pessoa.ParaApi(), categoriaId = categoria, dataAssociacao = _dataAssociacao });
+            Nav.NavigateTo($"associados/{a.Id}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+        finally { _salvando = false; }
+    }
+}

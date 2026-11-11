@@ -1,0 +1,346 @@
+@page "/associados/{Id:guid}"
+@inject Api Api
+@inject Sessao Sessao
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Associado · Projeto Clubes</PageTitle>
+
+<a href="associados" class="small text-secondary text-decoration-none">← Associados</a>
+
+@if (_mensagem is not null) { <div class="alert alert-success mt-3">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger mt-3">@_erro</div> }
+
+@if (_a is { } a)
+{
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mt-2 mb-4">
+        <div>
+            <h1 class="h3 mb-1">@a.Pessoa.NomeCompleto <Situacao Valor="@a.Situacao" /></h1>
+            <div class="text-secondary">Matrícula @a.Matricula · @a.Categoria.Nome@(a.AptoAVotar ? " · apto a votar" : "")</div>
+            @if (a.MotivoSituacao is not null) { <div class="small text-secondary mt-1">Motivo: @a.MotivoSituacao</div> }
+        </div>
+        @if (Sessao.Possui("associados.aprovar"))
+        {
+            <div class="d-flex gap-2 flex-wrap">
+                @if (a.Situacao == "Pendente") { <button class="btn btn-success" @onclick='() => Acao("aprovar")'>Aprovar</button>
+                                                 <button class="btn btn-outline-danger" @onclick='() => Acao("rejeitar")'>Rejeitar</button> }
+                @if (a.Situacao == "Ativo") { <button class="btn btn-outline-warning" @onclick='() => Acao("suspender")'>Suspender</button> }
+                @if (a.Situacao is "Suspenso" or "Inativo") { <button class="btn btn-success" @onclick='() => Acao("reativar")'>Reativar</button> }
+                @if (a.Situacao is "Ativo" or "Suspenso" or "Pendente") { <button class="btn btn-outline-danger" @onclick='() => Acao("inativar")'>Inativar</button> }
+            </div>
+        }
+    </div>
+
+    @if (_pedirMotivo is not null)
+    {
+        <div class="card mb-4 border-warning"><div class="card-body">
+            <label class="form-label">Motivo para @_pedirMotivo</label>
+            <input class="form-control mb-2" @bind="_motivo" placeholder="Ficará registrado no histórico" />
+            <button class="btn btn-dark btn-sm" @onclick="ConfirmarMotivo">Confirmar</button>
+            <button class="btn btn-link btn-sm" @onclick="() => _pedirMotivo = null">Cancelar</button>
+        </div></div>
+    }
+
+    <div class="row g-3">
+        <div class="col-12 col-lg-7">
+            <div class="card h-100"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h6 mb-0">Dados</h2>
+                    @if (!_editando && Sessao.Possui("associados.editar") && a.Situacao != "Inativo") { <button class="btn btn-sm btn-outline-dark" @onclick="IniciarEdicao">Editar</button> }
+                </div>
+                @if (_editando && _ed is { } ed)
+                {
+                    <form @onsubmit="SalvarEdicao">
+                        <div class="row g-2 small">
+                            <div class="col-12 col-md-8"><label class="form-label small">Nome completo</label><input class="form-control form-control-sm" @bind="ed.NomeCompleto" /></div>
+                            <div class="col-6 col-md-4"><label class="form-label small">CPF</label><input class="form-control form-control-sm" @bind="ed.Cpf" /></div>
+                            <div class="col-6 col-md-4"><label class="form-label small">RG</label><input class="form-control form-control-sm" @bind="ed.Rg" /></div>
+                            <div class="col-6 col-md-4"><label class="form-label small">Nascimento</label><input type="date" class="form-control form-control-sm" @bind="ed.DataNascimento" /></div>
+                            <div class="col-6 col-md-4"><label class="form-label small">Sexo</label>
+                                <select class="form-select form-select-sm" @bind="ed.Sexo"><option value="NaoInformado">Não informado</option><option value="Feminino">Feminino</option><option value="Masculino">Masculino</option><option value="Outro">Outro</option></select></div>
+                            <div class="col-6 col-md-6"><label class="form-label small">Telefone</label><input class="form-control form-control-sm" @bind="ed.Telefone" /></div>
+                            <div class="col-12 col-md-6"><label class="form-label small">E-mail</label><input type="email" class="form-control form-control-sm" @bind="ed.Email" /></div>
+                            <div class="col-12 col-md-8"><label class="form-label small">Endereço</label><input class="form-control form-control-sm" @bind="ed.Logradouro" placeholder="Rua, avenida" /></div>
+                            <div class="col-4 col-md-2"><label class="form-label small">Número</label><input class="form-control form-control-sm" @bind="ed.Numero" /></div>
+                            <div class="col-8 col-md-2"><label class="form-label small">CEP</label><input class="form-control form-control-sm" @bind="ed.Cep" /></div>
+                            <div class="col-6 col-md-4"><label class="form-label small">Complemento</label><input class="form-control form-control-sm" @bind="ed.Complemento" /></div>
+                            <div class="col-6 col-md-3"><label class="form-label small">Bairro</label><input class="form-control form-control-sm" @bind="ed.Bairro" /></div>
+                            <div class="col-8 col-md-3"><label class="form-label small">Cidade</label><input class="form-control form-control-sm" @bind="ed.Cidade" /></div>
+                            <div class="col-4 col-md-2"><label class="form-label small">UF</label><input class="form-control form-control-sm" maxlength="2" @bind="ed.Uf" /></div>
+                            <div class="col-6"><label class="form-label small">Categoria</label>
+                                <select class="form-select form-select-sm" @bind="ed.CategoriaId">@foreach (var c in _categorias) { <option value="@c.Id">@c.Nome</option> }</select></div>
+                            <div class="col-6"><label class="form-label small">Associado desde</label><input type="date" class="form-control form-control-sm" @bind="ed.DataAssociacao" /></div>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button class="btn btn-dark btn-sm" type="submit">Salvar</button>
+                            <button class="btn btn-link btn-sm" type="button" @onclick="() => _editando = false">Cancelar</button>
+                        </div>
+                    </form>
+                }
+                else
+                {
+                <dl class="row mb-0 small">
+                    <dt class="col-4 fw-normal text-secondary">CPF</dt><dd class="col-8">@Rotulos.Cpf(a.Pessoa.Cpf)</dd>
+                    <dt class="col-4 fw-normal text-secondary">Nascimento</dt><dd class="col-8">@a.Pessoa.DataNascimento?.ToString("dd/MM/yyyy") (@a.Pessoa.Idade anos)</dd>
+                    <dt class="col-4 fw-normal text-secondary">Telefone</dt><dd class="col-8">@Rotulos.Telefone(a.Pessoa.Telefone)</dd>
+                    <dt class="col-4 fw-normal text-secondary">E-mail</dt><dd class="col-8">@(a.Pessoa.Email ?? "—")</dd>
+                    <dt class="col-4 fw-normal text-secondary">Cidade</dt><dd class="col-8">@(a.Pessoa.Endereco.Cidade ?? "—") @a.Pessoa.Endereco.Uf</dd>
+                    <dt class="col-4 fw-normal text-secondary">Associado desde</dt><dd class="col-8">@a.DataAssociacao.ToString("dd/MM/yyyy")</dd>
+                    <dt class="col-4 fw-normal text-secondary">Aplicativo</dt>
+                    <dd class="col-8">
+                        @if (a.Pessoa.TemAcessoApp) { <span>Acesso criado</span> }
+                        else if (Sessao.Possui("usuarios.gerenciar") && a.Pessoa.Email is not null) { <button class="btn btn-link btn-sm p-0" @onclick="CriarAcessoApp">Enviar convite do app</button> }
+                        else { <span class="text-secondary">Sem acesso</span> }
+                    </dd>
+                </dl>
+                }
+                <div class="border-top mt-3 pt-2 d-flex flex-wrap gap-2 align-items-center small">
+                    <span class="text-secondary">Dados pessoais (LGPD):</span>
+                    <button class="btn btn-link btn-sm p-0" @onclick="BaixarDados">Baixar em JSON</button>
+                    @if (Sessao.Possui("associados.excluir") && a.Situacao is "Inativo" or "Rejeitado")
+                    {
+                        <span class="text-secondary">·</span>
+                        <button class="btn btn-link btn-sm p-0 text-danger" @onclick="() => _confirmarAnonimizacao = true">Apagar dados pessoais</button>
+                    }
+                </div>
+                @if (_confirmarAnonimizacao)
+                {
+                    <div class="alert alert-danger mt-2 small mb-0">
+                        <div class="fw-semibold mb-1">Apagar os dados pessoais de @a.Pessoa.NomeCompleto?</div>
+                        Nome, CPF, contatos, endereço, foto, documentos e o login do app serão apagados para sempre. Mensalidades, pagamentos e
+                        históricos ficam, sem identificar a pessoa. Não dá para desfazer.
+                        <input class="form-control form-control-sm my-2" placeholder="Motivo (ex.: pedido do titular em 10/11/2026)" @bind="_motivoLgpd" />
+                        <button class="btn btn-danger btn-sm" @onclick="Anonimizar">Apagar definitivamente</button>
+                        <button class="btn btn-link btn-sm" @onclick="() => _confirmarAnonimizacao = false">Cancelar</button>
+                    </div>
+                }
+            </div></div>
+        </div>
+        <div class="col-12 col-lg-5">
+            <div class="card h-100"><div class="card-body text-center">
+                <h2 class="h6 mb-3 text-start">Carteirinha</h2>
+                @if (_qr is not null) { <img src="@_qr" alt="QR Code da carteirinha" width="160" height="160" style="image-rendering:pixelated" /> }
+                <div class="small text-secondary mt-2">QR Code individual, sem dados pessoais. Válido na portaria.</div>
+            </div></div>
+        </div>
+    </div>
+
+    <div class="card mt-3"><div class="card-body">
+        <h2 class="h6 mb-3">Dependentes</h2>
+        @if (a.Dependentes.Count == 0) { <p class="text-secondary small">Nenhum dependente.</p> }
+        else
+        {
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Nome</th><th>Parentesco</th><th>Nº</th><th>Situação</th></tr></thead>
+                <tbody>
+                @foreach (var d in a.Dependentes)
+                {
+                    <tr><td>@d.Nome</td><td>@Rotulos.Parentesco(d.Parentesco, d.ParentescoDescricao)@(d.Idade is { } i ? $" · {i} anos" : "")</td><td>@d.NumeroIdentificacao</td><td><Situacao Valor="@d.Situacao" /></td></tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        @if (Sessao.Possui("dependentes.cadastrar") && a.Situacao is "Ativo" or "Pendente")
+        {
+            @if (!_incluindo) { <button class="btn btn-outline-dark btn-sm" @onclick="() => _incluindo = true">Incluir dependente</button> }
+            else
+            {
+                <div class="border rounded-3 p-3 mt-2">
+                    <FormularioPessoa Dados="_dep" />
+                    <div class="row g-3 mt-1">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Parentesco *</label>
+                            <select class="form-select" @bind="_parentesco">
+                                @foreach (var p in Rotulos.Parentescos) { <option value="@p">@Rotulos.Parentesco(p)</option> }
+                            </select>
+                        </div>
+                        @if (_parentesco == "Outro")
+                        {
+                            <div class="col-12 col-md-4"><label class="form-label">Qual?</label><input class="form-control" @bind="_parentescoDescricao" /></div>
+                        }
+                    </div>
+                    <div class="mt-3 d-flex gap-2">
+                        <button class="btn btn-dark btn-sm" @onclick="IncluirDependente">Salvar dependente</button>
+                        <button class="btn btn-link btn-sm" @onclick="() => _incluindo = false">Cancelar</button>
+                    </div>
+                </div>
+            }
+        }
+    </div></div>
+}
+else if (_erro is null)
+{
+    <p class="text-secondary mt-3">Carregando…</p>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private AssociadoDetalhe? _a;
+    private string? _qr;
+    private string? _erro;
+    private string? _mensagem;
+    private string? _pedirMotivo;
+    private string _motivo = "";
+    private bool _incluindo;
+    private FormularioPessoa.DadosPessoaForm _dep = new();
+    private string _parentesco = "Filho";
+    private string? _parentescoDescricao;
+
+    protected override Task OnParametersSetAsync() => Carregar();
+
+    private sealed class Edicao
+    {
+        public string NomeCompleto { get; set; } = "";
+        public string? Cpf { get; set; }
+        public string? Rg { get; set; }
+        public DateOnly? DataNascimento { get; set; }
+        public string Sexo { get; set; } = "NaoInformado";
+        public string? EstadoCivil { get; set; }
+        public string? Telefone { get; set; }
+        public string? Email { get; set; }
+        public string? Logradouro { get; set; }
+        public string? Numero { get; set; }
+        public string? Complemento { get; set; }
+        public string? Bairro { get; set; }
+        public string? Cidade { get; set; }
+        public string? Uf { get; set; }
+        public string? Cep { get; set; }
+        public Guid CategoriaId { get; set; }
+        public DateOnly DataAssociacao { get; set; }
+    }
+
+    private bool _editando, _confirmarAnonimizacao;
+    private Edicao? _ed;
+    private List<Categoria> _categorias = [];
+    private string _motivoLgpd = "";
+
+    private async Task IniciarEdicao()
+    {
+        if (_a is not { } a) return;
+        try { _categorias = await Api.GetAsync<List<Categoria>>("api/v1/categorias-associados"); }
+        catch (ErroApi e) { _erro = e.Message; return; }
+        var p = a.Pessoa;
+        // Todos os campos voltam para a API: o cadastro é substituído por inteiro e nada pode se perder.
+        _ed = new Edicao
+        {
+            NomeCompleto = p.NomeCompleto, Cpf = p.Cpf, Rg = p.Rg, DataNascimento = p.DataNascimento, Sexo = p.Sexo, EstadoCivil = p.EstadoCivil,
+            Telefone = p.Telefone, Email = p.Email, Logradouro = p.Endereco.Logradouro, Numero = p.Endereco.Numero,
+            Complemento = p.Endereco.Complemento, Bairro = p.Endereco.Bairro, Cidade = p.Endereco.Cidade, Uf = p.Endereco.Uf, Cep = p.Endereco.Cep,
+            CategoriaId = a.Categoria.Id, DataAssociacao = a.DataAssociacao,
+        };
+        _editando = true;
+    }
+
+    private async Task SalvarEdicao()
+    {
+        if (_ed is not { } e) return;
+        _erro = _mensagem = null;
+        static string? V(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+        try
+        {
+            _a = await Api.PutAsync<AssociadoDetalhe>($"api/v1/associados/{Id}", new
+            {
+                pessoa = new
+                {
+                    nomeCompleto = e.NomeCompleto.Trim(), cpf = V(e.Cpf), rg = V(e.Rg), dataNascimento = e.DataNascimento, sexo = e.Sexo,
+                    estadoCivil = e.EstadoCivil, telefone = V(e.Telefone), email = V(e.Email),
+                    endereco = new { logradouro = V(e.Logradouro), numero = V(e.Numero), complemento = V(e.Complemento), bairro = V(e.Bairro),
+                        cidade = V(e.Cidade), uf = V(e.Uf)?.ToUpperInvariant(), cep = V(e.Cep) },
+                },
+                categoriaId = e.CategoriaId,
+                dataAssociacao = e.DataAssociacao,
+                interesseIds = (Guid[]?)null,
+            });
+            _editando = false;
+            _mensagem = "Dados atualizados.";
+        }
+        catch (ErroApi ex) { _erro = ex.Message; }
+    }
+
+    private async Task BaixarDados()
+    {
+        if (_a is null) return;
+        try
+        {
+            var json = await Api.TextoAsync($"api/v1/pessoas/{_a.Pessoa.Id}/dados-pessoais");
+            await JS.InvokeVoidAsync("baixarArquivo", $"dados-{_a.Matricula}.json", "application/json", json);
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Anonimizar()
+    {
+        if (_a is null) return;
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/pessoas/{_a.Pessoa.Id}/anonimizar", new { motivo = _motivoLgpd });
+            _confirmarAnonimizacao = false;
+            _mensagem = "Dados pessoais apagados. O histórico financeiro foi mantido sem identificar a pessoa.";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Carregar()
+    {
+        try
+        {
+            _a = await Api.GetAsync<AssociadoDetalhe>($"api/v1/associados/{Id}");
+            _qr = await Api.ImagemAsync($"api/v1/pessoas/{_a.Pessoa.Id}/qrcode");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Acao(string acao)
+    {
+        if (acao is "rejeitar" or "suspender" or "inativar") { _pedirMotivo = acao; _motivo = ""; return; }
+        await Executar(acao, null);
+    }
+
+    private Task ConfirmarMotivo() => Executar(_pedirMotivo!, _motivo);
+
+    private async Task Executar(string acao, string? motivo)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            _a = await Api.PostAsync<AssociadoDetalhe>($"api/v1/associados/{Id}/{acao}", new { motivo });
+            _pedirMotivo = null;
+            _mensagem = $"Situação atualizada: {_a.Situacao}.";
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task IncluirDependente()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            var d = await Api.PostAsync<System.Text.Json.JsonElement>("api/v1/dependentes", new
+            {
+                associadoTitularId = Id, pessoa = _dep.ParaApi(), parentesco = _parentesco,
+                parentescoDescricao = _parentesco == "Outro" ? _parentescoDescricao : null,
+            });
+            _mensagem = $"Dependente incluído ({d.GetProperty("situacao").GetString()}).";
+            _incluindo = false;
+            _dep = new();
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CriarAcessoApp()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/associados/{Id}/acesso-app", new { senhaInicial = (string?)null });
+            _mensagem = "Convite enviado por e-mail para o associado criar a senha do aplicativo.";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

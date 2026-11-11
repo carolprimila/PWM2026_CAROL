@@ -1,0 +1,89 @@
+@page "/funcionarios"
+@inject Api Api
+@inject NavigationManager Nav
+
+<PageTitle>Funcionários · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-3">Funcionários</h1>
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<form class="card mb-3" @onsubmit="Criar"><div class="card-body">
+    <h2 class="h6 mb-3">Novo funcionário</h2>
+    <div class="row g-2">
+        <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome" @bind="_nome" aria-label="Nome" /></div>
+        <div class="col-6 col-md-2"><input class="form-control" placeholder="CPF (opcional)" @bind="_cpf" aria-label="CPF" /></div>
+        <div class="col-6 col-md-2"><input class="form-control" placeholder="Cargo" @bind="_cargo" aria-label="Cargo" /></div>
+        <div class="col-6 col-md-2"><input class="form-control" placeholder="Departamento" @bind="_departamento" aria-label="Departamento" /></div>
+        <div class="col-6 col-md-2"><input type="date" class="form-control" @bind="_admissao" aria-label="Admissão" /></div>
+        <div class="col-6 col-md-3"><input class="form-control" placeholder="Telefone" @bind="_telefone" aria-label="Telefone" /></div>
+        <div class="col-12 col-md-5"><input class="form-control" placeholder="Escala (ex.: Seg a Sex, 8h às 17h)" @bind="_escala" aria-label="Escala" /></div>
+        <div class="col-12 col-md-4 text-end"><button class="btn btn-dark" type="submit">Cadastrar</button></div>
+    </div>
+</div></form>
+
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <input class="form-control" style="max-width:300px" placeholder="Nome ou cargo" @bind="_busca" @bind:event="oninput" @bind:after="Carregar" aria-label="Buscar" />
+    <select class="form-select" style="max-width:200px" @bind="_situacao" @bind:after="Carregar" aria-label="Situação">
+        <option value="">Em atividade</option>
+        <option value="Ferias">De férias</option>
+        <option value="Afastado">Afastados</option>
+        <option value="Desligado">Desligados</option>
+    </select>
+</div>
+
+@if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+else if (_pagina.TotalItens == 0) { <div class="card"><div class="card-body text-center text-secondary py-5">Nenhum funcionário.</div></div> }
+else
+{
+    <div class="card"><div class="table-responsive">
+        <table class="table table-hover mb-0 align-middle">
+            <thead><tr><th>Nome</th><th>Cargo</th><th class="d-none d-md-table-cell">Telefone</th><th class="d-none d-md-table-cell">Admissão</th><th>Situação</th></tr></thead>
+            <tbody>
+            @foreach (var f in _pagina.Itens)
+            {
+                <tr class="linha-clicavel" @onclick='() => Nav.NavigateTo($"funcionarios/{f.Id}")'>
+                    <td class="fw-medium">@f.Nome</td>
+                    <td>@f.Cargo<small class="text-secondary">@(f.Departamento is null ? "" : $" · {f.Departamento}")</small></td>
+                    <td class="d-none d-md-table-cell">@(f.Telefone ?? "—")</td>
+                    <td class="d-none d-md-table-cell">@f.Admissao.ToString("dd/MM/yyyy")</td>
+                    <td><Situacao Valor="@f.Situacao" /></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div></div>
+}
+
+@code {
+    private Pagina<FuncionarioResumo>? _pagina;
+    private string _busca = "", _situacao = "";
+    private string _nome = "", _cpf = "", _cargo = "", _departamento = "", _telefone = "", _escala = "";
+    private DateTime _admissao = DateTime.Today;
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        var filtro = _situacao == "" ? "" : $"&situacao={_situacao}";
+        try { _pagina = await Api.GetAsync<Pagina<FuncionarioResumo>>($"api/v1/funcionarios?tamanhoPagina=100{filtro}&busca={Uri.EscapeDataString(_busca)}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = null;
+        try
+        {
+            var f = await Api.PostAsync<FuncionarioInfo>("api/v1/funcionarios", new
+            {
+                nome = _nome, cpf = Nulo(_cpf), cargo = _cargo, departamento = Nulo(_departamento), telefone = Nulo(_telefone),
+                escala = Nulo(_escala), admissao = DateOnly.FromDateTime(_admissao),
+            });
+            Nav.NavigateTo($"funcionarios/{f.Id}");
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private static string? Nulo(string s) => string.IsNullOrWhiteSpace(s) ? null : s;
+}

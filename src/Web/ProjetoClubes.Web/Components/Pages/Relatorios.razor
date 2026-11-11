@@ -1,0 +1,163 @@
+@page "/relatorios"
+@using System.Text
+@inject Api Api
+@inject Sessao Sessao
+@inject IJSRuntime JS
+
+<PageTitle>Relatórios · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Relatórios</h1>
+<p class="text-secondary mb-3">Consultas prontas com exportação em CSV (abre no Excel).</p>
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+<div class="row g-3">
+    @if (Sessao.Possui("associados.visualizar") && _resumo is { } r)
+    {
+        <div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0">Associados (@r.TotalAssociados)</h2>
+                <button class="btn btn-sm btn-outline-dark" @onclick="ExportarAssociados">Exportar CSV</button>
+            </div>
+            <div class="row small">
+                <div class="col-6">
+                    <div class="text-secondary mb-1">Por situação</div>
+                    @foreach (var (k, v) in r.AssociadosPorSituacao) { <div class="d-flex justify-content-between"><span>@k</span><span>@v</span></div> }
+                </div>
+                <div class="col-6">
+                    <div class="text-secondary mb-1">Por categoria</div>
+                    @foreach (var (k, v) in r.AssociadosPorCategoria) { <div class="d-flex justify-content-between"><span>@k</span><span>@v</span></div> }
+                </div>
+            </div>
+        </div></div></div>
+    }
+
+    @if (Sessao.Possui("financeiro.visualizar"))
+    {
+        <div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h2 class="h6 mb-0">Inadimplentes (@_inadimplentes.Count)</h2>
+                <button class="btn btn-sm btn-outline-dark" @onclick="ExportarInadimplentes" disabled="@(_inadimplentes.Count == 0)">Exportar CSV</button>
+            </div>
+            @foreach (var i in _inadimplentes.Take(8))
+            {
+                <div class="d-flex justify-content-between small border-top py-1"><span>@i.Nome <span class="text-secondary">@i.Matricula</span></span><span>@Rotulos.Moeda(i.ValorDevido)</span></div>
+            }
+            @if (_inadimplentes.Count == 0) { <p class="small text-secondary mb-0">Ninguém com mensalidade vencida.</p> }
+            else { <div class="small text-secondary mt-1">Total devido: @Rotulos.Moeda(_inadimplentes.Sum(i => i.ValorDevido))</div> }
+        </div></div></div>
+    }
+
+    @if (Sessao.Possui("acesso.validar") || Sessao.Possui("relatorios.visualizar"))
+    {
+        <div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
+                <h2 class="h6 mb-0">Portaria</h2>
+                <div class="d-flex gap-2">
+                    <input type="date" class="form-control form-control-sm" @bind="_de" @bind:after="CarregarAcessos" aria-label="De" />
+                    <input type="date" class="form-control form-control-sm" @bind="_ate" @bind:after="CarregarAcessos" aria-label="Até" />
+                    <button class="btn btn-sm btn-outline-dark text-nowrap" @onclick="ExportarAcessos">CSV</button>
+                </div>
+            </div>
+            <div class="small">
+                <div>Entradas autorizadas: <strong>@_acessos.Count(a => a.Tipo == "Entrada" && a.Autorizado)</strong></div>
+                <div>Saídas: <strong>@_acessos.Count(a => a.Tipo == "Saida")</strong></div>
+                <div>Recusas: <strong>@_acessos.Count(a => !a.Autorizado)</strong></div>
+                <div class="text-secondary">Pessoas diferentes: @_acessos.Where(a => a.PessoaId != null).Select(a => a.PessoaId).Distinct().Count()</div>
+            </div>
+        </div></div></div>
+    }
+
+    @if (Sessao.Possui("estoque.gerenciar"))
+    {
+        <div class="col-12 col-lg-6"><div class="card h-100"><div class="card-body">
+            <h2 class="h6">Estoque abaixo do mínimo (@_estoque.Count)</h2>
+            @foreach (var p in _estoque)
+            {
+                <div class="d-flex justify-content-between small border-top py-1"><span>@p.Nome</span><span class="text-danger">@Rotulos.Qtd(p.Quantidade) de @Rotulos.Qtd(p.EstoqueMinimo) @p.Unidade</span></div>
+            }
+            @if (_estoque.Count == 0) { <p class="small text-secondary mb-0">Tudo acima do mínimo.</p> }
+        </div></div></div>
+    }
+</div>
+
+@code {
+    private sealed record AcessoLinha(Guid Id, Guid? PessoaId, string? Nome, string Tipo, bool Autorizado, string? Motivo, DateTimeOffset OcorridoEm,
+        string? RegistradoPorNome);
+    private sealed record Inadimplente(Guid AssociadoId, string Nome, string Matricula, int Mensalidades, decimal ValorDevido, DateOnly VencimentoMaisAntigo);
+
+    private ResumoCadastros? _resumo;
+    private List<Inadimplente> _inadimplentes = [];
+    private List<AcessoLinha> _acessos = [];
+    private List<ProdutoInfo> _estoque = [];
+    private DateTime _de = DateTime.Today.AddDays(-30), _ate = DateTime.Today;
+    private string? _erro;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Sessao.Possui("associados.visualizar")) _resumo = await Api.GetAsync<ResumoCadastros>("api/v1/associados/resumo");
+            if (Sessao.Possui("financeiro.visualizar")) _inadimplentes = await Api.GetAsync<List<Inadimplente>>("api/v1/financeiro/inadimplentes");
+            if (Sessao.Possui("estoque.gerenciar")) _estoque = await Api.GetAsync<List<ProdutoInfo>>("api/v1/estoque/produtos?abaixoDoMinimo=true");
+            if (Sessao.Possui("acesso.validar") || Sessao.Possui("relatorios.visualizar")) await CarregarAcessos();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task CarregarAcessos()
+    {
+        var de = Uri.EscapeDataString(new DateTimeOffset(_de).ToString("O"));
+        var ate = Uri.EscapeDataString(new DateTimeOffset(_ate.AddDays(1)).ToString("O"));
+        _acessos = [];
+        try
+        {
+            for (var pagina = 1; pagina <= 50; pagina++)
+            {
+                var p = await Api.GetAsync<Pagina<AcessoLinha>>($"api/v1/controle-acesso?de={de}&ate={ate}&tamanhoPagina=100&pagina={pagina}");
+                _acessos.AddRange(p.Itens);
+                if (pagina >= p.TotalPaginas) break;
+            }
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task ExportarAssociados()
+    {
+        var linhas = new List<AssociadoLista>();
+        try
+        {
+            for (var pagina = 1; pagina <= 100; pagina++)
+            {
+                var p = await Api.GetAsync<Pagina<AssociadoLista>>($"api/v1/associados?tamanhoPagina=100&pagina={pagina}");
+                linhas.AddRange(p.Itens);
+                if (pagina >= p.TotalPaginas) break;
+            }
+        }
+        catch (ErroApi e) { _erro = e.Message; return; }
+        await Baixar("associados", ["Matrícula", "Nome", "CPF", "Categoria", "Situação", "Associado desde", "Dependentes"],
+            linhas.Select(a => new[] { a.Matricula, a.Nome, a.CpfMascarado ?? "", a.Categoria, a.Situacao, a.DataAssociacao.ToString("dd/MM/yyyy"), a.TotalDependentes.ToString() }));
+    }
+
+    private Task ExportarInadimplentes() =>
+        Baixar("inadimplentes", ["Matrícula", "Nome", "Mensalidades vencidas", "Valor devido", "Vencimento mais antigo"],
+            _inadimplentes.Select(i => new[] { i.Matricula, i.Nome, i.Mensalidades.ToString(), i.ValorDevido.ToString("0.00"), i.VencimentoMaisAntigo.ToString("dd/MM/yyyy") }));
+
+    private Task ExportarAcessos() =>
+        Baixar("portaria", ["Data e hora", "Pessoa", "Movimento", "Autorizado", "Motivo", "Registrado por"],
+            _acessos.Select(a => new[] { a.OcorridoEm.ToLocalTime().ToString("dd/MM/yyyy HH:mm"), a.Nome ?? "não identificado", Rotulos.Texto(a.Tipo),
+                a.Autorizado ? "Sim" : "Não", a.Motivo ?? "", a.RegistradoPorNome ?? "" }));
+
+    /// <summary>CSV com ";" e BOM UTF-8: abre direto no Excel em português, com acentos.</summary>
+    private async Task Baixar(string nome, string[] cabecalho, IEnumerable<string[]> linhas)
+    {
+        static string Campo(string v)
+        {
+            // Texto digitado por usuários não pode virar fórmula no Excel (injeção de CSV).
+            if (v.Length > 0 && "=+-@\t\r".Contains(v[0]) && !decimal.TryParse(v, out _)) v = "'" + v;
+            return v.Contains(';') || v.Contains('"') || v.Contains('\n') ? $"\"{v.Replace("\"", "\"\"")}\"" : v;
+        }
+        var sb = new StringBuilder("﻿").AppendLine(string.Join(';', cabecalho.Select(Campo)));
+        foreach (var l in linhas) sb.AppendLine(string.Join(';', l.Select(Campo)));
+        await JS.InvokeVoidAsync("baixarArquivo", $"{nome}-{DateTime.Today:yyyy-MM-dd}.csv", "text/csv;charset=utf-8", sb.ToString());
+    }
+}

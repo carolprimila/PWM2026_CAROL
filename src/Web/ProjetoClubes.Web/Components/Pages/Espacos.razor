@@ -1,0 +1,79 @@
+@page "/reservas/espacos"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Espaços · Projeto Clubes</PageTitle>
+
+<a href="reservas" class="small text-secondary text-decoration-none">← Reservas</a>
+<h1 class="h3 mt-2 mb-3">Espaços</h1>
+
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (Sessao.Possui("espacos.gerenciar"))
+{
+    <form class="card mb-3" @onsubmit="Criar"><div class="card-body">
+        <h2 class="h6 mb-3">Novo espaço</h2>
+        <div class="row g-2">
+            <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome" @bind="_nome" aria-label="Nome" /></div>
+            <div class="col-12 col-md-3">
+                <select class="form-select" @bind="_tipo" aria-label="Tipo">
+                    @foreach (var t in Tipos) { <option value="@t">@Rotulos.Texto(t)</option> }
+                </select>
+            </div>
+            <div class="col-4 col-md-1"><input type="number" min="1" class="form-control" placeholder="Pessoas" @bind="_capacidade" aria-label="Capacidade" /></div>
+            <div class="col-4 col-md-2"><input type="number" min="0" step="0.01" class="form-control" placeholder="Locação (R$)" @bind="_valor" aria-label="Valor de locação" /></div>
+            <div class="col-4 col-md-2"><input type="number" min="0" step="0.01" class="form-control" placeholder="Taxa (R$)" @bind="_taxa" aria-label="Taxa adicional" /></div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <div class="form-check"><input class="form-check-input" type="checkbox" id="aprov" @bind="_exigeAprovacao" />
+                <label class="form-check-label small" for="aprov">Reservas pelo app precisam de aprovação</label></div>
+            <button class="btn btn-dark" type="submit">Adicionar</button>
+        </div>
+    </div></form>
+}
+
+<div class="card"><div class="table-responsive">
+    <table class="table mb-0 align-middle">
+        <thead><tr><th>Espaço</th><th>Capacidade</th><th class="text-end">Locação</th><th>Aprovação</th></tr></thead>
+        <tbody>
+        @foreach (var e in _espacos)
+        {
+            <tr><td><div class="fw-medium">@e.Nome</div><small class="text-secondary">@Rotulos.Texto(e.Tipo)</small></td>
+                <td>@(e.Capacidade?.ToString() ?? "—")</td>
+                <td class="text-end text-nowrap">@Rotulos.Moeda(e.ValorLocacao + e.TaxaAdicional)</td>
+                <td>@(e.ExigeAprovacao ? "Necessária" : "Automática")</td></tr>
+        }
+        @if (_espacos.Count == 0) { <tr><td colspan="4" class="text-secondary">Nenhum espaço cadastrado.</td></tr> }
+        </tbody>
+    </table>
+</div></div>
+
+@code {
+    private static readonly string[] Tipos = ["SalaoSocial", "Quiosque", "Churrasqueira", "Quadra", "CampoFutebol", "Piscina", "Camping", "SalaReuniao", "Outro"];
+    private List<EspacoInfo> _espacos = [];
+    private string _nome = "", _tipo = "SalaoSocial";
+    private int? _capacidade;
+    private decimal _valor, _taxa;
+    private bool _exigeAprovacao = true;
+    private string? _erro;
+
+    protected override Task OnInitializedAsync() => Carregar();
+
+    private async Task Carregar()
+    {
+        try { _espacos = await Api.GetAsync<List<EspacoInfo>>("api/v1/espacos?incluirInativos=true"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = null;
+        try
+        {
+            await Api.PostAsync("api/v1/espacos", new { nome = _nome, tipo = _tipo, capacidade = _capacidade, valorLocacao = _valor, taxaAdicional = _taxa, exigeAprovacao = _exigeAprovacao });
+            _nome = "";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

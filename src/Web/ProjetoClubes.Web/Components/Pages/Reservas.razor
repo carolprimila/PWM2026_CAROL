@@ -1,0 +1,137 @@
+@page "/reservas"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Reservas · Projeto Clubes</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h1 class="h3 mb-0">Reservas</h1>
+    @if (Sessao.Possui("espacos.gerenciar")) { <a class="btn btn-outline-dark" href="reservas/espacos">Espaços</a> }
+</div>
+
+@if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+@if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+@if (_pendentes.Count > 0)
+{
+    <div class="card mb-3 border-warning"><div class="card-body">
+        <h2 class="h6">Aguardando aprovação</h2>
+        @foreach (var r in _pendentes)
+        {
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 border-top">
+                <div><div class="fw-medium">@r.Espaco · @Rotulos.Periodo(r.Inicio, r.Fim)</div>
+                    <small class="text-secondary">@(r.Solicitante ?? "Clube") · @(r.Finalidade ?? "sem finalidade informada") · @Rotulos.Moeda(r.Valor)</small></div>
+                @if (Sessao.Possui("reservas.aprovar"))
+                {
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-success" @onclick='() => Acao(r, "aprovar")'>Aprovar</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick='() => Acao(r, "recusar")'>Recusar</button>
+                    </div>
+                }
+            </div>
+        }
+    </div></div>
+}
+
+<div class="row g-3">
+    <div class="col-12 col-xl-8">
+        <div class="card"><div class="card-body">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <h2 class="h6 mb-0">Calendário — próximos 30 dias</h2>
+                <select class="form-select form-select-sm" style="max-width:220px" @bind="_filtroEspaco" @bind:after="CarregarCalendario" aria-label="Filtrar espaço">
+                    <option value="">Todos os espaços</option>
+                    @foreach (var e in _espacos) { <option value="@e.Id">@e.Nome</option> }
+                </select>
+            </div>
+            @if (_calendario.Count == 0) { <p class="text-secondary small mb-0">Nenhuma reserva ou evento no período.</p> }
+            @foreach (var dia in _calendario.GroupBy(c => c.Inicio.ToLocalTime().Date))
+            {
+                <div class="small fw-semibold text-secondary mt-3">@dia.Key.ToString("dddd, dd/MM")</div>
+                @foreach (var c in dia)
+                {
+                    <div class="d-flex justify-content-between py-1 border-top">
+                        <span>@c.Inicio.ToLocalTime().ToString("HH:mm") · <strong>@c.Espaco</strong> · @c.Titulo</span>
+                        <Situacao Valor="@c.Situacao" />
+                    </div>
+                }
+            }
+        </div></div>
+    </div>
+    <div class="col-12 col-xl-4">
+        @if (Sessao.Possui("reservas.aprovar"))
+        {
+            <form class="card" @onsubmit="Reservar"><div class="card-body">
+                <h2 class="h6">Nova reserva do clube</h2>
+                <label class="form-label small" for="esp">Espaço</label>
+                <select id="esp" class="form-select mb-2" @bind="_espacoId">
+                    <option value="">Selecione</option>
+                    @foreach (var e in _espacos) { <option value="@e.Id">@e.Nome</option> }
+                </select>
+                <label class="form-label small" for="ini">Início</label>
+                <input id="ini" type="datetime-local" class="form-control mb-2" @bind="_inicio" />
+                <label class="form-label small" for="fim">Término</label>
+                <input id="fim" type="datetime-local" class="form-control mb-2" @bind="_fim" />
+                <label class="form-label small" for="fin">Finalidade</label>
+                <input id="fin" class="form-control mb-3" @bind="_finalidade" />
+                <button class="btn btn-dark w-100" type="submit">Reservar</button>
+                <div class="small text-secondary mt-2">Horários que se sobrepõem a outra reserva são recusados.</div>
+            </div></form>
+        }
+    </div>
+</div>
+
+@code {
+    private List<EspacoInfo> _espacos = [];
+    private List<ReservaInfo> _pendentes = [];
+    private List<ItemCalendario> _calendario = [];
+    private string _filtroEspaco = "", _espacoId = "", _finalidade = "";
+    private DateTime _inicio = DateTime.Today.AddDays(1).AddHours(10), _fim = DateTime.Today.AddDays(1).AddHours(14);
+    private string? _erro, _mensagem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try { _espacos = await Api.GetAsync<List<EspacoInfo>>("api/v1/espacos"); } catch (ErroApi e) { _erro = e.Message; }
+        await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _pendentes = (await Api.GetAsync<Pagina<ReservaInfo>>("api/v1/reservas?situacao=Pendente&tamanhoPagina=50")).Itens; }
+        catch (ErroApi e) { _erro = e.Message; }
+        await CarregarCalendario();
+    }
+
+    private async Task CarregarCalendario()
+    {
+        var de = Uri.EscapeDataString(DateTimeOffset.Now.Date.ToString("O"));
+        var ate = Uri.EscapeDataString(DateTimeOffset.Now.Date.AddDays(30).ToString("O"));
+        try { _calendario = await Api.GetAsync<List<ItemCalendario>>($"api/v1/reservas/calendario?de={de}&ate={ate}&espacoId={_filtroEspaco}"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Acao(ReservaInfo r, string acao)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/reservas/{r.Id}/{acao}", new { motivo = acao == "recusar" ? "Indisponível para esta data" : null });
+            _mensagem = acao == "aprovar" ? "Reserva aprovada." : "Reserva recusada.";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Reservar()
+    {
+        _erro = _mensagem = null;
+        if (!Guid.TryParse(_espacoId, out var espaco)) { _erro = "Selecione o espaço."; return; }
+        try
+        {
+            await Api.PostAsync("api/v1/reservas", new { espacoId = espaco, inicio = new DateTimeOffset(_inicio), fim = new DateTimeOffset(_fim), finalidade = _finalidade });
+            _mensagem = "Reserva registrada.";
+            _finalidade = "";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}

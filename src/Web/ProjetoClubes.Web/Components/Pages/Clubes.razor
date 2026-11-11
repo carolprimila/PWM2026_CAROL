@@ -1,0 +1,136 @@
+@page "/clubes"
+@inject Api Api
+@inject Sessao Sessao
+
+<PageTitle>Clubes · Projeto Clubes</PageTitle>
+
+<h1 class="h3 mb-1">Clubes</h1>
+<p class="text-secondary mb-4">Clubes da plataforma. Somente o administrador geral cadastra clubes.</p>
+
+@if (Sessao.Usuario?.SuperAdmin != true)
+{
+    <div class="alert alert-secondary">Área restrita ao administrador geral.</div>
+}
+else
+{
+    @if (_mensagem is not null) { <div class="alert alert-success">@_mensagem</div> }
+    @if (_erro is not null) { <div class="alert alert-danger">@_erro</div> }
+
+    <form class="card mb-3" @onsubmit="Criar">
+        <div class="card-body">
+            <h2 class="h6 mb-3">Novo clube</h2>
+            <div class="row g-2">
+                <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome do clube" @bind="_nome" required /></div>
+                <div class="col-6 col-md-2"><input class="form-control text-uppercase" placeholder="Sigla" @bind="_sigla" required /></div>
+                <div class="col-6 col-md-3"><input class="form-control" placeholder="Cidade" @bind="_cidade" /></div>
+                <div class="col-4 col-md-1"><input class="form-control text-uppercase" placeholder="UF" maxlength="2" @bind="_uf" /></div>
+                <div class="col-8 col-md-2"><button class="btn btn-dark w-100" type="submit">Cadastrar</button></div>
+            </div>
+        </div>
+    </form>
+
+    @if (_presidenteDe is { } clube)
+    {
+        <form class="card mb-3 border-dark" @onsubmit="AdicionarPresidente">
+            <div class="card-body">
+                <h2 class="h6 mb-3">Presidente de @clube.Nome</h2>
+                <div class="row g-2">
+                    <div class="col-12 col-md-4"><input class="form-control" placeholder="Nome" @bind="_presNome" required /></div>
+                    <div class="col-12 col-md-4"><input type="email" class="form-control" placeholder="E-mail" @bind="_presEmail" required /></div>
+                    <div class="col-12 col-md-4 d-flex gap-2">
+                        <button class="btn btn-dark flex-fill" type="submit">Enviar convite</button>
+                        <button class="btn btn-link" type="button" @onclick="() => _presidenteDe = null">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    }
+
+    @if (_pagina is null) { <p class="text-secondary">Carregando…</p> }
+    else
+    {
+        <div class="card"><div class="table-responsive">
+            <table class="table mb-0 align-middle">
+                <thead><tr><th>Clube</th><th class="d-none d-md-table-cell">Cidade</th><th>Usuários</th><th>Situação</th><th></th></tr></thead>
+                <tbody>
+                @foreach (var c in _pagina.Itens)
+                {
+                    <tr>
+                        <td><div class="fw-medium">@c.Nome @if (c.Demonstracao) { <span class="badge text-bg-light">demo</span> }</div><small class="text-secondary">@c.Sigla</small></td>
+                        <td class="d-none d-md-table-cell">@c.Cidade @c.Uf</td>
+                        <td>@c.TotalUsuarios</td>
+                        <td><Situacao Valor="@c.Situacao" /></td>
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-sm btn-outline-dark me-1" @onclick="() => _presidenteDe = c">Presidente</button>
+                            @if (c.Situacao == "Ativo") { <button class="btn btn-sm btn-outline-danger" @onclick='() => AlterarSituacao(c, "desativar")'>Desativar</button> }
+                            else { <button class="btn btn-sm btn-outline-success" @onclick='() => AlterarSituacao(c, "ativar")'>Ativar</button> }
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div></div>
+    }
+}
+
+@code {
+    private Pagina<ClubeLista>? _pagina;
+    private string _nome = "", _sigla = "", _cidade = "", _uf = "";
+    private ClubeLista? _presidenteDe;
+    private string _presNome = "", _presEmail = "";
+    private string? _erro, _mensagem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Sessao.Usuario?.SuperAdmin == true) await Carregar();
+    }
+
+    private async Task Carregar()
+    {
+        try { _pagina = await Api.GetAsync<Pagina<ClubeLista>>("api/v1/clubes?tamanhoPagina=100"); }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task Criar()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync("api/v1/clubes", new
+            {
+                nome = _nome.Trim(), sigla = _sigla.Trim(),
+                endereco = new { cidade = string.IsNullOrWhiteSpace(_cidade) ? null : _cidade.Trim(), uf = string.IsNullOrWhiteSpace(_uf) ? null : _uf.Trim().ToUpperInvariant() },
+            });
+            _mensagem = $"Clube {_nome} cadastrado com perfis, categorias e regras padrão. Agora adicione o presidente.";
+            _nome = _sigla = _cidade = _uf = "";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task AdicionarPresidente()
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/clubes/{_presidenteDe!.Id}/administradores",
+                new { nome = _presNome.Trim(), email = _presEmail.Trim(), perfilChave = "presidente" });
+            _mensagem = $"Convite enviado para {_presEmail}.";
+            _presidenteDe = null;
+            _presNome = _presEmail = "";
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+
+    private async Task AlterarSituacao(ClubeLista c, string acao)
+    {
+        _erro = _mensagem = null;
+        try
+        {
+            await Api.PostAsync($"api/v1/clubes/{c.Id}/{acao}");
+            await Carregar();
+        }
+        catch (ErroApi e) { _erro = e.Message; }
+    }
+}
