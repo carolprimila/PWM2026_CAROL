@@ -228,8 +228,11 @@ internal static partial class DadosDemonstracao
                 var inicioLocal = feijoada.Inicio.ToOffset(brasilia);
                 Reservar(quadra, null, DateOnly.FromDateTime(inicioLocal.DateTime), inicioLocal.Hour, 6, $"Evento: {feijoada.Nome} (espaço kids)", feijoada.Id);
                 feijoada.DivulgadoEm ??= agora.AddDays(-1);
+                // Quem já se inscreveu (ex.: testando o app) fica como está.
+                var jaInscritos = await db.InscricoesEventos.IgnoreQueryFilters(semTenant).Where(i => i.EventoId == feijoada.Id)
+                    .Select(i => i.PessoaId).ToListAsync(ct);
                 foreach (var nome in new[] { "Carlos Alberto Ribeiro", "Ana Paula Souza", "Rafael Gomes Teixeira" })
-                    if (Por(nome) is { Situacao: SituacaoCadastral.Ativo } a)
+                    if (Por(nome) is { Situacao: SituacaoCadastral.Ativo } a && !jaInscritos.Contains(a.PessoaId))
                         db.InscricoesEventos.Add(new InscricaoEvento(id, feijoada.Id, a.PessoaId, nome == "Carlos Alberto Ribeiro" ? 2 : 1, SituacaoInscricao.Confirmada));
             }
             if (quiosque is not null && sigla == "FOZ2")

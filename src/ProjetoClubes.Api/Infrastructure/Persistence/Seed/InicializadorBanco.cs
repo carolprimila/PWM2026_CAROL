@@ -56,7 +56,15 @@ public static class InicializadorBanco
         await GarantirPadroesDosClubesAsync(sp, db, ct);
 
         if (config.GetValue<bool>("Seed:Demo"))
-            await DadosDemonstracao.CriarAsync(sp, config["Seed:SenhaDemo"], logger, ct);
+        {
+            // Dados de demonstração são opcionais: se algo deles conflitar com o que já está no banco, a API sobe mesmo assim.
+            try { await DadosDemonstracao.CriarAsync(sp, config["Seed:SenhaDemo"], logger, ct); }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                db.ChangeTracker.Clear();
+                logger.LogError(ex, "Não foi possível completar os dados de demonstração. A API continua normalmente.");
+            }
+        }
 
         if (!await db.Usuarios.IgnoreQueryFilters().AnyAsync(u => u.SuperAdmin, ct))
         {
