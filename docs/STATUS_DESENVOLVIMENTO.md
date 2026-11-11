@@ -201,6 +201,10 @@ Projeto `src/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mobile.
 - **Associação e diretoria**: dados e endereço da associação editáveis em Configurações; diretoria com cargos e mandato
   (presidente: 2 anos, um por vez, aviso 60 dias antes do fim e quando falta presidente); gestões anteriores guardadas.
 - Migration nova `ContratosEventosDiretoria` (aplicada sobre o banco existente, sem perder dados).
+- **Exemplos prontos** na demonstração (também entram em bancos que já existiam): mais associados com profissão e endereço,
+  contratos em todas as situações (em dia, com parcelas atrasadas e multa/juros, renovação em análise, em análise, reprovado
+  e desligado), reservas com o nome de quem reservou (uma pendente), feijoada com dois locais e inscritos, torneio aberto ao
+  público no quiosque, limite de reservas na churrasqueira e no quiosque, e a gestão anterior da diretoria.
 - Testes: unitários **87/87** (+7) e integração **85/85** (+5). Bug encontrado pelos testes e corrigido: reprovar/desligar
   com motivo em branco mudava a situação do contrato antes de recusar.
 - Conferido no navegador (cópia em portas separadas): Configurações com diretoria, ficha do associado com contrato gerando

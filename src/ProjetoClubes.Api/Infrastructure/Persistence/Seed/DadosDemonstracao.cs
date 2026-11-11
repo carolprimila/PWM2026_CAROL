@@ -18,7 +18,7 @@ namespace ProjetoClubes.Infrastructure.Persistence.Seed;
 /// e usuários com domínio @demo.projetoclubes.local, para que possam ser identificados e removidos.
 /// A senha dos usuários de demonstração vem de configuração (Seed__SenhaDemo) — não existe senha no código.
 /// </summary>
-internal static class DadosDemonstracao
+internal static partial class DadosDemonstracao
 {
     private const string Dominio = "demo.projetoclubes.local";
 
@@ -105,6 +105,7 @@ internal static class DadosDemonstracao
         await CriarEspacosEventosAsync(db, agora, logger, ct);
         await CriarEtapa7Async(sp, db, agora, logger, ct);
         await CriarDiretoriaAsync(db, agora, logger, ct);
+        await CriarExemplosAsync(sp, db, agora, logger, ct);
     }
 
     /// <summary>Diretoria de demonstração: mandato do presidente de 2 anos, começando em janeiro do ano passado.</summary>
