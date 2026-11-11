@@ -56,7 +56,10 @@ Android (emulador): `dotnet build src/ProjetoClubes.Mobile -t:Run -f net10.0-and
 `src/ProjetoClubes.Mobile/Configuracao.cs` pelo IP do computador.
 
 ## Contas de demonstração
-Todas com a senha **`Clubes2026!`** (definida em `appsettings.Development.json`):
+Todas com a senha **`Clubes2026!`** (definida em `appsettings.Development.json`). Em desenvolvimento não precisa digitar:
+o login do Web já vem preenchido com o presidente e tem botões para entrar com cada conta, e o app (Debug) já vem
+preenchido com o Carlos. Em produção e nas versões Release as telas abrem vazias.
+
 
 | Quem | E-mail | Onde entra |
 |---|---|---|

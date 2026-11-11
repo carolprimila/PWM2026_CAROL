@@ -2,6 +2,7 @@
 @layout LayoutAcesso
 @inject Api Api
 @inject NavigationManager Nav
+@inject IConfiguration Config
 
 <PageTitle>Entrar · Projeto Clubes</PageTitle>
 
@@ -22,6 +23,19 @@
     <button class="btn btn-dark w-100" type="submit" disabled="@_enviando">@(_enviando ? "Entrando…" : "Entrar")</button>
 </form>
 
+@if (_demo is { Contas.Count: > 0 } demo)
+{
+    <div class="border rounded p-3 mt-3 bg-light">
+        <div class="small text-secondary mb-2">Ambiente de desenvolvimento — entrar com uma conta de demonstração:</div>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var c in demo.Contas)
+            {
+                <button type="button" class="btn btn-sm btn-outline-dark" disabled="@_enviando" @onclick="() => EntrarComoAsync(c.Email)">@c.Nome</button>
+            }
+        </div>
+    </div>
+}
+
 <div class="text-center mt-3">
     @if (!_recuperar) { <button type="button" class="btn btn-link btn-sm text-secondary" @onclick="() => _recuperar = true">Esqueci minha senha</button> }
     else if (_recuperacaoEnviada) { <div class="alert alert-success py-2 small text-start">Se o e-mail estiver cadastrado, você receberá um link para criar uma nova senha.</div> }
@@ -37,6 +51,28 @@
     private string _senha = "";
     private string? _erro;
     private bool _enviando, _recuperar, _recuperacaoEnviada;
+
+    private sealed class ContaDemo { public string Nome { get; set; } = ""; public string Email { get; set; } = ""; }
+    private sealed class LoginDemo { public string Senha { get; set; } = ""; public List<ContaDemo> Contas { get; set; } = []; }
+    private LoginDemo? _demo;
+
+    // A seção LoginDemonstracao só existe em appsettings.Development.json: em produção a tela fica vazia.
+    protected override void OnInitialized()
+    {
+        _demo = Config.GetSection("LoginDemonstracao").Get<LoginDemo>();
+        if (_demo is { Contas.Count: > 0 })
+        {
+            _email = _demo.Contas[0].Email;
+            _senha = _demo.Senha;
+        }
+    }
+
+    private async Task EntrarComoAsync(string email)
+    {
+        _email = email;
+        _senha = _demo!.Senha;
+        await EntrarAsync();
+    }
 
     private async Task RecuperarAsync()
     {

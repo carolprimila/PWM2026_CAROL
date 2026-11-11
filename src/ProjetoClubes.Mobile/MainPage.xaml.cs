@@ -35,6 +35,7 @@ public partial class MainPage : ContentPage
     public MainPage()
     {
         InitializeComponent();
+        PreencherLoginDemonstracao();
         DepParentescoPicker.ItemsSource = Parentescos.Select(p => p.Rotulo).ToList();
         DepNascimentoPicker.MaximumDate = DateTime.Today;
         DepNascimentoPicker.Date = DateTime.Today.AddYears(-10);
@@ -136,6 +137,15 @@ public partial class MainPage : ContentPage
         SecureStorage.Default.Remove(ChaveRefresh);
         AppPanel.IsVisible = false;
         AuthPanel.IsVisible = true;
+        PreencherLoginDemonstracao();
+    }
+
+    /// <summary>Em Debug, deixa o login pronto com o associado de demonstração (em Release não faz nada).</summary>
+    private void PreencherLoginDemonstracao()
+    {
+        if (Configuracao.LoginDemonstracao is not { } demo) return;
+        LoginEmailEntry.Text = demo.Email;
+        LoginSenhaEntry.Text = demo.Senha;
     }
 
     // ------------------------------------------------------------------ área do associado
