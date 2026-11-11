@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Npgsql;
+using Microsoft.Data.Sqlite;
 using ProjetoClubes.Application.Common;
 
 namespace ProjetoClubes.IntegrationTests.Infra;
@@ -32,9 +32,8 @@ public sealed class EmailCapturado : IEmailSender
 }
 
 /// <summary>
-/// Sobe a API real contra um banco PostgreSQL exclusivo e descartável (criado a partir da mesma conexão de
-/// desenvolvimento, com outro nome de banco). Aplica as migrations reais. Nada é simulado em memória.
-/// Conexão base: variável PROJETOCLUBES_TESTES_POSTGRES ou user-secrets da API (ConnectionStrings:Postgres).
+/// Sobe a API real contra um arquivo SQLite exclusivo e descartável (na pasta temporária), aplicando as migrations reais.
+/// Nada é simulado em memória e não há nada para configurar: roda em qualquer máquina com o .NET SDK.
 /// </summary>
 public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 {
@@ -42,29 +41,17 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
     public const string SenhaSuperAdmin = "SuperAdmin#Teste2026";
     public const string EmailSuperAdmin = "superadmin@testes.projetoclubes.local";
 
-    private readonly string _conexao;
-    private readonly string _banco = $"projetoclubes_testes_{Guid.NewGuid():N}"[..34];
+    private readonly string _arquivoBanco = Path.Combine(Path.GetTempPath(), "projetoclubes-testes", $"testes-{Guid.NewGuid():N}.db");
+    private string Conexao => $"Data Source={_arquivoBanco};Pooling=False";
 
     public EmailCapturado Emails { get; } = new();
 
     public string PastaArquivos { get; } = Path.Combine(Path.GetTempPath(), "projetoclubes-testes", Guid.NewGuid().ToString("N"));
 
-    public ApiFixture()
-    {
-        var config = new ConfigurationBuilder()
-            .AddUserSecrets<Program>(optional: true)
-            .AddEnvironmentVariables()
-            .Build();
-        var baseConexao = config["PROJETOCLUBES_TESTES_POSTGRES"] ?? config.GetConnectionString("Postgres")
-            ?? throw new InvalidOperationException(
-                "Configure PROJETOCLUBES_TESTES_POSTGRES ou o user-secret ConnectionStrings:Postgres da API para rodar os testes de integração.");
-        _conexao = new NpgsqlConnectionStringBuilder(baseConexao) { Database = _banco, Pooling = false }.ConnectionString;
-    }
-
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testes");
-        builder.UseSetting("ConnectionStrings:Postgres", _conexao);
+        builder.UseSetting("ConnectionStrings:Default", $"Data Source={_arquivoBanco}");
         builder.UseSetting("Jwt:Chave", "chave-jwt-exclusiva-dos-testes-de-integracao-0123456789");
         builder.UseSetting("Banco:AplicarMigrationsAoIniciar", "true");
         builder.UseSetting("Seed:Demo", "false");
@@ -82,13 +69,6 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await using (var c = new NpgsqlConnection(ConexaoAdministrativa()))
-        {
-            await c.OpenAsync();
-            await using var cmd = new NpgsqlCommand($"CREATE DATABASE \"{_banco}\"", c);
-            await cmd.ExecuteNonQueryAsync();
-        }
-
         // Cria o primeiro Superadmin pelo fluxo real de inicialização.
         var resposta = await CreateClient().PostAsJsonAsync("/api/v1/setup/inicializar",
             new { tokenInicializacao = TokenSetup, nome = "Superadmin Testes", email = EmailSuperAdmin, senha = SenhaSuperAdmin });
@@ -99,24 +79,19 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
     {
         await base.DisposeAsync();
         if (Directory.Exists(PastaArquivos)) Directory.Delete(PastaArquivos, recursive: true);
-        NpgsqlConnection.ClearAllPools();
-        await using var c = new NpgsqlConnection(ConexaoAdministrativa());
-        await c.OpenAsync();
-        await using var cmd = new NpgsqlCommand($"DROP DATABASE IF EXISTS \"{_banco}\" WITH (FORCE)", c);
-        await cmd.ExecuteNonQueryAsync();
+        SqliteConnection.ClearAllPools();
+        foreach (var arquivo in new[] { _arquivoBanco, _arquivoBanco + "-wal", _arquivoBanco + "-shm" })
+            try { File.Delete(arquivo); } catch (IOException) { /* fica na pasta temporária */ }
     }
 
     /// <summary>Executa SQL direto no banco de teste (para provar garantias do banco sem passar pela API).</summary>
     public async Task<int> ExecutarSqlAsync(string sql)
     {
-        await using var c = new NpgsqlConnection(_conexao);
+        await using var c = new SqliteConnection(Conexao);
         await c.OpenAsync();
-        await using var cmd = new NpgsqlCommand(sql, c);
+        await using var cmd = new SqliteCommand(sql, c);
         return await cmd.ExecuteNonQueryAsync();
     }
-
-    private string ConexaoAdministrativa() =>
-        new NpgsqlConnectionStringBuilder(_conexao) { Database = "postgres" }.ConnectionString;
 
     /// <summary>Cliente HTTP autenticado com o access token informado.</summary>
     public HttpClient Cliente(string? accessToken = null)

@@ -23,8 +23,8 @@ internal sealed class PessoaConfiguration : IEntityTypeConfiguration<Pessoa>
     {
         b.ToTable("Pessoas", t =>
         {
-            t.HasCheckConstraint("CK_Pessoas_Cpf", "\"Cpf\" IS NULL OR \"Cpf\" ~ '^[0-9]{11}$'");
-            t.HasCheckConstraint("CK_Pessoas_Uf", "\"Uf\" IS NULL OR \"Uf\" ~ '^[A-Z]{2}$'");
+            t.HasCheckConstraint("CK_Pessoas_Cpf", "\"Cpf\" IS NULL OR \"Cpf\" GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            t.HasCheckConstraint("CK_Pessoas_Uf", "\"Uf\" IS NULL OR \"Uf\" GLOB '[A-Z][A-Z]'");
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.NomeCompleto).HasMaxLength(150).IsRequired();

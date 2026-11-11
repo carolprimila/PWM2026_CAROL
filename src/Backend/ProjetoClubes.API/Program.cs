@@ -21,7 +21,7 @@ try
 
     builder.Services
         .AddApplication()
-        .AddInfrastructure(builder.Configuration)
+        .AddInfrastructure(builder.Configuration, builder.Environment.ContentRootPath)
         .AddApi(builder.Configuration);
 
     var app = builder.Build();
@@ -77,6 +77,8 @@ static void VerificarConfiguracaoDeProducao(WebApplicationBuilder builder)
     var c = builder.Configuration;
     if (c.GetValue("Seed:Demo", false))
         throw new InvalidOperationException("Seed:Demo não pode ser habilitado em produção.");
+    if ((c["Jwt:Chave"] ?? "").Contains("DESENVOLVIMENTO", StringComparison.Ordinal))
+        throw new InvalidOperationException("Em produção, defina uma Jwt:Chave própria (a chave de desenvolvimento do repositório é pública).");
     if (c.GetSection("Cors:Origens").Get<string[]>()?.Any(o => o == "*" || o.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
                                                              && !o.Contains("localhost")) == true)
         throw new InvalidOperationException("Em produção, Cors:Origens deve listar apenas origens HTTPS.");

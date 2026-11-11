@@ -1,6 +1,6 @@
 # Colocando o Projeto Clubes em produção
 
-Roteiro para subir **PostgreSQL + API + Web administrativo** num servidor Linux com Docker, e publicar o app MAUI.
+Roteiro para subir **API + Web administrativo** num servidor (o banco é o arquivo SQLite da API — DT-030) e publicar o app MAUI.
 O `docker-compose.yml` e os Dockerfiles estão na raiz e em `src/*/Dockerfile`.
 
 > Situação: os Dockerfiles usam exatamente o `dotnet publish -c Release` que foi testado na máquina de desenvolvimento,
@@ -31,7 +31,6 @@ Preencha, no mínimo:
 
 | Variável | O que é |
 |---|---|
-| `POSTGRES_PASSWORD` | Senha forte do banco (`openssl rand -base64 24`) |
 | `JWT_CHAVE` | Chave de assinatura dos tokens, 32+ caracteres (`openssl rand -base64 48`) |
 | `ASPNETCORE_ENVIRONMENT` | `Production` |
 | `WEB_URL` | Endereço público do Web (`https://admin.seuclube.com.br`) — usado nos links de e-mail |
@@ -41,13 +40,10 @@ Preencha, no mínimo:
 
 O `.env` nunca vai para o repositório. Segredos não ficam em `appsettings.json`.
 
-## 3. Banco e migrations
-Opção simples (recomendada no primeiro deploy): `APLICAR_MIGRATIONS=true` — a API aplica as migrations ao iniciar.
-
-Opção controlada: `APLICAR_MIGRATIONS=false` e aplique os scripts idempotentes em ordem:
-```bash
-for f in database/migrations/*.sql; do docker exec -i projetoclubes-postgres psql -U projetoclubes -d projetoclubes < "$f"; done
-```
+## 3. Banco
+SQLite no volume `api-dados` (`/app/App_Data/projetoclubes.db`), criado e atualizado pela API ao iniciar. Rode **uma única
+instância** da API por arquivo (SQLite não é compartilhado entre servidores). Se um dia precisar de várias instâncias,
+troque o provedor por um servidor de banco (DT-030).
 
 ## 4. Subir
 ```bash
@@ -59,7 +55,6 @@ convide os presidentes e configure perfis, categorias, planos e regras de cada c
 
 ## 5. Segurança — conferir antes de abrir
 - [ ] HTTPS no proxy; HTTP redirecionando para HTTPS.
-- [ ] PostgreSQL só em `127.0.0.1` (o compose já publica assim) e senha forte.
 - [ ] `SEED_DEMO=false`, `SWAGGER_HABILITADO=false`.
 - [ ] SMTP configurado e testado (peça "Esqueci minha senha" com um e-mail seu).
 - [ ] O proxy repassa `X-Forwarded-For`. A API só confia nesse cabeçalho vindo da rede do Docker (`172.28.0.0/16`,
@@ -71,24 +66,24 @@ por IP, limite geral de requisições por usuário, bloqueio de conta após falh
 por clube em várias camadas e anonimização LGPD (ver `docs/DECISOES_TECNICAS.md`, DT-029).
 
 ## 6. Backup
-O que precisa de backup: o banco e o volume `api-dados` (documentos, fotos, e-mails em arquivo).
+Tudo está no volume `api-dados`: o banco (`projetoclubes.db`), documentos, fotos e e-mails em arquivo.
 ```bash
-# diário, com retenção — agende no cron
-docker exec projetoclubes-postgres pg_dump -U projetoclubes -Fc projetoclubes > backup-$(date +%F).dump
-docker run --rm -v projetoclubes_api-dados:/dados -v "$PWD":/destino alpine tar czf /destino/arquivos-$(date +%F).tgz -C /dados .
+# diário, com retenção — agende no cron. O .backup do SQLite copia o banco com a API rodando, sem corromper.
+docker run --rm -v projetoclubes_api-dados:/dados alpine sh -c "apk add -q sqlite && sqlite3 /dados/projetoclubes.db '.backup /dados/backup.db'"
+docker run --rm -v projetoclubes_api-dados:/dados -v "$PWD":/destino alpine tar czf /destino/clubes-$(date +%F).tgz -C /dados .
 ```
-Restauração: `pg_restore -U projetoclubes -d projetoclubes --clean backup-AAAA-MM-DD.dump`. Teste a restauração uma vez
-por mês num banco separado.
+Restauração: pare a API, devolva os arquivos ao volume (renomeando `backup.db` para `projetoclubes.db`) e suba de novo.
+Teste a restauração uma vez por mês.
 
 ## 7. Monitoramento
-- `GET https://api.seuclube.com.br/health` responde 200 com o PostgreSQL acessível (use num monitor externo).
+- `GET https://api.seuclube.com.br/health` responde 200 com o banco acessível (use num monitor externo).
 - Logs: `docker compose logs -f api` (JSON compacto via Serilog; não registram senhas nem tokens).
 
 ## 8. Atualizar versão
 ```bash
 git pull && docker compose up -d --build
 ```
-Com `APLICAR_MIGRATIONS=false`, aplique antes o novo script de `database/migrations/`. Faça backup antes de cada atualização.
+A API aplica as migrations novas ao iniciar. Faça backup antes de cada atualização.
 
 ## 9. Aplicativo (.NET MAUI)
 1. Em `src/Mobile/ProjetoClubes.Mobile/Configuracao.cs`, troque `UrlApiProducao` pelo endereço HTTPS da API.

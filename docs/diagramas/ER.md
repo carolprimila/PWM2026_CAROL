@@ -1,5 +1,7 @@
 # Diagrama entidade-relacionamento
 
+> Banco: SQLite (DT-030). `instante_utc` = data/hora gravada como ticks UTC (INTEGER); `json` = texto JSON.
+
 ## Etapa 1 — implementado
 
 ```mermaid
@@ -41,7 +43,7 @@ erDiagram
         bool SuperAdmin
         varchar Situacao
         int TentativasFalhas
-        timestamptz BloqueadoAte
+        instante_utc BloqueadoAte
         varchar CarimboSeguranca
     }
     UsuarioClubes {
@@ -67,22 +69,22 @@ erDiagram
         uuid ClubeId FK
         varchar RefreshTokenHash UK
         varchar RefreshTokenHashAnterior
-        timestamptz ExpiraEm
-        timestamptz RevogadaEm
+        instante_utc ExpiraEm
+        instante_utc RevogadaEm
     }
     TokensRecuperacaoSenha {
         uuid Id PK
         uuid UsuarioId FK
         varchar TokenHash UK
-        timestamptz ExpiraEm
-        timestamptz UsadoEm
+        instante_utc ExpiraEm
+        instante_utc UsadoEm
     }
     HistoricoAcessos {
         uuid Id PK
         varchar Evento
         uuid UsuarioId
         uuid ClubeId
-        timestamptz OcorridoEm
+        instante_utc OcorridoEm
     }
     LogsAuditoria {
         uuid Id PK
@@ -90,7 +92,7 @@ erDiagram
         varchar Entidade
         varchar EntidadeId
         varchar Acao
-        jsonb Alteracoes
+        json Alteracoes
     }
 ```
 
@@ -178,7 +180,7 @@ erDiagram
 erDiagram
     Eventos ||--o{ InscricoesEventos : ""
     Pessoas ||--o{ InscricoesEventos : ""
-    Espacos ||--o{ Reservas : "EX_Reservas_SemConflito"
+    Espacos ||--o{ Reservas : "gatilhos TR_Reservas_SemConflito"
     Eventos |o--o| Reservas : "evento ocupa o espaço"
     Pessoas ||--o{ Reservas : "solicitante"
     Pessoas ||--o{ Solicitacoes : "solicitante"
@@ -186,8 +188,8 @@ erDiagram
     Eventos {
         uuid Id PK
         varchar Nome
-        timestamptz Inicio
-        timestamptz Fim
+        instante_utc Inicio
+        instante_utc Fim
         varchar Publico
         varchar Situacao
         int Capacidade
@@ -201,7 +203,7 @@ erDiagram
         uuid PessoaId FK
         int Acompanhantes
         varchar Situacao
-        timestamptz PresencaEm
+        instante_utc PresencaEm
     }
     Espacos {
         uuid Id PK
@@ -215,8 +217,8 @@ erDiagram
     Reservas {
         uuid Id PK
         uuid EspacoId FK
-        timestamptz Inicio
-        timestamptz Fim
+        instante_utc Inicio
+        instante_utc Fim
         varchar Situacao
         uuid EventoId FK
         uuid PessoaId FK
@@ -235,7 +237,7 @@ erDiagram
     }
 ```
 
-- `EX_Reservas_SemConflito`: `EXCLUDE USING gist ("EspacoId" WITH =, tstzrange("Inicio","Fim",'[)') WITH &&) WHERE Situacao IN ('Pendente','Aprovada')`.
+- `TR_Reservas_SemConflito_Insert/Update` (gatilhos SQLite): recusam duas reservas Pendente/Aprovada do mesmo espaço com períodos sobrepostos (`RAISE(ABORT, 'conflito_horario')`).
 - `UX_Inscricoes_PessoaEvento (EventoId, PessoaId) WHERE inscrição ativa`.
 
 ## Etapa 7 — comunicação, operacional e assembleias

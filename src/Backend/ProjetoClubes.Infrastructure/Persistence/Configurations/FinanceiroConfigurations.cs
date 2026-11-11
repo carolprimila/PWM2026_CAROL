@@ -45,7 +45,7 @@ internal sealed class MensalidadeConfiguration : IEntityTypeConfiguration<Mensal
     public void Configure(EntityTypeBuilder<Mensalidade> b)
     {
         b.ToTable("Mensalidades", t => t.HasCheckConstraint("CK_Mensalidades_Valores",
-            "\"ValorPlano\" >= 0 AND \"ValorDependentes\" >= 0 AND EXTRACT(DAY FROM \"Competencia\") = 1"));
+            "\"ValorPlano\" >= 0 AND \"ValorDependentes\" >= 0 AND substr(\"Competencia\", 9, 2) = '01'"));
         b.HasKey(x => x.Id);
         b.Ignore(x => x.Valor);
         b.Property(x => x.ValorPlano).HasPrecision(12, 2);

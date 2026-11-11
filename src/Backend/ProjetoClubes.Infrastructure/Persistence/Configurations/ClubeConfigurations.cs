@@ -10,8 +10,8 @@ internal sealed class ClubeConfiguration : IEntityTypeConfiguration<Clube>
     {
         b.ToTable("Clubes", t =>
         {
-            t.HasCheckConstraint("CK_Clubes_Cnpj", "\"Cnpj\" IS NULL OR \"Cnpj\" ~ '^[0-9]{14}$'");
-            t.HasCheckConstraint("CK_Clubes_Uf", "\"Uf\" IS NULL OR \"Uf\" ~ '^[A-Z]{2}$'");
+            t.HasCheckConstraint("CK_Clubes_Cnpj", "\"Cnpj\" IS NULL OR \"Cnpj\" GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
+            t.HasCheckConstraint("CK_Clubes_Uf", "\"Uf\" IS NULL OR \"Uf\" GLOB '[A-Z][A-Z]'");
         });
         b.HasKey(x => x.Id);
         b.Property(x => x.Nome).HasMaxLength(150).IsRequired();
@@ -47,7 +47,7 @@ internal sealed class ConfiguracaoClubeConfiguration : IEntityTypeConfiguration<
     public void Configure(EntityTypeBuilder<ConfiguracaoClube> b)
     {
         b.ToTable("ConfiguracoesClube", t =>
-            t.HasCheckConstraint("CK_ConfiguracoesClube_Cor", "\"CorPrimaria\" ~ '^#[0-9A-F]{6}$'"));
+            t.HasCheckConstraint("CK_ConfiguracoesClube_Cor", "\"CorPrimaria\" GLOB '#[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]'"));
         b.HasKey(x => x.Id);
         b.HasIndex(x => x.ClubeId).IsUnique();
         b.Property(x => x.CorPrimaria).HasMaxLength(7).IsRequired();

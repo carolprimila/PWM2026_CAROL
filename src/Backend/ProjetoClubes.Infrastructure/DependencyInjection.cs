@@ -12,13 +12,26 @@ namespace ProjetoClubes.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    /// <summary>
+    /// Banco SQLite num arquivo (como no VanderBakery): nada para instalar; o arquivo é criado na primeira execução.
+    /// Caminho relativo = dentro da pasta da API. Sem configuração, usa "projetoclubes.db".
+    /// </summary>
+    public static string ConexaoSqlite(string? configurada, string pastaBase)
     {
-        var conexao = configuration.GetConnectionString("Postgres");
-        if (string.IsNullOrWhiteSpace(conexao))
-            throw new InvalidOperationException(
-                "ConnectionStrings:Postgres não configurada. Defina a variável de ambiente ConnectionStrings__Postgres " +
-                "ou use 'dotnet user-secrets' no projeto da API.");
+        var b = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder(
+            string.IsNullOrWhiteSpace(configurada) ? "Data Source=projetoclubes.db" : configurada);
+        if (b.DataSource != ":memory:" && !Path.IsPathRooted(b.DataSource))
+            b.DataSource = Path.GetFullPath(Path.Combine(pastaBase, b.DataSource));
+        if (b.DataSource != ":memory:") Directory.CreateDirectory(Path.GetDirectoryName(b.DataSource)!);
+        b.DefaultTimeout = 30; // espera o outro gravador terminar em vez de falhar com "database is locked"
+        b.ForeignKeys = true;
+        return b.ToString();
+    }
+
+    /// <summary>Banco, segurança, e-mail, arquivos e notificações. <paramref name="pastaBase"/>: pasta da API, usada nos caminhos relativos do banco.</summary>
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration, string pastaBase)
+    {
+        var conexao = ConexaoSqlite(configuration.GetConnectionString("Default"), pastaBase);
 
         services.AddScoped<UsuarioAtual>();
         services.AddScoped<IUsuarioAtual>(sp => sp.GetRequiredService<UsuarioAtual>());
@@ -26,12 +39,7 @@ public static class DependencyInjection
 
         services.AddDbContext<AppDbContext>((sp, options) =>
         {
-            options.UseNpgsql(conexao, npgsql =>
-            {
-                npgsql.MigrationsHistoryTable("__EFMigrationsHistory");
-                npgsql.EnableRetryOnFailure(3);
-                npgsql.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
-            });
+            options.UseSqlite(conexao, sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery));
             options.AddInterceptors(sp.GetRequiredService<GravacaoInterceptor>());
         });
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());

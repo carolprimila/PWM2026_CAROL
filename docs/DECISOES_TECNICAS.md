@@ -219,6 +219,30 @@ associado, sem MVVM nem camadas extras — escolha do usuário por simplicidade,
 - Fora do escopo por ora: enquetes e pesquisas de satisfação, escalas em grade (a escala é texto), anexos de manutenção,
   lançamento automático do custo de manutenção/compra no financeiro.
 
+## DT-030 — SQLite em arquivo, no lugar do PostgreSQL (rodar em qualquer notebook)
+Pedido da usuária: o projeto deve funcionar como o VanderBakery — clonar o repositório, abrir no Visual Studio e rodar,
+sem instalar banco nem configurar segredos. Troca feita em 2026-11-11; substitui o PostgreSQL das decisões anteriores.
+- **Banco**: `Microsoft.EntityFrameworkCore.Sqlite`; arquivo `projetoclubes.db` na pasta da API (caminho relativo resolvido
+  a partir dela), criado e atualizado pelas migrations na partida, modo WAL. Migrations recriadas do zero (`Inicial`).
+- **Configuração no repositório** (`appsettings.Development.json`): dados de demonstração ligados, senha demo pública e
+  chave JWT de desenvolvimento. Sem user-secrets. Em produção a API recusa partir com demo ligado ou com a chave de exemplo.
+- **Datas**: `DateTimeOffset` gravado como instante UTC em ticks (`INTEGER`) por conversor global — comparações, ordenação
+  e filtros com horário local continuam no banco.
+- **Equivalências das garantias do PostgreSQL**:
+  - restrição de exclusão de reservas → gatilhos `TR_Reservas_SemConflito_Insert/Update` (`RAISE(ABORT,'conflito_horario')`),
+    também testados com SQL direto, sem passar pela API;
+  - `pg_advisory_xact_lock` → trava em memória por chave (64 semáforos) + transação do SQLite (`BEGIN IMMEDIATE`, um gravador
+    por vez). Correto porque só um processo da API usa o arquivo;
+  - CHECKs com expressão regular → `GLOB` (CPF, CNPJ, UF, cor); `EXTRACT(DAY ...)` → `substr(data, 9, 2)`;
+  - `jsonb`/`text[]` → texto JSON (coleção primitiva do EF Core);
+  - erros únicos/CHECK/FK/gatilho mapeados pelos códigos estendidos do SQLite (2067/1555, 275, 787, 1811).
+- **Limites conhecidos**: um único servidor da API por arquivo (sem várias réplicas); busca sem diferenciar maiúsculas só
+  para letras sem acento (`lower()` do SQLite); valores decimais guardados como texto (as regras e os testes de dinheiro
+  continuam passando). Para crescer além disso, voltar a um servidor de banco é trocar o provedor e gerar novas migrations.
+- **Testes**: cada execução sobe a API contra um `.db` temporário; os 80 de integração caíram de ~7 min para ~40 s.
+- **Visual Studio**: `ProjetoClubes.slnLaunch` com perfis "API + Web", "API + App" e "API + Web + App"; `global.json` aceita
+  qualquer SDK .NET 10 (10.0.100+); `NuGet.Config` aponta só para o nuget.org.
+
 ## DT-029 — Etapa 8: segurança, LGPD e produção
 - **Revisão de autorização**: 42 ações sem `[RequerPermissao]` conferidas uma a uma — todas checam dentro do serviço
   (Superadmin, `ExigirAsync`, dono no portal via `AcessoPessoas`) ou são do próprio usuário (logout, sessões, notificações).

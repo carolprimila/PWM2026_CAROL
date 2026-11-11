@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Npgsql;
+using Microsoft.Data.Sqlite;
 using ProjetoClubes.IntegrationTests.Infra;
 
 namespace ProjetoClubes.IntegrationTests;
@@ -331,9 +331,9 @@ public class OperacionalTests(ApiFixture api)
         Assert.Equal(0m, produto.GetProperty("quantidade").GetDecimal());
 
         // O banco recusa saldo negativo mesmo sem passar pela API.
-        var ex = await Assert.ThrowsAsync<PostgresException>(() =>
-            api.ExecutarSqlAsync($"UPDATE \"Produtos\" SET \"Quantidade\" = -1 WHERE \"Id\" = '{gelo}'"));
-        Assert.Equal(PostgresErrorCodes.CheckViolation, ex.SqlState);
+        var ex = await Assert.ThrowsAsync<SqliteException>(() =>
+            api.ExecutarSqlAsync($"UPDATE \"Produtos\" SET \"Quantidade\" = -1 WHERE \"Id\" = '{gelo.ToString().ToUpperInvariant()}'"));
+        Assert.Equal(275, ex.SqliteExtendedErrorCode); // SQLITE_CONSTRAINT_CHECK
     }
 
     [Fact]

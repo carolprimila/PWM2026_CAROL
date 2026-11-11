@@ -1,121 +1,95 @@
 # Projeto Clubes
 
-Plataforma de gestão de múltiplos clubes sociais e recreativos: API REST (ASP.NET Core .NET 10),
-PostgreSQL, Web administrativo em Blazor e aplicativo Android/iOS (.NET MAUI).
+Plataforma de gestão de clubes sociais e recreativos (vários clubes na mesma instalação): API REST ASP.NET Core .NET 10,
+banco **SQLite**, Web administrativo em **Blazor** e aplicativo do associado em **.NET MAUI** (Android, iOS e Windows).
 
-> Situação: **etapas 1 a 8 concluídas** (API, Web e app) — veja [docs/STATUS_DESENVOLVIMENTO.md](docs/STATUS_DESENVOLVIMENTO.md).
-> Produção: [docs/deploy/PRODUCAO.md](docs/deploy/PRODUCAO.md).
+> Situação: etapas 1 a 8 concluídas — veja [docs/STATUS_DESENVOLVIMENTO.md](docs/STATUS_DESENVOLVIMENTO.md).
 
 ## Estrutura
 
 ```
-src/Backend/   Domain · Application · Infrastructure · API
-src/Web/       ProjetoClubes.Web — Web administrativo em Blazor (consome a API)
-src/Mobile/    ProjetoClubes.Mobile — app do associado em .NET MAUI (consome a API)
-database/      Scripts SQL de migrations e inicialização
-docs/          Arquitetura, decisões técnicas, diagramas, API
-tests/         Testes unitários e de integração (PostgreSQL real)
+src/Backend/   ProjetoClubes.API (REST) · Domain · Application · Infrastructure (Clean Architecture)
+src/Web/       ProjetoClubes.Web — Web administrativo (Blazor), consome a API
+src/Mobile/    ProjetoClubes.Mobile — app do associado (.NET MAUI), consome a API
+tests/         Testes unitários e de integração (API real com SQLite)
+docs/          Arquitetura, decisões técnicas, endpoints, diagrama ER, produção
 ```
 
-## Pré-requisitos
-- .NET SDK 10 (`global.json`)
-- PostgreSQL 17 (nativo ou via Docker)
-- Docker + Docker Compose (opcional)
+O banco é um arquivo, `src/Backend/ProjetoClubes.API/projetoclubes.db`, **criado sozinho na primeira execução** com dados
+de demonstração. Não há banco para instalar nem segredo para configurar.
 
-## Executar com Docker
+## Requisitos
+- Visual Studio 2022 (17.14 ou mais novo) com a carga **ASP.NET e desenvolvimento Web**, ou o .NET 10 SDK.
+- Para o app: carga **.NET Multi-platform App UI (MAUI)** — só é necessária para abrir/rodar o `ProjetoClubes.Mobile`.
 
-```bash
-cp .env.example .env    # preencha POSTGRES_PASSWORD e JWT_CHAVE
-docker compose up -d --build
-docker compose logs api | grep "token de inicialização"
+## Rodar no Visual Studio
+1. Abra `ProjetoClubes.slnx`.
+2. Na barra de ferramentas, ao lado do botão ▶, escolha o perfil de inicialização:
+   - **API + Web administrativo** — abre o navegador em `http://localhost:5278`;
+   - **API + App (Windows)** — abre o aplicativo do associado;
+   - **API + Web + App** — tudo junto.
+3. Aperte **F5**.
+
+Se o seu Visual Studio não mostrar esses perfis: botão direito na solução → **Configurar projetos de inicialização** →
+**Vários projetos de inicialização** → marque `ProjetoClubes.API` e `ProjetoClubes.Web` (ou `ProjetoClubes.Mobile`) como
+**Iniciar**, com a API primeiro.
+
+## Rodar pelo terminal
+Em dois terminais, na pasta do projeto:
+
+```powershell
+dotnet run --project src/Backend/ProjetoClubes.API --launch-profile http
 ```
 
-Sobe PostgreSQL (5432, só local), API (5080) e Web (5278). Os containers ainda não foram executados nesta máquina
-(sem Docker); o build dos Dockerfiles é o mesmo `dotnet publish -c Release` testado localmente.
-
-## Executar localmente (sem Docker)
-
-1. Crie o banco e o usuário no PostgreSQL:
-   ```sql
-   CREATE ROLE projetoclubes LOGIN CREATEDB PASSWORD '<senha>';
-   CREATE DATABASE projetoclubes OWNER projetoclubes;
-   ```
-2. Configure os segredos da API (nunca em arquivos versionados):
-   ```bash
-   dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Database=projetoclubes;Username=projetoclubes;Password=<senha>" --project src/Backend/ProjetoClubes.API
-   dotnet user-secrets set "Jwt:Chave" "<no mínimo 32 caracteres aleatórios>" --project src/Backend/ProjetoClubes.API
-   # opcional: dados de demonstração
-   dotnet user-secrets set "Seed:Demo" "true" --project src/Backend/ProjetoClubes.API
-   dotnet user-secrets set "Seed:SenhaDemo" "<senha dos usuários demo>" --project src/Backend/ProjetoClubes.API
-   ```
-3. Rode a API (aplica as migrations em desenvolvimento):
-   ```bash
-   dotnet run --project src/Backend/ProjetoClubes.API --launch-profile http
-   ```
-4. Abra `http://localhost:5080/swagger`.
-5. Em outro terminal, rode o Web administrativo e acesse `http://localhost:5278`:
-   ```bash
-   dotnet run --project src/Web/ProjetoClubes.Web --launch-profile http
-   ```
-   O endereço da API fica em `src/Web/ProjetoClubes.Web/appsettings.json` (`ApiBaseUrl`).
-
-## Executar o aplicativo (.NET MAUI)
-
-Com a API rodando:
-
-```bash
-dotnet build src/Mobile/ProjetoClubes.Mobile -f net10.0-windows10.0.19041.0
-dotnet run --project src/Mobile/ProjetoClubes.Mobile -f net10.0-windows10.0.19041.0
+```powershell
+dotnet run --project src/Web/ProjetoClubes.Web --launch-profile http
 ```
 
-Android (emulador): `dotnet run --project src/Mobile/ProjetoClubes.Mobile -f net10.0-android` — o app usa
-`http://10.0.2.2:5080` para chegar à API do computador. Para celular físico, troque o endereço
-pelo IP do computador (em `Configuracao.cs`; versões Release usam `UrlApiProducao`). Entre com um associado que tenha acesso ao app (na demonstração, `carlos.associado`).
+Acesse `http://localhost:5278`. A API fica em `http://localhost:5080` (documentação em `/swagger`).
 
-## Primeiro acesso (Superadmin)
+App no Windows: `dotnet build src/Mobile/ProjetoClubes.Mobile -t:Run -f net10.0-windows10.0.19041.0`.
+Android (emulador): `dotnet build src/Mobile/ProjetoClubes.Mobile -t:Run -f net10.0-android` — o app usa
+`http://10.0.2.2:5080` para chegar à API do computador. Para celular físico, troque o endereço em
+`src/Mobile/ProjetoClubes.Mobile/Configuracao.cs` pelo IP do computador.
 
-Não há usuário ou senha padrão. Na primeira partida, a API escreve no log um **token de inicialização**:
+## Contas de demonstração
+Todas com a senha **`Clubes2026!`** (definida em `appsettings.Development.json`):
 
-```
-Sistema ainda não inicializado ... token de inicialização: <TOKEN>
-```
+| Quem | E-mail | Onde entra |
+|---|---|---|
+| Superadmin (todos os clubes) | `admin@demo.projetoclubes.local` | Web |
+| Presidente do Clube Foz 2 | `presidente.foz@demo.projetoclubes.local` | Web |
+| Tesoureiro, secretário e portaria do Foz 2 | `tesoureiro.foz@…`, `secretario.foz@…`, `portaria.foz@…` | Web |
+| Presidente do Clube Guaíra 2 | `presidente.guaira@demo.projetoclubes.local` | Web |
+| Associado (Carlos) | `carlos.associado@demo.projetoclubes.local` | App |
 
-Use-o uma única vez:
+Os dados (associados, dependentes, mensalidades, eventos, espaços, comunicados, funcionários, patrimônio, estoque e uma
+assembleia convocada) são fictícios, com CPFs sintéticos.
 
-```bash
-curl -X POST http://localhost:5080/api/v1/setup/inicializar -H "Content-Type: application/json" \
-  -d '{"tokenInicializacao":"<TOKEN>","nome":"Seu Nome","email":"voce@exemplo.com","senha":"<senha forte>"}'
-```
-
-Depois disso o endpoint é desativado permanentemente.
-
-## Dados de demonstração
-
-Com `Seed:Demo=true` e `Seed:SenhaDemo` definida, são criados no banco os clubes **Clube Foz 2** e
-**Clube Guaíra 2** (marcados como demonstração) e os usuários:
-`presidente.foz`, `tesoureiro.foz`, `secretario.foz`, `portaria.foz`, `presidente.guaira`, `tesoureiro.guaira`
-e o associado `carlos.associado` (login do aplicativo) — todos `@demo.projetoclubes.local`, com a senha configurada.
-Também são criados associados e dependentes de exemplo (CPFs sintéticos válidos, sem relação com pessoas reais).
+**Começar do zero:** pare a API e apague `src/Backend/ProjetoClubes.API/projetoclubes.db` (e os arquivos `-wal`/`-shm`).
 
 ## Testes
 
-```bash
+```powershell
 dotnet test ProjetoClubes.slnx
 ```
 
-São 80 testes unitários e 80 de integração, incluindo o roteiro de aceitação completo (`AceitacaoTests`).
-Os testes de integração criam um banco temporário no mesmo servidor PostgreSQL (conexão dos user-secrets
-da API ou da variável `PROJETOCLUBES_TESTES_POSTGRES`; o usuário precisa de `CREATEDB`) e o removem ao final.
+80 testes unitários e 80 de integração (a API real sobe contra um arquivo SQLite temporário), incluindo o roteiro de
+aceitação completo (`AceitacaoTests`). Levam cerca de 1 minuto.
 
 ## Migrations
 
-```bash
+```powershell
 dotnet tool restore
 dotnet ef migrations add <Nome> --project src/Backend/ProjetoClubes.Infrastructure --startup-project src/Backend/ProjetoClubes.API --output-dir Persistence/Migrations
-dotnet ef migrations script --idempotent --project src/Backend/ProjetoClubes.Infrastructure --startup-project src/Backend/ProjetoClubes.API -o database/migrations/<arquivo>.sql
 ```
 
-Em produção: `Banco__AplicarMigrationsAoIniciar=false` e aplique o script SQL revisado.
+A API aplica as migrations pendentes ao iniciar.
+
+## Produção
+A configuração de desenvolvimento (senha demo, chave JWT de exemplo) fica no repositório de propósito, para rodar em
+qualquer máquina — **em produção a API se recusa a iniciar** com dados de demonstração ou com a chave de exemplo. Veja
+[docs/deploy/PRODUCAO.md](docs/deploy/PRODUCAO.md) (Docker opcional, HTTPS, e-mail, backup).
 
 ## Documentação
 - [Arquitetura](docs/arquitetura/ARQUITETURA.md)

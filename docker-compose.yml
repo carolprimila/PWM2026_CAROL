@@ -1,41 +1,17 @@
-# PostgreSQL + API + Web administrativo.
-# Uso:  cp .env.example .env  (preencha os valores)  &&  docker compose up -d --build
-# Somente o banco:  docker compose up -d postgres
+# API + Web administrativo (opcional: para desenvolver basta abrir no Visual Studio — ver README).
+# O banco é SQLite, num arquivo dentro do volume api-dados.
+# Uso:  cp .env.example .env  (preencha JWT_CHAVE)  &&  docker compose up -d --build
 # Produção: coloque um proxy reverso com HTTPS (Caddy, Nginx, Traefik) na frente da Web e da API — ver docs/deploy/PRODUCAO.md.
 services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: projetoclubes-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-projetoclubes}
-      POSTGRES_USER: ${POSTGRES_USER:-projetoclubes}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
-    ports:
-      # Só na máquina local: o banco nunca fica exposto na rede.
-      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres-dados:/var/lib/postgresql/data
-      - ./database/scripts/init:/docker-entrypoint-initdb.d:ro
-    networks: [clubes]
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   api:
     build:
       context: .
       dockerfile: src/Backend/ProjetoClubes.API/Dockerfile
     container_name: projetoclubes-api
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
-      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB:-projetoclubes};Username=${POSTGRES_USER:-projetoclubes};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Default: Data Source=/app/App_Data/projetoclubes.db
       Jwt__Chave: ${JWT_CHAVE:?Defina JWT_CHAVE no arquivo .env (mínimo 32 caracteres)}
       Banco__AplicarMigrationsAoIniciar: ${APLICAR_MIGRATIONS:-true}
       Setup__Token: ${SETUP_TOKEN:-}
@@ -55,7 +31,7 @@ services:
     volumes:
       - api-dados:/app/App_Data
     networks: [clubes]
-    # Monitoramento: GET /health (verifica também o PostgreSQL). A imagem aspnet não traz curl/wget para healthcheck interno.
+    # Monitoramento: GET /health (verifica também o banco). A imagem aspnet não traz curl/wget para healthcheck interno.
 
   web:
     build:
@@ -81,6 +57,5 @@ networks:
         - subnet: 172.28.0.0/16
 
 volumes:
-  postgres-dados:
   api-dados:
   web-chaves:

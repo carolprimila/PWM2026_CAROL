@@ -56,7 +56,7 @@ public sealed class ArmazenamentoLocal(IOptions<ArmazenamentoOptions> opcoes) : 
     }
 }
 
-/// <summary>Contador atômico por clube via INSERT … ON CONFLICT DO UPDATE … RETURNING (seguro sob concorrência).</summary>
+/// <summary>Contador atômico por clube via INSERT … ON CONFLICT DO UPDATE … RETURNING (um único comando; o SQLite grava um por vez).</summary>
 public sealed class GeradorSequencia(AppDbContext db) : IGeradorSequencia
 {
     public async Task<long> ProximoAsync(Guid clubeId, string nome, CancellationToken ct)

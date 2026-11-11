@@ -55,6 +55,16 @@ internal static class DadosDemonstracao
         var catalogo = await db.Permissoes.ToDictionaryAsync(p => p.Codigo, p => p.Id, ct);
         var senhaHash = hash.Gerar(senha);
 
+        // Superadmin de demonstração (só em bancos sem Superadmin): dispensa o token de configuração inicial no notebook.
+        if (!await db.Usuarios.IgnoreQueryFilters().AnyAsync(u => u.SuperAdmin, ct))
+        {
+            var admin = new Usuario("Superadmin (demonstração)", $"admin@{Dominio}", superAdmin: true);
+            admin.DefinirSenhaHash(senhaHash, agora);
+            db.Usuarios.Add(admin);
+            await db.SaveChangesAsync(ct);
+            logger.LogInformation("Superadmin de demonstração criado: admin@{Dominio}", Dominio);
+        }
+
         foreach (var demo in Clubes)
         {
             if (await db.Clubes.IgnoreQueryFilters().AnyAsync(c => c.Sigla == demo.Sigla, ct)) continue;

@@ -18,12 +18,12 @@
         ├──────────────────────────┤
         │ ProjetoClubes.Domain     │  Entidades, enums, regras de domínio
         ├──────────────────────────┤
-        │ ProjetoClubes.Infrastr.  │  EF Core + Npgsql, JWT, hash, e-mail,
+        │ ProjetoClubes.Infrastr.  │  EF Core + SQLite, JWT, hash, e-mail,
         │                          │  arquivos, interceptors de auditoria
         └────────────┬─────────────┘
                      ▼
               ┌─────────────┐
-              │ PostgreSQL  │
+              │   SQLite    │  (arquivo projetoclubes.db — DT-030)
               └─────────────┘
 ```
 
@@ -56,7 +56,7 @@ VanderClub/                         (raiz do repositório = "ProjetoClubes/")
   database/seed/                    Documentação do seed de demonstração
   docs/                             Arquitetura, decisões, status, API, diagramas
   tests/ProjetoClubes.UnitTests/
-  tests/ProjetoClubes.IntegrationTests/  (PostgreSQL real)
+  tests/ProjetoClubes.IntegrationTests/  (API real + SQLite em arquivo)
 ```
 
 ## 3. Multi-clubes (multi-tenancy)
@@ -149,7 +149,7 @@ Modelo completo planejado (etapas seguintes): ver `docs/diagramas/ER.md`.
 
 | Etapa | Escopo |
 |------|--------|
-| 1 | Fundação: repositório, Docker, PostgreSQL, API, EF, migrations, autenticação, multi-clubes, usuários, perfis, permissões, clubes, auditoria |
+| 1 | Fundação: repositório, Docker, banco (PostgreSQL; SQLite desde a DT-030), API, EF, migrations, autenticação, multi-clubes, usuários, perfis, permissões, clubes, auditoria |
 | 2 | Associados, categorias, dependentes, documentos, aprovações, carteirinhas, QR Code, controle de acesso |
 | 3 | Financeiro |
 | 4 | Eventos, espaços, reservas (com restrição de exclusão), solicitações |

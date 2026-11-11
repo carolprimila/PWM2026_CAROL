@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Npgsql;
+using Microsoft.Data.Sqlite;
 using ProjetoClubes.IntegrationTests.Infra;
 
 namespace ProjetoClubes.IntegrationTests;
@@ -233,16 +233,18 @@ public class ReservasTests(ApiFixture api)
         var r = await c.PostAsJsonAsync("/api/v1/reservas", new { espacoId = espaco, inicio = Base, fim = Base.AddHours(4), finalidade = "Reunião" });
         Assert.Equal(HttpStatusCode.Created, r.StatusCode);
 
-        var ex = await Assert.ThrowsAsync<PostgresException>(() => api.ExecutarSqlAsync($"""
+        // No SQLite os Ids são texto em maiúsculas e as datas são instantes UTC em ticks.
+        string Id(Guid g) => g.ToString().ToUpperInvariant();
+        var ex = await Assert.ThrowsAsync<SqliteException>(() => api.ExecutarSqlAsync($"""
             INSERT INTO "Reservas" ("Id","ClubeId","EspacoId","Inicio","Fim","Valor","Situacao","CriadoEm")
-            VALUES (gen_random_uuid(), '{clube.Id}', '{espaco}', '{Base.AddHours(1):O}', '{Base.AddHours(2):O}', 0, 'Aprovada', now())
+            VALUES ('{Id(Guid.NewGuid())}', '{Id(clube.Id)}', '{Id(espaco)}', {Base.AddHours(1).UtcTicks}, {Base.AddHours(2).UtcTicks}, 0, 'Aprovada', {DateTimeOffset.UtcNow.UtcTicks})
             """));
-        Assert.Equal(PostgresErrorCodes.ExclusionViolation, ex.SqlState);
+        Assert.Contains("conflito_horario", ex.Message);
 
         // Reservas canceladas não ocupam o horário.
         await api.ExecutarSqlAsync($"""
             INSERT INTO "Reservas" ("Id","ClubeId","EspacoId","Inicio","Fim","Valor","Situacao","CriadoEm")
-            VALUES (gen_random_uuid(), '{clube.Id}', '{espaco}', '{Base.AddHours(1):O}', '{Base.AddHours(2):O}', 0, 'Cancelada', now())
+            VALUES ('{Id(Guid.NewGuid())}', '{Id(clube.Id)}', '{Id(espaco)}', {Base.AddHours(1).UtcTicks}, {Base.AddHours(2).UtcTicks}, 0, 'Cancelada', {DateTimeOffset.UtcNow.UtcTicks})
             """);
     }
 

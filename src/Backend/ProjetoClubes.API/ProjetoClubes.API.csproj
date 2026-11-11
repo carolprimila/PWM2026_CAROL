@@ -1,7 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <RootNamespace>ProjetoClubes.API</RootNamespace>
-    <UserSecretsId>projetoclubes-api-7c1e9a52</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProjetoClubes.Application\ProjetoClubes.Application.csproj" />

@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Npgsql;
+using Microsoft.Data.Sqlite;
 using ProjetoClubes.Application.Common;
 using ProjetoClubes.Domain.Common;
 using ProjetoClubes.Infrastructure.Persistence.Interceptors;
@@ -69,13 +69,14 @@ public sealed class TratamentoGlobalExcecoes(IProblemDetailsService problemDetai
         ContaBloqueadaException e => (423, e.Codigo, e.Message, null),
         DomainException e => (422, e.Codigo, e.Message, null),
         DbUpdateConcurrencyException => (409, "concorrencia", "O registro foi alterado por outra pessoa. Recarregue e tente novamente.", null),
-        DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>
+        // Códigos estendidos do SQLite: 2067/1555 único, 275 CHECK, 787 chave estrangeira, 1811 gatilho (RAISE).
+        DbUpdateException { InnerException: SqliteException { SqliteExtendedErrorCode: 2067 or 1555 } } =>
             (409, "duplicidade", "Já existe um registro com estes dados.", null),
-        DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.ExclusionViolation } } =>
+        DbUpdateException { InnerException: SqliteException { SqliteExtendedErrorCode: 1811 } e } when e.Message.Contains("conflito_horario") =>
             (409, "conflito_horario", "Já existe um registro ocupando este período.", null),
-        DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.CheckViolation } } =>
+        DbUpdateException { InnerException: SqliteException { SqliteExtendedErrorCode: 275 } } =>
             (422, "regra_violada", "A operação deixaria os dados inválidos (ex.: estoque negativo).", null),
-        DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation } } =>
+        DbUpdateException { InnerException: SqliteException { SqliteExtendedErrorCode: 787 } } =>
             (409, "registro_vinculado", "Este registro está vinculado a outros dados e não pode ser alterado desta forma.", null),
         BadHttpRequestException e => (e.StatusCode, "requisicao_invalida", "Requisição inválida.", null),
         OperationCanceledException => (499, "cancelada", "Requisição cancelada.", null),

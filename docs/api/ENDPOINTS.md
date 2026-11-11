@@ -40,7 +40,7 @@ Erros seguem RFC 9457 (`application/problem+json`) com `codigo` e `correlationId
 | GET | `/api/v1/permissoes` | autenticado | Catálogo agrupado por módulo |
 | GET | `/api/v1/auditoria` | `auditoria.visualizar` | Logs de alteração do clube |
 | GET | `/api/v1/auditoria/acessos` | `auditoria.visualizar` | Histórico de autenticação do clube |
-| GET | `/health` | público | Saúde da API e do PostgreSQL |
+| GET | `/health` | público | Saúde da API e do banco |
 
 ## Etapa 2 — cadastros, carteirinha, portaria e portal
 

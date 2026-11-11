@@ -27,3 +27,7 @@ logs/
 *.apk
 *.aab
 *.msix
+# Banco SQLite local (criado sozinho na primeira execução)
+*.db
+*.db-shm
+*.db-wal

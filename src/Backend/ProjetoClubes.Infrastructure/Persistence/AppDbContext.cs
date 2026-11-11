@@ -84,7 +84,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IUsuarioAtual 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasPostgresExtension("btree_gist"); // restrições de exclusão de reservas (Etapa 4)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
         AplicarChavesGeradasNaAplicacao(modelBuilder);
         AplicarFiltrosGlobais(modelBuilder);
@@ -94,14 +93,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IUsuarioAtual 
     {
         configurationBuilder.Properties<string>().HaveMaxLength(500);
         configurationBuilder.Properties<Enum>().HaveConversion<string>().HaveMaxLength(40);
-        // timestamptz só aceita UTC no Npgsql. A conversão vale para gravação e também para parâmetros de consulta
-        // (ex.: filtros com horário local -03:00 vindos do Web/app).
-        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetUtcConverter>();
+        // SQLite não tem tipo de data com fuso: datas/horas são gravadas como instantes UTC em ticks (INTEGER).
+        // Assim comparações e ordenações funcionam no banco, e filtros com horário local (-03:00) viram o mesmo instante.
+        configurationBuilder.Properties<DateTimeOffset>().HaveConversion<DateTimeOffsetUtcTicks>();
     }
 
-    private sealed class DateTimeOffsetUtcConverter()
-        : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTimeOffset, DateTimeOffset>(
-            v => v.ToUniversalTime(), v => v);
+    private sealed class DateTimeOffsetUtcTicks()
+        : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTimeOffset, long>(
+            v => v.UtcTicks, v => new DateTimeOffset(v, TimeSpan.Zero));
 
     /// <summary>
     /// Os Ids (UUIDv7) são gerados pela aplicação. Sem isto, o EF trata um filho novo adicionado a uma coleção

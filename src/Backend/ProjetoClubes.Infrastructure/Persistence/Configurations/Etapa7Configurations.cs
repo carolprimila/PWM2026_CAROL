@@ -239,7 +239,7 @@ internal sealed class PautaAssembleiaConfiguration : IEntityTypeConfiguration<Pa
         b.Property(x => x.Titulo).HasMaxLength(200).IsRequired();
         b.Property(x => x.Descricao).HasMaxLength(4000);
         b.Property(x => x.Decisao).HasMaxLength(2000);
-        b.Property(x => x.Opcoes).HasColumnType("text[]");
+        // Lista de opções guardada como JSON (coleção primitiva do EF Core).
         b.HasIndex(x => new { x.AssembleiaId, x.Ordem });
     }
 }

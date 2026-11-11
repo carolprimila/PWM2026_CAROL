@@ -1,12 +1,12 @@
 # Status do desenvolvimento
 
-Última atualização: 2026-11-11 — **Etapa 8 (finalização) concluída. Todas as etapas entregues: API, Web e app.**
+Última atualização: 2026-11-11 — **Todas as etapas entregues. Banco trocado para SQLite (DT-030): roda em qualquer notebook, abrindo no Visual Studio.**
 
 ## Etapas
 
 | Etapa | Situação |
 |---|---|
-| 1 — Fundação (API, EF, PostgreSQL, auth, multi-clubes, usuários, perfis, permissões, clubes, auditoria) | ✅ concluída e testada |
+| 1 — Fundação (API, EF, banco, auth, multi-clubes, usuários, perfis, permissões, clubes, auditoria) | ✅ concluída e testada |
 | 2 — Associados, categorias, dependentes, documentos, aprovações, carteirinhas, QR Code, controle de acesso, portal | ✅ backend concluído e testado (telas nas Etapas 5 e 6) |
 | 3 — Financeiro | ✅ concluída e testada (API, Web e app) |
 | 4 — Eventos, espaços, reservas, solicitações | ✅ concluída e testada (API, Web e app) |
@@ -15,22 +15,12 @@
 | 7 — Funcionários, patrimônio, estoque, assembleias, votações, notificações | ✅ concluída e testada (API, Web e app) |
 | 8 — Finalização, segurança, produção | ✅ concluída e testada (Docker escrito, não executado) |
 
-## Ambiente desta máquina
-- .NET SDK 10.0.401 (fixado por `global.json`) + workloads MAUI .NET 10 (android, ios, maccatalyst, windows); Android SDK presente.
-- PostgreSQL 17.11 nativo (serviço `postgresql-x64-17`, porta 5432). Banco `projetoclubes`, usuário `projetoclubes` (CREATEDB).
-- Node.js 26 LTS instalado (não usado: o Web é Blazor — DT-024). Docker **não** instalado.
-- Segredos locais em `dotnet user-secrets` do projeto da API: `ConnectionStrings:Postgres`, `Jwt:Chave`, `Seed:Demo`, `Seed:SenhaDemo`.
-
-## Migrations
-| Migration | Script SQL | Conteúdo |
-|---|---|---|
-| `20261111125111_Inicial` | `database/migrations/0001_Inicial.sql` | Clubes, identidade, sessões, auditoria |
-| `20261111131709_Cadastros` | `database/migrations/0002_Cadastros.sql` | Pessoas, categorias, interesses, associados, dependentes, vínculos, permissões e configurações de dependentes, arquivos, documentos, acessos, sequências |
-| `20261111132730_ChavesGeradasNaAplicacao` | `database/migrations/0003_ChavesGeradasNaAplicacao.sql` | Sem alteração de esquema (DT-016) |
-| `20261111141627_Financeiro` | `database/migrations/0004_Financeiro.sql` | Configuração financeira, planos, mensalidades, pagamentos, categorias e lançamentos |
-| `20261111143528_Eventos` | `database/migrations/0005_Eventos.sql` | Eventos, inscrições, espaços, reservas (restrição de exclusão `EX_Reservas_SemConflito`), solicitações e respostas |
-| `20261111170640_Lgpd` | `database/migrations/0007_Lgpd.sql` | Coluna `Pessoas.AnonimizadaEm` |
-| `20261111163101_Etapa7` | `database/migrations/0006_Etapa7.sql` | Comunicados, leituras, notificações, funcionários, ausências, bens, manutenções, produtos, movimentações, compras, assembleias, pautas, presenças, votos e históricos |
+## Como roda (desde a DT-030)
+- Abrir `ProjetoClubes.slnx` no Visual Studio e escolher o perfil "API + Web administrativo" (ou "API + App"); F5.
+- Banco SQLite `src/Backend/ProjetoClubes.API/projetoclubes.db`, criado sozinho com dados de demonstração (senha `Clubes2026!`).
+- Nada para instalar além do Visual Studio/.NET 10 SDK (e a carga MAUI para o app). Sem user-secrets.
+- Migrations: `20261111180346_Inicial` (esquema completo para SQLite, com os gatilhos de conflito de reservas).
+  As migrations e scripts do PostgreSQL foram removidos.
 
 ## Etapa 1 — entregue
 Ver histórico em `docs/DECISOES_TECNICAS.md` (DT-001 a DT-015). Autenticação JWT + refresh com rotação, sessões
@@ -183,7 +173,7 @@ Projeto `src/Mobile/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mo
   apontavam para uma página que não existia).
 - **App**: "Esqueci minha senha" no login, "Exportar meus dados" (compartilhamento do sistema) e endereço da API por
   configuração de build.
-- **Produção**: Dockerfile do Web, compose com PostgreSQL/API/Web em rede própria, `.env.example` revisado, chaves do
+- **Produção**: Dockerfile do Web, compose com API/Web em rede própria, `.env.example` revisado, chaves do
   DataProtection em volume, guia `docs/deploy/PRODUCAO.md` (HTTPS, backup, monitoramento, atualização, publicação do app).
 - **Testes**: unitários **80/80** (+1: anonimização); integração **80/80** (+5: cabeçalhos, limite de dependentes com inclusões simultâneas, exportação LGPD com isolamento,
   anonimização com login/QR/auditoria, e o **roteiro de aceitação 1–27** inteiro num único teste em clube novo).
@@ -191,6 +181,14 @@ Projeto `src/Mobile/ProjetoClubes.Mobile`, uma tela no estilo do VanderBakery.Mo
 - Testado no navegador (perfis, perfis de usuário, configurações salvas e revertidas, auditoria com o diff, relatórios e
   CSV, edição de associado mantendo o endereço, download LGPD, recuperação de senha pelo link do e-mail) e no app Windows
   (esqueci minha senha, login, exportação gerando o JSON).
+
+## Troca para SQLite (DT-030)
+- Pedido para rodar como o VanderBakery: clonar, abrir no Visual Studio e rodar, sem instalar banco.
+- Provedor, migrations, travas de concorrência, gatilhos de conflito de reservas, CHECKs e mapeamento de erros adaptados.
+- Testes: unitários **80/80**, integração **80/80** (agora ~40 s). Build da solução sem avisos.
+- Verificado numa cópia limpa (só os arquivos do Git, sem bin/obj/.db, sem user-secrets): build de tudo, API criou o banco
+  sozinha com os dados demo, login do presidente e do Superadmin pela API e login no Web pelo navegador.
+- Os históricos das etapas abaixo citam PostgreSQL: valem para a época; as garantias equivalentes estão na DT-030.
 
 ## Situação final e pendências conhecidas
 - **Não executado**: containers Docker (Docker não instalado aqui) e o app em aparelho/emulador Android.

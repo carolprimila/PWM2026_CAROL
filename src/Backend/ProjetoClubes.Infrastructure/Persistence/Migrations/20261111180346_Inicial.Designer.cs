@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ProjetoClubes.Infrastructure.Persistence;
 
 #nullable disable
@@ -13,58 +12,53 @@ using ProjetoClubes.Infrastructure.Persistence;
 namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261111163101_Etapa7")]
-    partial class Etapa7
+    [Migration("20261111180346_Inicial")]
+    partial class Inicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.15")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "btree_gist");
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
             modelBuilder.Entity("ProjetoClubes.Domain.Acesso.AcessoClube", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Autorizado")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("DependenteId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("RegistradoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -78,45 +72,45 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Arquivos.Arquivo", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Chave")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ContentType")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("HashSha256")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("NomeOriginal")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("TamanhoBytes")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -131,61 +125,61 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Arquivos.DocumentoPessoal", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AnalisadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AnalisadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AnalisadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ArquivoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ObservacaoAnalise")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -201,71 +195,71 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Assembleias.Assembleia", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ata")
                         .HasMaxLength(20000)
-                        .HasColumnType("character varying(20000)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtaRegistradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtaRegistradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtaRegistradaPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Convocacao")
                         .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("ConvocadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ConvocadaEm")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("DataHora")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("DataHora")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("EncerradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("EncerradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("ExigeAdimplencia")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Local")
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoCancelamento")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -277,40 +271,40 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Assembleias.PautaAssembleia", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssembleiaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ComVotacao")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Decisao")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("TEXT");
 
-                    b.PrimitiveCollection<List<string>>("Opcoes")
+                    b.PrimitiveCollection<string>("Opcoes")
                         .IsRequired()
-                        .HasColumnType("text[]");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Votacao")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -322,29 +316,29 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Assembleias.PresencaAssembleia", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("AptoVotar")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("AssembleiaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoInapto")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("RegistradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("RegistradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("RegistradaPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -360,22 +354,22 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Assembleias.VotoAssembleia", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Opcao")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("PautaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("VotadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("VotadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -394,57 +388,57 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.Associado", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("CategoriaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("DataAssociacao")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Matricula")
                         .IsRequired()
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoSituacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("SituacaoAlteradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("SituacaoAlteradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -468,10 +462,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.AssociadoInteresse", b =>
                 {
                     b.Property<Guid>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("InteresseId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("AssociadoId", "InteresseId");
 
@@ -483,62 +477,62 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.CategoriaAssociado", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativa")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ChaveModelo")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("DireitoVoto")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("LimiteDependentes")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Ordem")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("PermiteDependentes")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("PodeSerVotado")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -555,29 +549,29 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.HistoricoAssociado", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Evento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -589,36 +583,36 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Associados.Interesse", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -632,43 +626,43 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Auditoria.LogAuditoria", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Acao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Alteracoes")
                         .HasMaxLength(500)
-                        .HasColumnType("jsonb");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CorrelationId")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Entidade")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EntidadeId")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ip")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -684,65 +678,65 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Clubes.Clube", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Cnpj")
                         .HasMaxLength(14)
-                        .HasColumnType("character varying(14)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("DataFundacao")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Demonstracao")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Email")
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("LogotipoArquivo")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Sigla")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Telefone")
                         .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
+                        .HasColumnType("TEXT");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Endereco", "ProjetoClubes.Domain.Clubes.Clube.Endereco#Endereco", b1 =>
                         {
@@ -750,37 +744,37 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                             b1.Property<string>("Bairro")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Bairro");
 
                             b1.Property<string>("Cep")
                                 .HasMaxLength(8)
-                                .HasColumnType("character varying(8)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Cep");
 
                             b1.Property<string>("Cidade")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Cidade");
 
                             b1.Property<string>("Complemento")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Complemento");
 
                             b1.Property<string>("Logradouro")
                                 .HasMaxLength(200)
-                                .HasColumnType("character varying(200)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Logradouro");
 
                             b1.Property<string>("Numero")
                                 .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Numero");
 
                             b1.Property<string>("Uf")
                                 .HasMaxLength(2)
-                                .HasColumnType("character varying(2)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Uf");
                         });
 
@@ -797,55 +791,55 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Clubes", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Clubes_Cnpj", "\"Cnpj\" IS NULL OR \"Cnpj\" ~ '^[0-9]{14}$'");
+                            t.HasCheckConstraint("CK_Clubes_Cnpj", "\"Cnpj\" IS NULL OR \"Cnpj\" GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
 
-                            t.HasCheckConstraint("CK_Clubes_Uf", "\"Uf\" IS NULL OR \"Uf\" ~ '^[A-Z]{2}$'");
+                            t.HasCheckConstraint("CK_Clubes_Uf", "\"Uf\" IS NULL OR \"Uf\" GLOB '[A-Z][A-Z]'");
                         });
                 });
 
             modelBuilder.Entity("ProjetoClubes.Domain.Clubes.ConfiguracaoClube", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CorPrimaria")
                         .IsRequired()
                         .HasMaxLength(7)
-                        .HasColumnType("character varying(7)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ExigeAprovacaoAssociados")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("ExigeAprovacaoDependentes")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("FusoHorario")
                         .IsRequired()
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("NomeExibicao")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("PrefixoMatricula")
                         .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -854,21 +848,21 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                     b.ToTable("ConfiguracoesClube", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ConfiguracoesClube_Cor", "\"CorPrimaria\" ~ '^#[0-9A-F]{6}$'");
+                            t.HasCheckConstraint("CK_ConfiguracoesClube_Cor", "\"CorPrimaria\" GLOB '#[0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F][0-9A-F]'");
                         });
                 });
 
             modelBuilder.Entity("ProjetoClubes.Domain.Common.SequenciaClube", b =>
                 {
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("Valor")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("ClubeId", "Nome");
 
@@ -878,58 +872,58 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Comunicacao.Comunicado", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ExigeConfirmacao")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExpiraEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExpiraEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Fixado")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("PublicadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("PublicadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Publico")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Texto")
                         .IsRequired()
                         .HasMaxLength(8000)
-                        .HasColumnType("character varying(8000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -941,22 +935,22 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Comunicacao.LeituraComunicado", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ComunicadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("ConfirmadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ConfirmadoEm")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("LidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("LidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -972,37 +966,37 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Comunicacao.Notificacao", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadaEm")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("LidaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("LidaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ReferenciaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Texto")
                         .IsRequired()
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1016,88 +1010,88 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Dependentes.ConfiguracaoDependentes", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ExigeDocumentoComprobatorio")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("IdadeMaioridade")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("IdadeMaximaFilhos")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("IdadeMaximaIrmaos")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("IdadeMinimaLoginProprio")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("IncluidosNaMensalidadeDoTitular")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("LimitePadraoDependentes")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("MaximoConjuges")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("MenoresPodemSolicitarReservas")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.PrimitiveCollection<string[]>("ParentescosPermitidos")
+                    b.PrimitiveCollection<string>("ParentescosPermitidos")
                         .IsRequired()
-                        .HasColumnType("text[]");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("ValorAdicionalPorDependente")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "PermissoesPadrao", "ProjetoClubes.Domain.Dependentes.ConfiguracaoDependentes.PermissoesPadrao#PermissoesDependente", b1 =>
                         {
                             b1.IsRequired();
 
                             b1.Property<bool>("AcessoClube")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoAcessoClube");
 
                             b1.Property<bool>("InscricaoAtividades")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoInscricaoAtividades");
 
                             b1.Property<bool>("ParticipacaoEventos")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoParticipacaoEventos");
 
                             b1.Property<bool>("RecebimentoComunicados")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoRecebimentoComunicados");
 
                             b1.Property<bool>("SolicitacaoReservas")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoSolicitacaoReservas");
 
                             b1.Property<bool>("UsoEspacosEsportivos")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoUsoEspacosEsportivos");
 
                             b1.Property<bool>("UtilizacaoServicos")
-                                .HasColumnType("boolean")
+                                .HasColumnType("INTEGER")
                                 .HasColumnName("PadraoUtilizacaoServicos");
                         });
 
@@ -1117,76 +1111,76 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Dependentes.Dependente", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoTitularId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("DataInclusao")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ExcecaoAutorizadaPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ExcecaoMultiplosTitulares")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("JustificativaExcecao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoSituacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("NumeroIdentificacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Parentesco")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ParentescoDescricao")
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("SituacaoAlteradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("SituacaoAlteradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -1216,29 +1210,29 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Dependentes.HistoricoDependente", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("DependenteId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Evento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1250,30 +1244,30 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Dependentes.VinculoDependente", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoTitularId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("DependenteId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("Fim")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("Fim")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("Inicio")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Inicio")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Motivo")
                         .IsRequired()
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("RegistradoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1287,77 +1281,77 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Eventos.Evento", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Capacidade")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("EspacoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("Fim")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Fim")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("Inicio")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Inicio")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Local")
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("MaximoAcompanhantes")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("MotivoCancelamento")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Publico")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1376,39 +1370,39 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Eventos.InscricaoEvento", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("Acompanhantes")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("EventoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("PresencaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("PresencaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1430,41 +1424,41 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.CategoriaFinanceira", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1478,33 +1472,33 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.ConfiguracaoFinanceira", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("DiasTolerancia")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<decimal>("JurosMensalPercentual")
                         .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("MultaPercentual")
                         .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1520,54 +1514,54 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.LancamentoFinanceiro", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("CategoriaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("PagoEm")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Vencimento")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1586,54 +1580,54 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.Mensalidade", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("AssociadoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Competencia")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PlanoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("QuantidadeDependentes")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("ValorDependentes")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("ValorPlano")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Vencimento")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1650,62 +1644,62 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Mensalidades", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Mensalidades_Valores", "\"ValorPlano\" >= 0 AND \"ValorDependentes\" >= 0 AND EXTRACT(DAY FROM \"Competencia\") = 1");
+                            t.HasCheckConstraint("CK_Mensalidades_Valores", "\"ValorPlano\" >= 0 AND \"ValorDependentes\" >= 0 AND substr(\"Competencia\", 9, 2) = '01'");
                         });
                 });
 
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.Pagamento", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Data")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Encargos")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Estornado")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Forma")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("MensalidadeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoEstorno")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<long>("NumeroRecibo")
-                        .HasColumnType("bigint");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1728,49 +1722,49 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Financeiro.PlanoMensalidade", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("CategoriaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("DiaVencimento")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("ValorMensal")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1792,43 +1786,43 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.HistoricoAcesso", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Detalhe")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EmailInformado")
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Evento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Ip")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("SessaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Sucesso")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1842,44 +1836,44 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.Perfil", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ChaveModelo")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1897,10 +1891,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.PerfilPermissao", b =>
                 {
                     b.Property<Guid>("PerfilId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PermissaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("PerfilId", "PermissaoId");
 
@@ -1912,22 +1906,22 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.Permissao", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Modulo")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -1940,50 +1934,50 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.SessaoUsuario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Dispositivo")
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("ExpiraEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("ExpiraEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Ip")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoRevogacao")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("RefreshTokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("RefreshTokenHashAnterior")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("RevogadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("RevogadaEm")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("UltimoUsoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("UltimoUsoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("UserAgent")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2002,33 +1996,33 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.TokenRecuperacaoSenha", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("CarimboSeguranca")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("ExpiraEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("ExpiraEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Ip")
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("UsadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("UsadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2043,78 +2037,78 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.Usuario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("BloqueadoAte")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("BloqueadoAte")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("CarimboSeguranca")
                         .IsRequired()
                         .HasMaxLength(64)
-                        .HasColumnType("character varying(64)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ClubePadraoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("DeveTrocarSenha")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EmailNormalizado")
                         .IsRequired()
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("SenhaAlteradaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("SenhaAlteradaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("SenhaHash")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("SuperAdmin")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("TentativasFalhas")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("UltimoAcessoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("UltimoAcessoEm")
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -2133,30 +2127,30 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.UsuarioClube", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2171,10 +2165,10 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.UsuarioClubePerfil", b =>
                 {
                     b.Property<Guid>("UsuarioClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PerfilId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("UsuarioClubeId", "PerfilId");
 
@@ -2186,13 +2180,13 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Identidade.UsuarioPermissao", b =>
                 {
                     b.Property<Guid>("UsuarioClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("PermissaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Concedida")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.HasKey("UsuarioClubeId", "PermissaoId");
 
@@ -2204,31 +2198,31 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.AusenciaFuncionario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Cancelada")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Fim")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("FuncionarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Inicio")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2243,61 +2237,61 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.Bem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("DataAquisicao")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Localizacao")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("MotivoBaixa")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("ValorAquisicao")
                         .HasPrecision(14, 2)
-                        .HasColumnType("numeric(14,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2316,79 +2310,79 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.Funcionario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Admissao")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Cargo")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Cpf")
                         .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Departamento")
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("Desligamento")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Escala")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Observacoes")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Telefone")
                         .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2407,29 +2401,29 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.HistoricoBem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("BemId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Evento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2441,29 +2435,29 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.HistoricoFuncionario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Evento")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("FuncionarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2475,32 +2469,32 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.ManutencaoBem", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("BemId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("Custo")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("Fim")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Fornecedor")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly>("Inicio")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2520,36 +2514,36 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.MovimentacaoEstoque", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("OcorridaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("OcorridaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ProdutoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Quantidade")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("SaldoApos")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2566,47 +2560,47 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.Produto", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Categoria")
                         .HasMaxLength(60)
-                        .HasColumnType("character varying(60)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("EstoqueMinimo")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Quantidade")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Unidade")
                         .IsRequired()
                         .HasMaxLength(10)
-                        .HasColumnType("character varying(10)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2625,46 +2619,46 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Operacional.SolicitacaoCompra", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Observacao")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ProdutoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Quantidade")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("QuantidadeRecebida")
                         .HasPrecision(14, 3)
-                        .HasColumnType("numeric(14,3)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal?>("ValorTotal")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2681,78 +2675,81 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Pessoas.Pessoa", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AnonimizadaEm")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Cpf")
                         .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("DataNascimento")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("EstadoCivil")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("FotoArquivoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("NomeCompleto")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Rg")
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Sexo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Telefone")
                         .HasMaxLength(11)
-                        .HasColumnType("character varying(11)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("TokenCarteirinha")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("TokenCarteirinhaGeradoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("TokenCarteirinhaGeradoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Endereco", "ProjetoClubes.Domain.Pessoas.Pessoa.Endereco#Endereco", b1 =>
                         {
@@ -2760,37 +2757,37 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                             b1.Property<string>("Bairro")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Bairro");
 
                             b1.Property<string>("Cep")
                                 .HasMaxLength(8)
-                                .HasColumnType("character varying(8)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Cep");
 
                             b1.Property<string>("Cidade")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Cidade");
 
                             b1.Property<string>("Complemento")
                                 .HasMaxLength(100)
-                                .HasColumnType("character varying(100)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Complemento");
 
                             b1.Property<string>("Logradouro")
                                 .HasMaxLength(200)
-                                .HasColumnType("character varying(200)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Logradouro");
 
                             b1.Property<string>("Numero")
                                 .HasMaxLength(20)
-                                .HasColumnType("character varying(20)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Numero");
 
                             b1.Property<string>("Uf")
                                 .HasMaxLength(2)
-                                .HasColumnType("character varying(2)")
+                                .HasColumnType("TEXT")
                                 .HasColumnName("Uf");
                         });
 
@@ -2815,75 +2812,75 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Pessoas", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Pessoas_Cpf", "\"Cpf\" IS NULL OR \"Cpf\" ~ '^[0-9]{11}$'");
+                            t.HasCheckConstraint("CK_Pessoas_Cpf", "\"Cpf\" IS NULL OR \"Cpf\" GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'");
 
-                            t.HasCheckConstraint("CK_Pessoas_Uf", "\"Uf\" IS NULL OR \"Uf\" ~ '^[A-Z]{2}$'");
+                            t.HasCheckConstraint("CK_Pessoas_Uf", "\"Uf\" IS NULL OR \"Uf\" GLOB '[A-Z][A-Z]'");
                         });
                 });
 
             modelBuilder.Entity("ProjetoClubes.Domain.Reservas.Espaco", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Ativo")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Capacidade")
-                        .HasColumnType("integer");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("Excluido")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("ExcluidoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("ExcluidoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("ExcluidoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("ExigeAprovacao")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Nome")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Regras")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("TaxaAdicional")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("ValorLocacao")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2900,54 +2897,54 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Reservas.Reserva", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("EspacoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("EventoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("Fim")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Fim")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Finalidade")
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("Inicio")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("Inicio")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -2968,30 +2965,30 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Solicitacoes.RespostaSolicitacao", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("AutorUsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadaEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadaEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("DaAdministracao")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("Interna")
-                        .HasColumnType("boolean");
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("SolicitacaoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Texto")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -3003,56 +3000,56 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ProjetoClubes.Domain.Solicitacoes.Solicitacao", b =>
                 {
                     b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Assunto")
                         .IsRequired()
                         .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset?>("AtualizadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long?>("AtualizadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("AtualizadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("ClubeId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
-                    b.Property<DateTimeOffset>("CriadoEm")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<long>("CriadoEm")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("CriadoPor")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Descricao")
                         .IsRequired()
                         .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("PessoaId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("Prazo")
-                        .HasColumnType("date");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Protocolo")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ResponsavelId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Situacao")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
@@ -3318,28 +3315,28 @@ namespace ProjetoClubes.Infrastructure.Persistence.Migrations
                     b.OwnsOne("ProjetoClubes.Domain.Dependentes.PermissoesDependente", "Permissoes", b1 =>
                         {
                             b1.Property<Guid>("DependenteId")
-                                .HasColumnType("uuid");
+                                .HasColumnType("TEXT");
 
                             b1.Property<bool>("AcessoClube")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("InscricaoAtividades")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("ParticipacaoEventos")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("RecebimentoComunicados")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("SolicitacaoReservas")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("UsoEspacosEsportivos")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.Property<bool>("UtilizacaoServicos")
-                                .HasColumnType("boolean");
+                                .HasColumnType("INTEGER");
 
                             b1.HasKey("DependenteId");
 

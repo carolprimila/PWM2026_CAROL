@@ -12,8 +12,8 @@ public sealed class BancoOptions
 {
     public const string Secao = "Banco";
 
-    /// <summary>Aplica migrations pendentes na partida da API (recomendado só em desenvolvimento).</summary>
-    public bool AplicarMigrationsAoIniciar { get; set; }
+    /// <summary>Cria/atualiza o banco SQLite na partida da API (padrão: sim — como no VanderBakery).</summary>
+    public bool AplicarMigrationsAoIniciar { get; set; } = true;
 }
 
 /// <summary>
@@ -31,7 +31,7 @@ public static class InicializadorBanco
         var config = sp.GetRequiredService<IConfiguration>();
         var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("ProjetoClubes.Inicializacao");
 
-        if (config.GetSection(BancoOptions.Secao).Get<BancoOptions>()?.AplicarMigrationsAoIniciar == true)
+        if ((config.GetSection(BancoOptions.Secao).Get<BancoOptions>() ?? new BancoOptions()).AplicarMigrationsAoIniciar)
         {
             var pendentes = (await db.Database.GetPendingMigrationsAsync(ct)).ToList();
             if (pendentes.Count > 0)
@@ -39,10 +39,15 @@ public static class InicializadorBanco
                 logger.LogInformation("Aplicando {Quantidade} migration(s): {Migrations}", pendentes.Count, pendentes);
                 await db.Database.MigrateAsync(ct);
             }
+            // WAL: leituras não esperam gravações (vale para o arquivo; basta definir uma vez).
+            await db.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;", ct);
         }
 
         await SincronizarPermissoesAsync(db, logger, ct);
         await GarantirPadroesDosClubesAsync(sp, db, ct);
+
+        if (config.GetValue<bool>("Seed:Demo"))
+            await DadosDemonstracao.CriarAsync(sp, config["Seed:SenhaDemo"], logger, ct);
 
         if (!await db.Usuarios.IgnoreQueryFilters().AnyAsync(u => u.SuperAdmin, ct))
         {
@@ -51,9 +56,6 @@ public static class InicializadorBanco
                 "Sistema ainda não inicializado. Para criar o primeiro Superadmin, use POST /api/v1/setup/inicializar " +
                 "com o token de inicialização: {TokenInicializacao} (válido até o uso ou reinício da API).", token);
         }
-
-        if (config.GetValue<bool>("Seed:Demo"))
-            await DadosDemonstracao.CriarAsync(sp, config["Seed:SenhaDemo"], logger, ct);
     }
 
     /// <summary>Clubes criados antes de um módulo existir recebem as configurações iniciais dele (idempotente).</summary>

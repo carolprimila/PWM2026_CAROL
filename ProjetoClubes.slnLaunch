@@ -1,0 +1,52 @@
+[
+  {
+    "Name": "API + Web administrativo",
+    "Projects": [
+      {
+        "Path": "src\Backend\ProjetoClubes.API\ProjetoClubes.API.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\Web\ProjetoClubes.Web\ProjetoClubes.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      }
+    ]
+  },
+  {
+    "Name": "API + App (Windows)",
+    "Projects": [
+      {
+        "Path": "src\Backend\ProjetoClubes.API\ProjetoClubes.API.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\Mobile\ProjetoClubes.Mobile\ProjetoClubes.Mobile.csproj",
+        "Action": "Start",
+        "DebugTarget": "Windows Machine"
+      }
+    ]
+  },
+  {
+    "Name": "API + Web + App",
+    "Projects": [
+      {
+        "Path": "src\Backend\ProjetoClubes.API\ProjetoClubes.API.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\Web\ProjetoClubes.Web\ProjetoClubes.Web.csproj",
+        "Action": "Start",
+        "DebugTarget": "http"
+      },
+      {
+        "Path": "src\Mobile\ProjetoClubes.Mobile\ProjetoClubes.Mobile.csproj",
+        "Action": "Start",
+        "DebugTarget": "Windows Machine"
+      }
+    ]
+  }
+]
