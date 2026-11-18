@@ -13,7 +13,7 @@
 		<Nullable>enable</Nullable>
 		<MauiXamlInflator>SourceGen</MauiXamlInflator>
 
-		<ApplicationTitle>Clubes</ApplicationTitle>
+		<ApplicationTitle>Daros</ApplicationTitle>
 		<ApplicationId>br.com.clubes.app</ApplicationId>
 		<ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>

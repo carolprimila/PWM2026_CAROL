@@ -22,9 +22,9 @@ function Sidebar() {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-line bg-surface">
       <div className="flex h-16 items-center gap-3 px-5">
-        <span className="flex size-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">{(user?.clubName ?? 'Clubes').slice(0, 1).toUpperCase()}</span>
+        <span className="flex size-9 items-center justify-center rounded-xl bg-brand-600 text-sm font-bold text-white">{(user?.clubName ?? 'Daros').slice(0, 1).toUpperCase()}</span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-ink">{user?.clubName ?? 'Plataforma Clubes'}</p>
+          <p className="truncate text-sm font-semibold text-ink">{user?.clubName ?? 'Daros'}</p>
           <p className="text-xs text-muted">Gestão do clube</p>
         </div>
       </div>
@@ -124,7 +124,7 @@ function ClubSwitcher() {
       <Building2 className="size-4 text-muted" />
       <div className="w-64">
         <Select value={clubId ?? ''} onChange={(e) => selectClub(e.target.value || null)}>
-          <option value="">Plataforma (nenhum clube)</option>
+          <option value="">Daros (nenhuma sede selecionada)</option>
           {clubs.data?.map((club) => <option key={club.id} value={club.id}>{club.name}{club.isActive ? '' : ' (inativo)'}</option>)}
         </Select>
       </div>

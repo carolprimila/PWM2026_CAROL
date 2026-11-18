@@ -27,20 +27,20 @@ function ClubsPage() {
   const clubs = useQuery({ queryKey: KEY, queryFn: () => api.get<Club[]>('/api/clubes') })
   const setActive = useMutation({
     mutationFn: ({ club, active }: { club: Club; active: boolean }) => api.post(`/api/clubes/${club.id}/${active ? 'ativar' : 'desativar'}`),
-    onSuccess: (_, { active }) => { toast.success(active ? 'Clube ativado.' : 'Clube desativado.'); void queryClient.invalidateQueries({ queryKey: KEY }) },
+    onSuccess: (_, { active }) => { toast.success(active ? 'Sede ativada.' : 'Sede desativada.'); void queryClient.invalidateQueries({ queryKey: KEY }) },
     onError: toast.error,
   })
   const toggle = async (club: Club) => {
     const active = !club.isActive
     const ok = await confirm({
-      title: active ? 'Ativar clube?' : 'Desativar clube?', danger: !active, confirmLabel: active ? 'Ativar' : 'Desativar',
+      title: active ? 'Ativar sede?' : 'Desativar sede?', danger: !active, confirmLabel: active ? 'Ativar' : 'Desativar',
       message: active ? `Os usuários de ${club.name} voltam a conseguir entrar.` : `Os usuários de ${club.name} deixam de conseguir entrar no painel e no aplicativo. Nenhum dado é excluído.`,
     })
     if (ok) setActive.mutate({ club, active })
   }
 
   const columns: Column<Club>[] = [
-    { key: 'name', header: 'Clube', render: (c) => <div className="min-w-0"><p className="flex items-center gap-2 font-medium text-ink">{c.name}{c.id === clubId && <Badge tone="brand">Em operação</Badge>}</p><p className="truncate font-mono text-xs text-muted">{c.slug}</p></div> },
+    { key: 'name', header: 'Sede', render: (c) => <div className="min-w-0"><p className="flex items-center gap-2 font-medium text-ink">{c.name}{c.id === clubId && <Badge tone="brand">Em operação</Badge>}</p><p className="truncate font-mono text-xs text-muted">{c.slug}</p></div> },
     { key: 'cnpj', header: 'CNPJ', render: (c) => <span className="tabular text-muted">{fmt.cnpj(c.cnpj)}</span> },
     { key: 'city', header: 'Cidade', render: (c) => (c.city ? `${c.city}${c.state ? `/${c.state}` : ''}` : <span className="text-muted">—</span>) },
     { key: 'zone', header: 'Fuso horário', render: (c) => <span className="text-muted">{c.timeZoneId}</span> },
@@ -50,18 +50,18 @@ function ClubsPage() {
 
   return (
     <>
-      <PageHeader title="Clubes da plataforma" subtitle="Cadastro e situação dos clubes atendidos."
-        actions={<Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>Novo clube</Button>} />
-      <Alert tone="info" className="mb-6" title="Como operar um clube">
-        Use o seletor de clubes na barra superior para escolher o clube em que deseja trabalhar. Com um clube selecionado, o menu passa a exibir os módulos daquele clube e todas as operações são feitas nele; sem seleção, apenas esta área da plataforma fica disponível.
+      <PageHeader title="Sedes do Daros" subtitle="Cadastro e situação das sedes do clube."
+        actions={<Button variant="primary" icon={Plus} onClick={() => setCreating(true)}>Nova sede</Button>} />
+      <Alert tone="info" className="mb-6" title="Como operar uma sede">
+        Use o seletor de sedes na barra superior para escolher a sede em que deseja trabalhar. Com uma sede selecionada, o menu passa a exibir os módulos daquela sede e todas as operações são feitas nela; sem seleção, apenas esta área fica disponível.
       </Alert>
       <Card padded={false}>
         <DataTable columns={columns} rows={clubs.data ?? []} rowKey={(c) => c.id} isLoading={clubs.isLoading} error={clubs.error} onRetry={() => clubs.refetch()}
           onRowClick={(c) => setEditing(c)}
-          empty={{ title: 'Nenhum clube cadastrado', description: 'Cadastre o primeiro clube da plataforma.', action: <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>Novo clube</Button> }}
+          empty={{ title: 'Nenhuma sede cadastrada', description: 'Cadastre a primeira sede do Daros.', action: <Button variant="primary" size="sm" icon={Plus} onClick={() => setCreating(true)}>Nova sede</Button> }}
           rowActions={(c) => (
             <div className="flex justify-end">
-              {c.isActive && c.id !== clubId && <IconButton icon={LogIn} label="Operar este clube" onClick={() => { selectClub(c.id); toast.info(`Operando em ${c.name}.`) }} />}
+              {c.isActive && c.id !== clubId && <IconButton icon={LogIn} label="Operar esta sede" onClick={() => { selectClub(c.id); toast.info(`Operando em ${c.name}.`) }} />}
               <IconButton icon={Pencil} label="Editar" onClick={() => setEditing(c)} />
               <IconButton icon={c.isActive ? Power : RotateCcw} label={c.isActive ? 'Desativar' : 'Ativar'} disabled={setActive.isPending} onClick={() => toggle(c)} />
             </div>
@@ -96,23 +96,23 @@ function CreateClub({ onClose, onCreated }: { onClose: () => void; onCreated: (r
     mutationFn: (values: CreateValues) => api.post<Schema<'CreateClubResult'>>('/api/clubes', {
       club: clubBody(values), adminName: values.adminName, adminEmail: values.adminEmail, applyStandardStructure: values.applyStandardStructure,
     }),
-    onSuccess: (result) => { toast.success(`Clube ${result.club.name} cadastrado.`); void queryClient.invalidateQueries({ queryKey: KEY }); onCreated(result) },
+    onSuccess: (result) => { toast.success(`Sede ${result.club.name} cadastrada.`); void queryClient.invalidateQueries({ queryKey: KEY }); onCreated(result) },
     onError: (error) => {
       if (error instanceof ApiError && error.errors)
         for (const [field, messages] of Object.entries(error.errors)) form.setError(serverField(field) as keyof CreateValues, { message: messages[0] })
     },
   })
   return (
-    <Modal open onClose={onClose} size="lg" title="Novo clube" description="O clube nasce com configurações em branco, funções padrão e um administrador com senha temporária."
+    <Modal open onClose={onClose} size="lg" title="Nova sede" description="A sede nasce com configurações em branco, funções padrão e um administrador com senha temporária."
       footer={<>
         <Button onClick={onClose}>Cancelar</Button>
-        <Button variant="primary" loading={create.isPending} onClick={form.handleSubmit((values) => create.mutate(values))}>Cadastrar clube</Button>
+        <Button variant="primary" loading={create.isPending} onClick={form.handleSubmit((values) => create.mutate(values))}>Cadastrar sede</Button>
       </>}>
       <form className="space-y-6" noValidate onSubmit={(e) => e.preventDefault()}>
         {create.error && !(create.error instanceof ApiError && create.error.errors) ? <Alert tone="danger">{(create.error as Error).message}</Alert> : null}
         <ClubFields form={form as unknown as UseFormReturn<ClubValues>} />
         <fieldset className="space-y-4">
-          <legend className="text-xs font-semibold tracking-wider text-muted uppercase">Administrador do clube</legend>
+          <legend className="text-xs font-semibold tracking-wider text-muted uppercase">Administrador da sede</legend>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nome" required error={errors.adminName?.message}><Input aria-invalid={!!errors.adminName} {...form.register('adminName')} /></Field>
             <Field label="E-mail (login)" required error={errors.adminEmail?.message}><Input type="email" aria-invalid={!!errors.adminEmail} {...form.register('adminEmail')} /></Field>
@@ -134,7 +134,7 @@ function EditClub({ club, onClose }: { club: Club; onClose: () => void }) {
   const save = useMutation({
     mutationFn: (values: ClubValues) => api.put<Club>(`/api/clubes/${club.id}`, clubBody(values)),
     onSuccess: () => {
-      toast.success('Clube atualizado.')
+      toast.success('Sede atualizada.')
       void queryClient.invalidateQueries({ queryKey: KEY })
       void queryClient.invalidateQueries({ queryKey: ['clube-atual'] })
       onClose()
@@ -145,7 +145,7 @@ function EditClub({ club, onClose }: { club: Club; onClose: () => void }) {
     },
   })
   return (
-    <Modal open onClose={onClose} size="lg" title="Editar clube" description={<>Identificador: <span className="font-mono">{club.slug}</span> · o logotipo é enviado em Administração → Dados do clube, com o clube selecionado.</>}
+    <Modal open onClose={onClose} size="lg" title="Editar sede" description={<>Identificador: <span className="font-mono">{club.slug}</span> · o logotipo é enviado em Administração → Dados do clube, com a sede selecionada.</>}
       footer={<>
         <Button onClick={onClose}>Cancelar</Button>
         <Button variant="primary" loading={save.isPending} onClick={form.handleSubmit((values) => save.mutate(values))}>Salvar alterações</Button>
@@ -159,7 +159,7 @@ function EditClub({ club, onClose }: { club: Club; onClose: () => void }) {
 }
 
 const feature: Feature = {
-  nav: [{ to: '/plataforma/clubes', label: 'Clubes', icon: Building, group: 'Plataforma', order: 1, kinds: ['SuperAdmin'] }],
+  nav: [{ to: '/plataforma/clubes', label: 'Sedes', icon: Building, group: 'Plataforma', order: 1, kinds: ['SuperAdmin'] }],
   routes: [{ path: 'plataforma/clubes', component: ClubsPage, kinds: ['SuperAdmin'] }],
 }
 export default feature

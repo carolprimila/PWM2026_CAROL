@@ -24,7 +24,7 @@ public class StartupPage : ContentPage
             Spacing = 16, Padding = 32, VerticalOptions = LayoutOptions.Center,
             Children =
             {
-                new Label { Text = "Clubes", TextColor = Colors.White, FontFamily = "OpenSansSemibold", FontSize = 30, HorizontalTextAlignment = TextAlignment.Center },
+                new Label { Text = "Daros", TextColor = Colors.White, FontFamily = "OpenSansSemibold", FontSize = 30, HorizontalTextAlignment = TextAlignment.Center },
                 _spinner, _message, _retry, _logout,
             },
         };

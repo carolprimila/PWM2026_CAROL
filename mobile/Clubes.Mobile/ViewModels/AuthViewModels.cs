@@ -19,7 +19,7 @@ public partial class LoginViewModel(AuthService auth, AppRouter router, AppConfi
     [ObservableProperty] public partial string ServerUrl { get; set; } = config.BaseUrl;
     [ObservableProperty] public partial string? ServerError { get; set; }
 
-    public string VersionText => $"Clubes · versão {AppInfo.Current.VersionString}";
+    public string VersionText => $"Daros · versão {AppInfo.Current.VersionString}";
 
     [RelayCommand]
     private void ToggleServer() => ShowServer = !ShowServer;

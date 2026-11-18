@@ -16,7 +16,7 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        var window = new Window(new StartupPage(_router)) { Title = "Clubes" };
+        var window = new Window(new StartupPage(_router)) { Title = "Daros" };
         window.Resumed += async (_, _) =>
         {
             try { await _router.OnResumedAsync(); }

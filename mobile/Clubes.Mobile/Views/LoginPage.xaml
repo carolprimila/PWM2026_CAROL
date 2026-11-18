@@ -11,8 +11,8 @@
         <VerticalStackLayout Padding="24,48,24,24" Spacing="16">
             <Border Style="{StaticResource PrimaryCard}" Padding="24" Margin="0,0,0,8">
                 <VerticalStackLayout Spacing="4">
-                    <Label Text="Clubes" FontFamily="OpenSansSemibold" FontSize="30" TextColor="{StaticResource White}" />
-                    <Label Text="Seu clube na palma da mão" TextColor="{StaticResource White}" Opacity="0.85" />
+                    <Label Text="Daros" FontFamily="OpenSansSemibold" FontSize="30" TextColor="{StaticResource White}" />
+                    <Label Text="O Clube Daros na palma da mão" TextColor="{StaticResource White}" Opacity="0.85" />
                     <BoxView HeightRequest="3" WidthRequest="44" Color="{StaticResource Accent}" HorizontalOptions="Start" Margin="0,12,0,0" />
                 </VerticalStackLayout>
             </Border>

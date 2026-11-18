@@ -19,11 +19,11 @@ function AuthShell({ title, subtitle, children }: { title: string; subtitle?: st
         <div className="pointer-events-none absolute -top-24 -right-24 size-96 rounded-full bg-brand-600/40 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-20 size-96 rounded-full bg-gold-500/15 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <span className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-lg font-bold">C</span>
-          <span className="text-lg font-semibold tracking-tight">Clubes</span>
+          <span className="flex size-10 items-center justify-center rounded-xl bg-white/10 text-lg font-bold">D</span>
+          <span className="text-lg font-semibold tracking-tight">Daros</span>
         </div>
         <div className="relative max-w-md">
-          <p className="text-3xl leading-tight font-semibold tracking-tight">A gestão completa do clube, em um só lugar.</p>
+          <p className="text-3xl leading-tight font-semibold tracking-tight">A gestão completa do Clube Daros, em um só lugar.</p>
           <p className="mt-4 text-sm leading-relaxed text-white/70">Associados, financeiro, reservas, portaria e comunicação integrados — com segurança e isolamento por clube.</p>
         </div>
         <p className="relative text-xs text-white/50">Acesso restrito à equipe autorizada.</p>
