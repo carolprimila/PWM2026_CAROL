@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.SpacePickerPage" x:DataType="vm:SpacePickerViewModel" Title="Escolha o espaço">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Groups}" IsGrouped="True">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhum espaço disponível para reserva no momento." />
+                </CollectionView.EmptyView>
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate x:DataType="vm:SpaceGroup">
+                        <Label Text="{Binding Title}" Style="{StaticResource Section}" Padding="16,12,16,4" />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:SpaceDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpen" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Label Text="{Binding Name}" Style="{StaticResource H2}" />
+                                        <Label Text="{Binding Subtitle}" Style="{StaticResource Muted}" />
+                                        <Label Text="{Binding PriceText}" TextColor="{StaticResource Primary}" FontSize="13" />
+                                    </VerticalStackLayout>
+                                    <Image Grid.Column="1" Source="ic_chevron.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

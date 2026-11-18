@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ProfilePage" x:DataType="vm:ProfileViewModel" Title="Perfil">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <Border Style="{StaticResource Card}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                            <Border WidthRequest="72" HeightRequest="72" StrokeThickness="0" StrokeShape="RoundRectangle 36" BackgroundColor="{StaticResource NeutralSoft}">
+                                <c:AuthImage FileId="{Binding PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" Style="{StaticResource H2}" />
+                                <Label Text="{Binding Subtitle}" Style="{StaticResource Muted}" />
+                                <Label Text="{Binding ClubName}" Style="{StaticResource Muted}" />
+                                <c:StatusChip Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource Card}">
+                        <Label Text="{Binding InfoText}" />
+                    </Border>
+
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding IsDependent}">
+                        <Label Text="O que posso fazer" Style="{StaticResource Section}" />
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Permissions}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:DependentPermissionDto">
+                                    <Border Style="{StaticResource Card}" Padding="14">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Text="{Binding Title}" VerticalOptions="Center" />
+                                            <c:StatusChip Grid.Column="1" Text="{Binding EffectiveText}" Kind="{Binding EffectiveKind}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <Label Text="Conta" Style="{StaticResource Section}" />
+                    <c:MenuRow Text="Editar contato, endereço e foto" Icon="ic_person.png" Command="{Binding EditProfileCommand}" IsVisible="{Binding IsMember}" />
+                    <c:MenuRow Text="Meus dependentes" Icon="ic_group.png" Command="{Binding DependentsCommand}" IsVisible="{Binding IsMember}" />
+                    <c:MenuRow Text="Preferências de notificação" Icon="ic_bell.png" Command="{Binding NotificationPreferencesCommand}" IsVisible="{Binding IsClubUser}" />
+                    <c:MenuRow Text="Alterar senha" Icon="ic_lock.png" Command="{Binding ChangePasswordCommand}" />
+                    <c:MenuRow Text="Sessões ativas" Icon="ic_card.png" Command="{Binding SessionsCommand}" />
+                    <c:MenuRow Text="Políticas do clube" Icon="ic_doc.png" Command="{Binding PoliciesCommand}" />
+                    <c:MenuRow Text="Sair" Icon="ic_logout.png" Command="{Binding LogoutCommand}" IsDanger="True" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

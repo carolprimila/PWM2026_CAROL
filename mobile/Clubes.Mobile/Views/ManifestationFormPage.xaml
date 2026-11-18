@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ManifestationFormPage" x:DataType="vm:ManifestationFormViewModel" Title="Nova manifestação">
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Style="{StaticResource PageStack}">
+                <Label Text="Envie uma reclamação, sugestão ou outro tipo de manifestação. Você receberá um protocolo para acompanhar." Style="{StaticResource Muted}" />
+                <Label Text="Tipo" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{Binding Types}" SelectedItem="{Binding Type}" Title="Selecione o tipo" />
+                </Border>
+                <Label Text="{Binding TypeError}" Style="{StaticResource ErrorText}" />
+                <c:FormField Label="Descrição" Text="{Binding Description}" Multiline="True" MaxLength="4000" Placeholder="Descreva o que aconteceu ou a sua sugestão" Error="{Binding DescriptionError}" />
+                <Label Text="Foto (opcional)" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource Card}" Padding="0" IsVisible="{Binding HasPhoto}">
+                    <c:AuthImage FileId="{Binding PhotoFileId}" HeightRequest="200" Aspect="AspectFill" />
+                </Border>
+                <Button Text="Adicionar foto" Style="{StaticResource SecondaryButton}" Command="{Binding AddPhotoCommand}" IsVisible="{Binding NoPhoto}" />
+                <Button Text="Remover foto" Style="{StaticResource TextButton}" Command="{Binding RemovePhotoCommand}" IsVisible="{Binding HasPhoto}" />
+                <Button Text="Enviar" Command="{Binding SaveCommand}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

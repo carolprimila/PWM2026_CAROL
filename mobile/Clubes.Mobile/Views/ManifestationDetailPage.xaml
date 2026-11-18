@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ManifestationDetailPage" x:DataType="vm:ManifestationDetailViewModel" Title="Manifestação">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding Item.ProtocolText}" Style="{StaticResource H2}" />
+                                <c:StatusChip Grid.Column="1" Text="{Binding Item.StatusText}" Kind="{Binding Item.StatusKind}" />
+                            </Grid>
+                            <Label Text="{Binding Item.MetaText}" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding Item.Description}" FontSize="15" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Padding="0" IsVisible="{Binding Item.HasPhoto}">
+                        <c:AuthImage FileId="{Binding Item.PhotoFileId}" HeightRequest="220" Aspect="AspectFill" />
+                    </Border>
+                    <Label Text="Andamento" Style="{StaticResource Section}" IsVisible="{Binding HasUpdates}" />
+                    <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Updates}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="m:ManifestationUpdateDto">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <BoxView WidthRequest="3" Color="{StaticResource Primary}" CornerRadius="2" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" Padding="0,4">
+                                        <Label Text="{Binding StatusText}" Style="{StaticResource Strong}" />
+                                        <Label Text="{Binding MetaText}" Style="{StaticResource Muted}" />
+                                        <Label Text="{Binding Message}" IsVisible="{Binding HasMessage}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

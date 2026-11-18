@@ -1,0 +1,241 @@
+GET    /api/acessos  - Histórico de entradas, saídas e acessos negados.
+GET    /api/anexos  - 
+POST   /api/anexos  - 
+DELETE /api/anexos/{id}  - 
+POST   /api/arquivos  - Envia um arquivo (imagem ou PDF, até 10 MB). O acesso posterior é controlado pelo escopo informado.
+GET    /api/arquivos/{id}  - Baixa um arquivo, validando clube e permissão do usuário a cada acesso.
+GET    /api/assembleias  - 
+POST   /api/assembleias  - 
+DELETE /api/assembleias/presencas/{attendanceId}  - 
+GET    /api/assembleias/{id}  - 
+PUT    /api/assembleias/{id}  - 
+PUT    /api/assembleias/{id}/ata  - 
+GET    /api/assembleias/{id}/presencas  - 
+POST   /api/assembleias/{id}/presencas  - 
+POST   /api/assembleias/{id}/situacao  - 
+GET    /api/associados  - 
+POST   /api/associados  - 
+GET    /api/associados/eu  - Cadastro do associado autenticado.
+PUT    /api/associados/eu  - 
+GET    /api/associados/eu/meus-dados  - LGPD: cópia dos dados pessoais do associado autenticado (direito de acesso do titular).
+GET    /api/associados/{id}  - 
+PUT    /api/associados/{id}  - 
+POST   /api/associados/{id}/acesso  - Cria o login do associado no aplicativo, com senha temporária de troca obrigatória.
+POST   /api/associados/{id}/anonimizar  - LGPD: anonimiza os dados pessoais de uma associação cancelada, preservando o histórico financeiro sem identificação.
+POST   /api/associados/{id}/aprovar  - 
+POST   /api/associados/{id}/cancelar  - 
+POST   /api/associados/{id}/reativar  - 
+GET    /api/associados/{id}/situacao-financeira  - 
+POST   /api/associados/{id}/suspender  - 
+GET    /api/auditoria  - 
+GET    /api/auditoria/entidades  - 
+POST   /api/auth/aceitar-privacidade  - Registra o consentimento do usuário com a política de privacidade vigente (LGPD).
+POST   /api/auth/alterar-senha  - 
+POST   /api/auth/esqueci-senha  - 
+POST   /api/auth/login  - Autentica por e-mail e senha. Devolve token de acesso (curta duração) e token de renovação.
+POST   /api/auth/logout  - 
+GET    /api/auth/me  - 
+POST   /api/auth/redefinir-senha  - 
+POST   /api/auth/refresh  - Renova a sessão. O token de renovação é de uso único (rotação).
+GET    /api/auth/sessoes  - 
+DELETE /api/auth/sessoes/{id}  - 
+GET    /api/calendario  - 
+GET    /api/cartoes/meu  - Cartão digital do associado ou dependente autenticado.
+GET    /api/cartoes/{personType}/{personId}  - 
+GET    /api/chaves  - 
+POST   /api/chaves/entrega  - 
+POST   /api/chaves/{id}/devolucao  - 
+POST   /api/chaves/{id}/pendencias-resolvidas  - 
+GET    /api/clubes  - Lista todos os clubes da plataforma (somente superadministrador).
+POST   /api/clubes  - 
+GET    /api/clubes/atual  - Dados do clube do usuário autenticado.
+GET    /api/clubes/atual/horarios  - 
+PUT    /api/clubes/atual/horarios  - 
+PUT    /api/clubes/{id}  - 
+POST   /api/clubes/{id}/ativar  - 
+POST   /api/clubes/{id}/desativar  - 
+GET    /api/comunicados  - 
+POST   /api/comunicados  - 
+GET    /api/comunicados/mural  - Mural do usuário: somente comunicados publicados e destinados ao seu público.
+GET    /api/comunicados/{id}  - 
+PUT    /api/comunicados/{id}  - 
+DELETE /api/comunicados/{id}  - 
+GET    /api/comunicados/{id}/leituras  - 
+POST   /api/comunicados/{id}/lido  - 
+GET    /api/configuracoes  - 
+PUT    /api/configuracoes  - Altera as políticas do clube. Toda alteração fica registrada na auditoria com os valores anteriores e novos.
+GET    /api/configuracoes/politicas  - Políticas de uso exibidas a associados e dependentes (sem parâmetros financeiros internos).
+GET    /api/convidados  - 
+POST   /api/convidados  - Cadastro antecipado de convidado. Respeita o limite por associado/dia e as regras financeiras do responsável.
+POST   /api/convidados/{id}/autorizacao  - 
+POST   /api/convidados/{id}/cancelar  - 
+GET    /api/dependentes  - 
+POST   /api/dependentes  - Cadastra um dependente. Pela equipe, já entra ativo; pelo associado, aguarda aprovação. Respeita o limite por associado.
+GET    /api/dependentes/eu  - Perfil do dependente autenticado.
+GET    /api/dependentes/meus  - Dependentes do associado autenticado.
+GET    /api/dependentes/{id}  - 
+PUT    /api/dependentes/{id}  - 
+POST   /api/dependentes/{id}/acesso  - 
+POST   /api/dependentes/{id}/aprovar  - 
+PUT    /api/dependentes/{id}/permissoes  - Administração libera a permissão; o associado responsável a habilita. Só vale com as duas marcações.
+POST   /api/dependentes/{id}/reativar  - 
+POST   /api/dependentes/{id}/rejeitar  - 
+POST   /api/dependentes/{id}/remover  - 
+POST   /api/dependentes/{id}/suspender  - 
+GET    /api/espacos  - Espaços do clube (visível a todos os usuários autenticados do clube).
+POST   /api/espacos  - 
+GET    /api/espacos/bloqueios  - 
+POST   /api/espacos/bloqueios  - 
+DELETE /api/espacos/bloqueios/{id}  - 
+GET    /api/espacos/feriados  - 
+POST   /api/espacos/feriados  - 
+PUT    /api/espacos/feriados/{id}  - 
+DELETE /api/espacos/feriados/{id}  - 
+GET    /api/espacos/{id}  - 
+PUT    /api/espacos/{id}  - 
+DELETE /api/espacos/{id}  - 
+GET    /api/espacos/{id}/disponibilidade  - Disponibilidade por horário em uma data (quadras e quiosques).
+GET    /api/espacos/{id}/disponibilidade-periodo  - Disponibilidade por data de início (espaços reservados por período, como o salão de festas).
+GET    /api/estoque/fornecedores  - 
+POST   /api/estoque/fornecedores  - 
+PUT    /api/estoque/fornecedores/{id}  - 
+DELETE /api/estoque/fornecedores/{id}  - 
+POST   /api/estoque/movimentacoes  - Entrada, saída ou ajuste de inventário. Toda movimentação é rastreável.
+GET    /api/estoque/movimentacoes  - 
+GET    /api/estoque/produtos  - 
+POST   /api/estoque/produtos  - 
+PUT    /api/estoque/produtos/{id}  - 
+DELETE /api/estoque/produtos/{id}  - 
+GET    /api/eventos  - Eventos visíveis ao usuário conforme o público de cada evento.
+POST   /api/eventos  - 
+PUT    /api/eventos/inscricoes/{registrationId}/presenca  - 
+GET    /api/eventos/{id}  - 
+PUT    /api/eventos/{id}  - 
+POST   /api/eventos/{id}/cancelar  - 
+POST   /api/eventos/{id}/encerrar  - 
+POST   /api/eventos/{id}/inscricao  - 
+DELETE /api/eventos/{id}/inscricao  - 
+GET    /api/eventos/{id}/inscricoes  - 
+GET    /api/financeiro/cobrancas  - Cobranças. A equipe vê todas (com filtros); o associado vê apenas as próprias.
+POST   /api/financeiro/cobrancas  - 
+GET    /api/financeiro/cobrancas/{id}  - 
+POST   /api/financeiro/cobrancas/{id}/ajustes  - Lança desconto, acréscimo, multa, juros ou taxa em uma cobrança em aberto, com justificativa auditada.
+POST   /api/financeiro/cobrancas/{id}/cancelar  - 
+GET    /api/financeiro/fechamentos  - 
+POST   /api/financeiro/fechamentos  - 
+POST   /api/financeiro/fechamentos/{id}/reabrir  - 
+GET    /api/financeiro/fluxo-de-caixa  - 
+GET    /api/financeiro/inadimplentes  - 
+GET    /api/financeiro/lancamentos  - 
+POST   /api/financeiro/lancamentos  - 
+PUT    /api/financeiro/lancamentos/{id}  - 
+POST   /api/financeiro/lancamentos/{id}/cancelar  - 
+POST   /api/financeiro/lancamentos/{id}/pagar  - 
+GET    /api/financeiro/liberacoes  - 
+POST   /api/financeiro/liberacoes  - Liberação excepcional de associado inadimplente, com justificativa e validade.
+DELETE /api/financeiro/liberacoes/{id}  - 
+GET    /api/financeiro/minha-situacao  - Situação financeira do associado autenticado (pendências e bloqueios).
+GET    /api/funcionarios  - 
+POST   /api/funcionarios  - 
+GET    /api/funcionarios/{id}  - 
+PUT    /api/funcionarios/{id}  - 
+POST   /api/funcionarios/{id}/ativar  - 
+POST   /api/funcionarios/{id}/desativar  - 
+GET    /api/funcoes  - 
+POST   /api/funcoes  - 
+GET    /api/funcoes/permissoes  - 
+PUT    /api/funcoes/{id}  - 
+DELETE /api/funcoes/{id}  - 
+GET    /api/historico/{entityType}/{id}  - Histórico de mudanças de situação de um registro.
+GET    /api/manifestacoes  - Manifestações. A equipe vê todas; associados e dependentes veem apenas as que enviaram.
+POST   /api/manifestacoes  - Envia reclamação, sugestão ou outro tipo configurado. Gera protocolo e notifica a administração.
+GET    /api/manifestacoes/tipos  - 
+POST   /api/manifestacoes/tipos  - 
+PUT    /api/manifestacoes/tipos/{id}  - 
+GET    /api/manifestacoes/{id}  - 
+POST   /api/manifestacoes/{id}/andamento  - 
+POST   /api/manifestacoes/{id}/respostas  - 
+GET    /api/manutencoes  - 
+POST   /api/manutencoes  - 
+GET    /api/manutencoes/{id}  - 
+PUT    /api/manutencoes/{id}  - 
+POST   /api/manutencoes/{id}/bloqueio  - Bloqueia o espaço da manutenção; o bloqueio reflete imediatamente na disponibilidade das reservas.
+POST   /api/manutencoes/{id}/situacao  - 
+GET    /api/mensalidades  - 
+POST   /api/mensalidades/atualizar-encargos  - Recalcula multa e juros das cobranças vencidas (também executado automaticamente).
+POST   /api/mensalidades/gerar  - Gera as mensalidades da competência para os associados ativos, conforme a mensalidade base e a
+política de dependentes configuradas. Idempotente: não duplica mensalidades já existentes.
+GET    /api/notificacoes  - 
+POST   /api/notificacoes/dispositivos  - 
+DELETE /api/notificacoes/dispositivos  - 
+GET    /api/notificacoes/entregas  - Registro de envio, entrega e leitura das notificações do clube.
+POST   /api/notificacoes/marcar-todas-lidas  - 
+GET    /api/notificacoes/nao-lidas  - 
+GET    /api/notificacoes/preferencias  - 
+PUT    /api/notificacoes/preferencias  - 
+POST   /api/notificacoes/{id}/lida  - 
+GET    /api/ocorrencias  - 
+POST   /api/ocorrencias  - 
+GET    /api/ocorrencias/{id}  - 
+PUT    /api/ocorrencias/{id}  - 
+POST   /api/ocorrencias/{id}/cobranca  - 
+POST   /api/ocorrencias/{id}/cobranca/decisao  - Aprova ou rejeita a cobrança por dano. Somente após a aprovação o valor é lançado no financeiro.
+GET    /api/pagamentos  - 
+POST   /api/pagamentos  - Registra pagamento recebido na secretaria. Exige chave de idempotência: repetir a requisição não duplica o pagamento.
+POST   /api/pagamentos/app  - Inicia o pagamento pelo aplicativo no gateway. A confirmação ocorre pela notificação do provedor.
+POST   /api/pagamentos/webhook  - Notificação (webhook) do gateway de pagamento. A autenticidade é verificada pela assinatura do provedor.
+GET    /api/pagamentos/{id}  - 
+GET    /api/pagamentos/{id}/comprovante  - Comprovante de pagamento em PDF.
+POST   /api/pagamentos/{id}/estornar  - 
+POST   /api/pagamentos/{id}/sandbox  - Somente em homologação (gateway Sandbox): simula a confirmação do provedor para um pagamento pendente.
+GET    /api/patrimonio  - 
+POST   /api/patrimonio  - 
+GET    /api/patrimonio/{id}  - 
+PUT    /api/patrimonio/{id}  - 
+POST   /api/patrimonio/{id}/baixar  - Baixa do bem (exclusão lógica com justificativa).
+POST   /api/portaria/convidados/{guestId}/entrada  - 
+POST   /api/portaria/convidados/{guestId}/saida  - 
+POST   /api/portaria/manual  - Registro manual, com justificativa obrigatória, para situações excepcionais.
+GET    /api/portaria/ocupacao  - 
+GET    /api/portaria/pessoas  - 
+GET    /api/portaria/presentes  - 
+POST   /api/portaria/validar  - Valida o QR Code (ou o código numérico) e registra a entrada/saída. O token é consumido na validação.
+POST   /api/qr-code  - Gera um novo QR Code de uso único para a próxima operação (entrada ou saída). Tokens anteriores
+não utilizados são invalidados. O código expira conforme a validade configurada pelo clube.
+GET    /api/relatorios/dashboard  - 
+GET    /api/relatorios/indicadores  - 
+GET    /api/relatorios/indicadores/excel  - 
+GET    /api/relatorios/indicadores/pdf  - 
+GET    /api/reservas  - Reservas. A equipe vê todas; associado vê as suas; dependente vê as que solicitou.
+POST   /api/reservas  - Solicita uma reserva. Valida situação financeira, permissões do dependente, funcionamento, bloqueios,
+capacidade e convidados. Conflitos de horário são impedidos por restrição no banco de dados.
+POST   /api/reservas/simular  - Simula a reserva: valida horários, capacidade e bloqueios e devolve o valor total com seus componentes.
+GET    /api/reservas/{id}  - 
+POST   /api/reservas/{id}/aprovar  - 
+POST   /api/reservas/{id}/cancelar  - 
+POST   /api/reservas/{id}/comparecimento  - Registra comparecimento ou falta. Penalidade só é lançada se configurada pela administração.
+POST   /api/reservas/{id}/reagendar  - 
+POST   /api/reservas/{id}/recusar  - 
+GET    /api/usuarios  - 
+POST   /api/usuarios  - 
+GET    /api/usuarios/historico-acessos  - 
+GET    /api/usuarios/{id}  - 
+PUT    /api/usuarios/{id}  - 
+POST   /api/usuarios/{id}/bloquear  - 
+POST   /api/usuarios/{id}/desbloquear  - 
+PUT    /api/usuarios/{id}/funcoes  - 
+PUT    /api/usuarios/{id}/permissoes  - 
+POST   /api/usuarios/{id}/redefinir-senha  - 
+GET    /api/usuarios/{id}/sessoes  - 
+DELETE /api/usuarios/{id}/sessoes/{sessionId}  - 
+GET    /api/vistorias  - 
+POST   /api/vistorias  - Registra o checklist de vistoria (antes ou depois do uso). Havendo dano, gera ocorrência vinculada à reserva.
+GET    /api/vistorias/{id}  - 
+GET    /api/votacoes  - 
+POST   /api/votacoes  - 
+GET    /api/votacoes/{id}  - 
+PUT    /api/votacoes/{id}  - 
+POST   /api/votacoes/{id}/abrir  - 
+POST   /api/votacoes/{id}/encerrar  - 
+POST   /api/votacoes/{id}/votos  - Registra o voto. Somente associados votam — dependentes e funcionários são recusados pelo servidor. Um voto por associado.
+GET    /health  - 

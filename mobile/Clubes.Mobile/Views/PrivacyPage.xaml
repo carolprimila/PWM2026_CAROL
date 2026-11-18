@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.PrivacyPage" x:DataType="vm:PrivacyViewModel" Title="Política de privacidade">
+    <Grid RowDefinitions="*,Auto">
+        <ScrollView>
+            <VerticalStackLayout Style="{StaticResource PageStack}">
+                <Label Text="{Binding ClubName}" Style="{StaticResource H1}" />
+                <Label Text="Para usar o aplicativo, leia e aceite a política de privacidade do clube (LGPD)." Style="{StaticResource Muted}" />
+                <Border Style="{StaticResource Card}" IsVisible="{Binding HasPolicy}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{Binding VersionText}" Style="{StaticResource Muted}" />
+                        <Label Text="{Binding PolicyText}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Style="{StaticResource InfoBanner}" IsVisible="{Binding NoPolicy}">
+                    <Label Text="O clube ainda não publicou o texto da sua política de privacidade. Ao continuar, você concorda com o tratamento dos seus dados cadastrais para a gestão do clube; quando a política for publicada, o aplicativo pedirá um novo aceite." />
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+        <VerticalStackLayout Grid.Row="1" Padding="16" Spacing="8" BackgroundColor="{StaticResource Surface}">
+            <Button Text="Li e aceito" Command="{Binding AcceptCommand}" />
+            <Button Text="Sair" Style="{StaticResource TextButton}" Command="{Binding LogoutCommand}" />
+        </VerticalStackLayout>
+        <c:StateView Grid.RowSpan="2" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

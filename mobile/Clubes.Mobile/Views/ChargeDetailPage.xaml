@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ChargeDetailPage" x:DataType="vm:ChargeDetailViewModel" Title="Cobrança">
+    <Grid>
+        <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding Charge.Description}" Style="{StaticResource H2}" />
+                                <c:StatusChip Grid.Column="1" Text="{Binding Charge.StatusText}" Kind="{Binding Charge.StatusKind}" />
+                            </Grid>
+                            <Label Text="{Binding Charge.TypeText}" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding Charge.DueText}" />
+                            <Label Text="Saldo a pagar" Style="{StaticResource Muted}" Margin="0,8,0,0" />
+                            <Label Text="{Binding BalanceText}" Style="{StaticResource Amount}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Style="{StaticResource InfoBanner}" IsVisible="{Binding IsWaiting}">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                <ActivityIndicator IsRunning="{Binding IsWaiting}" WidthRequest="22" HeightRequest="22" VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="Aguardando confirmação" Style="{StaticResource Strong}" />
+                                    <Label Text="{Binding WaitingText}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasPix}">
+                                <Label Text="Pix copia e cola" Style="{StaticResource FieldLabel}" />
+                                <Border Style="{StaticResource InputBorder}" Padding="12">
+                                    <Label Text="{Binding PixCode}" FontSize="12" LineBreakMode="CharacterWrap" />
+                                </Border>
+                                <Button Text="{Binding CopyText}" Command="{Binding CopyPixCommand}" />
+                            </VerticalStackLayout>
+                            <Button Text="Abrir página de pagamento" Style="{StaticResource SecondaryButton}" Command="{Binding OpenCheckoutCommand}" IsVisible="{Binding HasCheckout}" />
+                            <Label Text="A confirmação é enviada pelo provedor de pagamento. Puxe a tela para baixo para verificar novamente." Style="{StaticResource Muted}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button Text="Pagar agora" Command="{Binding PayCommand}" IsVisible="{Binding CanPay}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+
+                    <Label Text="Composição" Style="{StaticResource Section}" />
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="8">
+                            <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Rows}">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AmountRow">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Text="{Binding Label}" />
+                                            <Label Grid.Column="1" Text="{Binding Value}" FontFamily="OpenSansSemibold" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="2" IsVisible="{Binding HasComposition}">
+                                <BoxView Style="{StaticResource Divider}" Margin="0,4" />
+                                <Label Text="Dependentes considerados" Style="{StaticResource Muted}" />
+                                <VerticalStackLayout Spacing="2" BindableLayout.ItemsSource="{Binding Composition}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Label Text="{Binding ., StringFormat='• {0}'}" Style="{StaticResource Muted}" />
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Ajustes" Style="{StaticResource Section}" IsVisible="{Binding HasAdjustments}" />
+                    <Border Style="{StaticResource Card}" IsVisible="{Binding HasAdjustments}">
+                        <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding Adjustments}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:AdjustmentDto">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="2">
+                                        <Label Text="{Binding Title}" Style="{StaticResource Strong}" />
+                                        <Label Grid.Column="1" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" />
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Reason}" Style="{StaticResource Muted}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Pagamentos" Style="{StaticResource Section}" IsVisible="{Binding HasPayments}" />
+                    <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Payments}" IsVisible="{Binding HasPayments}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="m:PaymentDto">
+                                <Border Style="{StaticResource Card}" Padding="14">
+                                    <VerticalStackLayout Spacing="4">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Text="{Binding AmountText}" Style="{StaticResource H2}" />
+                                            <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                        </Grid>
+                                        <Label Text="{Binding DetailText}" Style="{StaticResource Muted}" />
+                                        <Label Text="{Binding ReceiptText}" Style="{StaticResource Muted}" />
+                                        <Button Text="Abrir comprovante (PDF)" Style="{StaticResource TextButton}" HorizontalOptions="Start" Clicked="OnReceipt" IsVisible="{Binding HasReceipt}" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

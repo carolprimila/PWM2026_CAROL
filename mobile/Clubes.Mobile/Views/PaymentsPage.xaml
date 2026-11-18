@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.PaymentsPage" x:DataType="vm:PaymentsViewModel" Title="Histórico de pagamentos">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}" RemainingItemsThreshold="5" RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhum pagamento registrado." Icon="ic_money.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:PaymentDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding ChargeDescription}" Style="{StaticResource Strong}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                        <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    </Grid>
+                                    <Label Text="{Binding AmountText}" Style="{StaticResource H2}" />
+                                    <Label Text="{Binding DetailText}" Style="{StaticResource Muted}" />
+                                    <Label Text="{Binding ReceiptText}" Style="{StaticResource Muted}" />
+                                    <Button Text="Abrir comprovante (PDF)" Style="{StaticResource TextButton}" HorizontalOptions="Start" Clicked="OnReceipt" IsVisible="{Binding HasReceipt}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.EditProfilePage" x:DataType="vm:EditProfileViewModel" Title="Editar cadastro">
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Style="{StaticResource PageStack}">
+                <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                    <Border WidthRequest="96" HeightRequest="96" StrokeThickness="0" StrokeShape="RoundRectangle 48" BackgroundColor="{StaticResource NeutralSoft}" HorizontalOptions="Center">
+                        <c:AuthImage FileId="{Binding PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                    </Border>
+                    <Button Text="Alterar foto" Style="{StaticResource TextButton}" Command="{Binding ChangePhotoCommand}" />
+                </VerticalStackLayout>
+                <Label Text="Contato" Style="{StaticResource Section}" />
+                <c:FormField Label="Telefone" Text="{Binding Phone}" Mask="Phone" Placeholder="(00) 00000-0000" MaxLength="16" />
+                <Label Text="Endereço" Style="{StaticResource Section}" />
+                <c:FormField Label="CEP" Text="{Binding ZipCode}" Mask="Cep" Placeholder="00000-000" MaxLength="9" />
+                <c:FormField Label="Logradouro" Text="{Binding Street}" MaxLength="200" />
+                <Grid ColumnDefinitions="*,2*" ColumnSpacing="12">
+                    <c:FormField Label="Número" Text="{Binding AddressNumber}" MaxLength="20" />
+                    <c:FormField Grid.Column="1" Label="Complemento" Text="{Binding Complement}" MaxLength="100" />
+                </Grid>
+                <c:FormField Label="Bairro" Text="{Binding District}" MaxLength="100" />
+                <Grid ColumnDefinitions="2*,*" ColumnSpacing="12">
+                    <c:FormField Label="Cidade" Text="{Binding City}" MaxLength="100" />
+                    <c:FormField Grid.Column="1" Label="UF" Text="{Binding State}" Mask="Uf" MaxLength="2" Error="{Binding StateError}" />
+                </Grid>
+                <Label Text="Nome, CPF e e-mail só podem ser alterados na secretaria do clube." Style="{StaticResource Muted}" />
+                <Button Text="Salvar" Command="{Binding SaveCommand}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

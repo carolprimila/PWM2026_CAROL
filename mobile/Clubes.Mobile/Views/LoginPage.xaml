@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.LoginPage" x:DataType="vm:LoginViewModel" NavigationPage.HasNavigationBar="False">
+    <ScrollView>
+        <VerticalStackLayout Padding="24,48,24,24" Spacing="16">
+            <Border Style="{StaticResource PrimaryCard}" Padding="24" Margin="0,0,0,8">
+                <VerticalStackLayout Spacing="4">
+                    <Label Text="Clubes" FontFamily="OpenSansSemibold" FontSize="30" TextColor="{StaticResource White}" />
+                    <Label Text="Seu clube na palma da mão" TextColor="{StaticResource White}" Opacity="0.85" />
+                    <BoxView HeightRequest="3" WidthRequest="44" Color="{StaticResource Accent}" HorizontalOptions="Start" Margin="0,12,0,0" />
+                </VerticalStackLayout>
+            </Border>
+            <Label Text="Entrar" Style="{StaticResource H1}" />
+            <c:FormField Label="E-mail" Text="{Binding Email}" Placeholder="voce@exemplo.com" Keyboard="Email" Error="{Binding EmailError}" />
+            <c:FormField Label="Senha" Text="{Binding Password}" Placeholder="Sua senha" IsPassword="True" Error="{Binding PasswordError}" />
+            <Border Style="{StaticResource DangerBanner}" IsVisible="{Binding HasFormError}">
+                <Label Text="{Binding FormError}" TextColor="{StaticResource Danger}" />
+            </Border>
+            <Button Text="Entrar" Command="{Binding LoginCommand}" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            <Button Text="Esqueci minha senha" Style="{StaticResource TextButton}" Command="{Binding ForgotCommand}" />
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding ShowServer}">
+                <c:FormField Label="Servidor" Text="{Binding ServerUrl}" Placeholder="http://10.0.2.2:5080" Keyboard="Url" Error="{Binding ServerError}" />
+                <Label Text="Endereço da API do clube. Altere apenas se orientado pela administração." Style="{StaticResource Muted}" />
+                <Button Text="Restaurar endereço padrão" Style="{StaticResource TextButton}" Command="{Binding ResetServerCommand}" HorizontalOptions="Start" />
+            </VerticalStackLayout>
+            <Label Text="{Binding VersionText}" Style="{StaticResource Muted}" HorizontalTextAlignment="Center" Margin="0,16,0,0">
+                <Label.GestureRecognizers>
+                    <TapGestureRecognizer NumberOfTapsRequired="2" Command="{Binding ToggleServerCommand}" />
+                </Label.GestureRecognizers>
+            </Label>
+        </VerticalStackLayout>
+    </ScrollView>
+</v:BasePage>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            xmlns:zx="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+            x:Class="Clubes.Mobile.Views.GateScannerPage" x:DataType="vm:GateScannerViewModel" Title="Portaria">
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Padding="16,12">
+            <Button Text="Convidados do dia" Style="{StaticResource SmallSecondaryButton}" Command="{Binding GuestsCommand}" />
+            <Button Grid.Column="1" Text="Buscar pessoa" Style="{StaticResource SmallSecondaryButton}" Command="{Binding SearchCommand}" />
+        </Grid>
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Style="{StaticResource PageStack}" Padding="16,0,16,24">
+                <Border Style="{StaticResource Card}" Padding="0" HeightRequest="300" IsVisible="{Binding CameraAllowed}">
+                    <Grid>
+                        <zx:CameraBarcodeReaderView x:Name="Camera" IsDetecting="{Binding IsDetecting}" BarcodesDetected="OnBarcodesDetected" />
+                        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource White}" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+                <Border Style="{StaticResource WarningBanner}" IsVisible="{Binding CameraDenied}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Sem permissão para usar a câmera. Autorize o acesso nas configurações do aparelho ou valide pelo código numérico." TextColor="{StaticResource Warning}" />
+                        <Button Text="Abrir configurações" Style="{StaticResource SmallSecondaryButton}" Command="{Binding OpenSettingsCommand}" HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Padding="0" IsVisible="{Binding HasResult}">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid>
+                            <Border BackgroundColor="{StaticResource Success}" StrokeThickness="0" Padding="16,14" IsVisible="{Binding Authorized}">
+                                <Label Text="{Binding ResultTitle}" TextColor="{StaticResource White}" FontFamily="OpenSansSemibold" FontSize="24" HorizontalTextAlignment="Center" />
+                            </Border>
+                            <Border BackgroundColor="{StaticResource Danger}" StrokeThickness="0" Padding="16,14" IsVisible="{Binding Denied}">
+                                <Label Text="{Binding ResultTitle}" TextColor="{StaticResource White}" FontFamily="OpenSansSemibold" FontSize="24" HorizontalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <VerticalStackLayout Spacing="10" Padding="16">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14" IsVisible="{Binding HasPerson}">
+                                <Border WidthRequest="72" HeightRequest="72" StrokeThickness="0" StrokeShape="RoundRectangle 36" BackgroundColor="{StaticResource NeutralSoft}">
+                                    <c:AuthImage FileId="{Binding PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding PersonName}" Style="{StaticResource H2}" />
+                                    <Label Text="{Binding PersonDetail}" Style="{StaticResource Muted}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                            <Label Text="{Binding ResultMessage}" FontSize="15" />
+                            <Button Text="Limpar" Style="{StaticResource TextButton}" Command="{Binding ClearResultCommand}" HorizontalOptions="End" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Código numérico" Style="{StaticResource Section}" />
+                <c:FormField Text="{Binding ManualCode}" Mask="Digits" MaxLength="8" Placeholder="8 dígitos exibidos abaixo do QR Code" Error="{Binding ManualError}" />
+                <Button Text="Validar código" Command="{Binding ValidateManualCommand}" />
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</v:BasePage>

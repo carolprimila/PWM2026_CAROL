@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ReservationDetailPage" x:DataType="vm:ReservationDetailViewModel" Title="Reserva">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <Label Text="{Binding Reservation.SpaceName}" Style="{StaticResource H1}" />
+                                <c:StatusChip Grid.Column="1" Text="{Binding Reservation.StatusText}" Kind="{Binding Reservation.StatusKind}" />
+                            </Grid>
+                            <Label Text="{Binding Reservation.CodeText}" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding Reservation.WhenText}" Style="{StaticResource Strong}" />
+                            <Label Text="{Binding PeopleText}" />
+                            <Label Text="{Binding RequestedText}" Style="{StaticResource Muted}" />
+                            <Label Text="{Binding ReasonText}" TextColor="{StaticResource Danger}" IsVisible="{Binding HasReason}" />
+                            <Label Text="{Binding Reservation.Notes, StringFormat='Observações: {0}'}" IsVisible="{Binding HasNotes}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Horários" Style="{StaticResource Section}" />
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="6" BindableLayout.ItemsSource="{Binding Slots}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:ReservationSlotDto">
+                                    <Label Text="{Binding Text}" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Label Text="Valores" Style="{StaticResource Section}" />
+                    <Border Style="{StaticResource Card}">
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                            <Label Text="Locação" />
+                            <Label Grid.Column="1" Text="{Binding RentalText}" />
+                            <Label Grid.Row="1" Text="Taxa de limpeza" />
+                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding CleaningText}" />
+                            <BoxView Grid.Row="2" Grid.ColumnSpan="2" Style="{StaticResource Divider}" />
+                            <Label Grid.Row="3" Text="Total" Style="{StaticResource Strong}" />
+                            <Label Grid.Row="3" Grid.Column="1" Text="{Binding TotalText}" Style="{StaticResource Amount}" />
+                            <Label Grid.Row="4" Grid.ColumnSpan="2" Text="{Binding ChargeModeText}" Style="{StaticResource Muted}" />
+                        </Grid>
+                    </Border>
+
+                    <Label Text="Convidados" Style="{StaticResource Section}" IsVisible="{Binding HasGuests}" />
+                    <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Guests}" IsVisible="{Binding HasGuests}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="m:GuestDto">
+                                <Border Style="{StaticResource Card}" Padding="14">
+                                    <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                                        <Label Text="{Binding FullName}" Style="{StaticResource Strong}" />
+                                        <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding FeeText}" Style="{StaticResource Muted}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+
+                    <Label Text="Histórico" Style="{StaticResource Section}" IsVisible="{Binding HasHistory}" />
+                    <Border Style="{StaticResource Card}" IsVisible="{Binding HasHistory}">
+                        <VerticalStackLayout Spacing="12" BindableLayout.ItemsSource="{Binding History}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:HistoryDto">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding StatusText}" Style="{StaticResource Strong}" />
+                                        <Label Text="{Binding AtText}" Style="{StaticResource Muted}" />
+                                        <Label Text="{Binding Note}" IsVisible="{Binding HasNote}" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button Text="Cancelar reserva" Style="{StaticResource DangerButton}" Command="{Binding CancelCommand}" IsVisible="{Binding CanCancel}" />
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

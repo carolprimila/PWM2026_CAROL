@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.DependentsPage" x:DataType="vm:DependentsViewModel" Title="Dependentes">
+    <Grid RowDefinitions="*,Auto">
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Você ainda não cadastrou dependentes." Icon="ic_group.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:DependentDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpen" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border WidthRequest="48" HeightRequest="48" StrokeThickness="0" StrokeShape="RoundRectangle 24" BackgroundColor="{StaticResource NeutralSoft}" VerticalOptions="Center">
+                                        <c:AuthImage FileId="{Binding PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding FullName}" Style="{StaticResource Strong}" />
+                                        <Label Text="{Binding Subtitle}" Style="{StaticResource Muted}" />
+                                    </VerticalStackLayout>
+                                    <c:StatusChip Grid.Column="2" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <VerticalStackLayout Grid.Row="1" Padding="16,12" Spacing="8" BackgroundColor="{StaticResource Surface}">
+            <Label Text="{Binding LimitText}" Style="{StaticResource Muted}" />
+            <Button Text="Cadastrar dependente" Command="{Binding NewCommand}" />
+        </VerticalStackLayout>
+        <c:StateView Grid.RowSpan="2" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

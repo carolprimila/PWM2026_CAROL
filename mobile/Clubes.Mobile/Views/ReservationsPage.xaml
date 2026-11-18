@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.ReservationsPage" x:DataType="vm:ReservationsViewModel" Title="Minhas reservas">
+    <Grid RowDefinitions="*,Auto">
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Você ainda não tem reservas." Icon="ic_calendar.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:ReservationDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpen" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                                    <Label Text="{Binding SpaceName}" Style="{StaticResource H2}" />
+                                    <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding WhenText}" />
+                                    <Label Grid.Row="2" Text="{Binding CodeText}" Style="{StaticResource Muted}" />
+                                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding TotalText}" Style="{StaticResource Strong}" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <Grid Grid.Row="1" Padding="16,12" BackgroundColor="{StaticResource Surface}">
+            <Button Text="Nova reserva" Command="{Binding NewCommand}" />
+        </Grid>
+        <c:StateView Grid.RowSpan="2" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

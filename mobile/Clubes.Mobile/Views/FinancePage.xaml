@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.FinancePage" x:DataType="vm:FinanceViewModel" Title="Financeiro">
+    <v:BasePage.ToolbarItems>
+        <ToolbarItem Text="Histórico" Command="{Binding HistoryCommand}" />
+    </v:BasePage.ToolbarItems>
+    <Grid RowDefinitions="Auto,*">
+        <VerticalStackLayout Spacing="0">
+            <VerticalStackLayout Padding="16,16,16,0" Spacing="12">
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="Total em aberto" Style="{StaticResource Muted}" />
+                        <Label Text="{Binding OpenAmountText}" Style="{StaticResource Amount}" />
+                        <Label Text="{Binding OverdueText}" Style="{StaticResource Muted}" />
+                    </VerticalStackLayout>
+                </Border>
+                <Border Style="{StaticResource DangerBanner}" IsVisible="{Binding ShowBlockBanner}">
+                    <Label Text="{Binding BlockMessage}" TextColor="{StaticResource Danger}" />
+                </Border>
+            </VerticalStackLayout>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Padding="16,12,16,4">
+            <c:ChoiceChip Text="Abertas" IsSelected="{Binding ShowOpen}">
+                <c:ChoiceChip.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding TabOpenCommand}" />
+                </c:ChoiceChip.GestureRecognizers>
+            </c:ChoiceChip>
+            <c:ChoiceChip Grid.Column="1" Text="Pagas" IsSelected="{Binding ShowPaid}">
+                <c:ChoiceChip.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding TabPaidCommand}" />
+                </c:ChoiceChip.GestureRecognizers>
+            </c:ChoiceChip>
+        </Grid>
+        </VerticalStackLayout>
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="{Binding EmptyText}" Icon="ic_money.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:ChargeDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpen" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                                    <Label Text="{Binding Description}" Style="{StaticResource Strong}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                    <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    <Label Grid.Row="1" Text="{Binding TypeText}" Style="{StaticResource Muted}" />
+                                    <Label Grid.Row="2" Text="{Binding DueText}" Style="{StaticResource Muted}" />
+                                    <Label Grid.Row="1" Grid.RowSpan="2" Grid.Column="1" Text="{Binding AmountText}" Style="{StaticResource H2}" VerticalOptions="End" />
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <c:StateView Grid.RowSpan="2" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

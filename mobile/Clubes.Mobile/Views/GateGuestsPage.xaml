@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.GateGuestsPage" x:DataType="vm:GateGuestsViewModel" Title="Convidados do dia">
+    <Grid RowDefinitions="Auto,*">
+        <Label Text="{Binding DateText}" Style="{StaticResource Section}" Padding="16,12,16,4" />
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhum convidado cadastrado para hoje." Icon="ic_person_add.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:GuestDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding FullName}" Style="{StaticResource H2}" />
+                                        <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    </Grid>
+                                    <Label Text="{Binding ResponsibleText}" />
+                                    <Label Text="{Binding FeeText}" Style="{StaticResource Muted}" />
+                                    <Label Text="{Binding GateText}" Style="{StaticResource Muted}" />
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Button Text="Entrada" Style="{StaticResource SmallButton}" Clicked="OnEntry" IsVisible="{Binding CanEnter}" />
+                                        <Button Grid.Column="1" Text="Saída" Style="{StaticResource SmallSecondaryButton}" Clicked="OnExit" IsVisible="{Binding CanExit}" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+        <c:StateView Grid.RowSpan="2" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

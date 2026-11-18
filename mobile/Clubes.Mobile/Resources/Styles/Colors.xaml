@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Paleta do design system -->
+    <Color x:Key="Primary">#0F5C4A</Color>
+    <Color x:Key="PrimaryDark">#0A3F33</Color>
+    <Color x:Key="PrimarySoft">#E2EFEB</Color>
+    <Color x:Key="Accent">#C9A227</Color>
+    <Color x:Key="Background">#F6F7F5</Color>
+    <Color x:Key="Surface">#FFFFFF</Color>
+    <Color x:Key="Text">#14201C</Color>
+    <Color x:Key="Muted">#6B7770</Color>
+    <Color x:Key="Success">#1E8E5A</Color>
+    <Color x:Key="SuccessSoft">#E3F4EB</Color>
+    <Color x:Key="Warning">#B7791F</Color>
+    <Color x:Key="WarningSoft">#FBF1DD</Color>
+    <Color x:Key="Danger">#C0392B</Color>
+    <Color x:Key="DangerSoft">#FBE6E3</Color>
+    <Color x:Key="Border">#E3E7E3</Color>
+    <Color x:Key="NeutralSoft">#EEF1EE</Color>
+    <Color x:Key="White">#FFFFFF</Color>
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}" />
+    <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource Border}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource Danger}" />
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource Accent}" />
+</ResourceDictionary>

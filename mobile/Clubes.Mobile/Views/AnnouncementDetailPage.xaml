@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.AnnouncementDetailPage" x:DataType="vm:AnnouncementDetailViewModel" Title="Comunicado">
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Spacing="0">
+                <c:AuthImage FileId="{Binding Item.ImageFileId}" HeightRequest="200" Aspect="AspectFill" IsVisible="{Binding Item.HasImage}" />
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <HorizontalStackLayout Spacing="8">
+                        <c:StatusChip Text="{Binding Item.CategoryText}" Kind="Info" />
+                        <c:StatusChip Text="{Binding Item.PriorityText}" Kind="{Binding Item.PriorityKind}" />
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding Item.Title}" Style="{StaticResource H1}" />
+                    <Label Text="{Binding Item.DateText}" Style="{StaticResource Muted}" />
+                    <Label Text="{Binding Item.Body}" FontSize="15" />
+                    <Button Text="Ver evento relacionado" Style="{StaticResource SecondaryButton}" Command="{Binding OpenEventCommand}" IsVisible="{Binding HasEvent}" />
+                    <Label Text="Anexos" Style="{StaticResource Section}" IsVisible="{Binding HasAttachments}" />
+                    <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Attachments}" IsVisible="{Binding HasAttachments}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="m:AttachmentDto">
+                                <Border Style="{StaticResource Card}" Padding="12">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnAttachmentTapped" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                        <Image Source="ic_doc.png" WidthRequest="24" HeightRequest="24" VerticalOptions="Center" />
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                            <Label Text="{Binding DisplayName}" Style="{StaticResource Strong}" />
+                                            <Label Text="{Binding SizeText}" Style="{StaticResource Muted}" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="2" Text="Abrir" TextColor="{StaticResource Primary}" FontFamily="OpenSansSemibold" VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

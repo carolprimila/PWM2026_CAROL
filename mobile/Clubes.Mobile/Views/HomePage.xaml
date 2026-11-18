@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.HomePage" x:DataType="vm:HomeViewModel" Shell.NavBarIsVisible="False">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}" Padding="16,24,16,24">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="{Binding Greeting}" Style="{StaticResource H1}" />
+                            <Label Text="{Binding ClubName}" Style="{StaticResource Muted}" />
+                        </VerticalStackLayout>
+                        <Grid Grid.Column="1" WidthRequest="48" HeightRequest="48" VerticalOptions="Center">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OpenNotificationsCommand}" />
+                            </Grid.GestureRecognizers>
+                            <Border BackgroundColor="{StaticResource Surface}" Stroke="{StaticResource BorderBrush}" StrokeThickness="1" StrokeShape="RoundRectangle 24" WidthRequest="44" HeightRequest="44" HorizontalOptions="Center" VerticalOptions="Center">
+                                <Image Source="ic_bell.png" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <Border BackgroundColor="{StaticResource Danger}" StrokeThickness="0" StrokeShape="RoundRectangle 9" Padding="5,1" HorizontalOptions="End" VerticalOptions="Start" IsVisible="{Binding Notifications.HasUnread}">
+                                <Label Text="{Binding Notifications.UnreadText}" TextColor="{StaticResource White}" FontSize="10" FontFamily="OpenSansSemibold" />
+                            </Border>
+                        </Grid>
+                    </Grid>
+
+                    <Border Style="{StaticResource DangerBanner}" IsVisible="{Binding ShowBlockBanner}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Image Source="ic_warning.png" WidthRequest="22" HeightRequest="22" VerticalOptions="Start" />
+                            <Label Grid.Column="1" Text="{Binding BlockMessage}" TextColor="{StaticResource Danger}" />
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource PrimaryCard}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding OpenCardCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                            <Border WidthRequest="60" HeightRequest="60" StrokeThickness="0" StrokeShape="RoundRectangle 30" BackgroundColor="{StaticResource PrimaryDark}" VerticalOptions="Center">
+                                <c:AuthImage FileId="{Binding Card.PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                <Label Text="{Binding Card.Name}" TextColor="{StaticResource White}" FontFamily="OpenSansSemibold" FontSize="16" MaxLines="1" LineBreakMode="TailTruncation" />
+                                <Label Text="{Binding Card.CardNumber, StringFormat='Carteirinha nº {0}'}" TextColor="{StaticResource White}" Opacity="0.85" FontSize="13" />
+                                <HorizontalStackLayout Spacing="8">
+                                    <c:StatusChip Text="{Binding CardStatusText}" Kind="{Binding CardStatusKind}" />
+                                    <Label Text="{Binding PresenceText}" TextColor="{StaticResource White}" Opacity="0.85" FontSize="12" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label Text="Toque para abrir a carteirinha e o QR Code" TextColor="{StaticResource Accent}" FontSize="12" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}" IsVisible="{Binding ShowFinancial}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding FinanceCommand}" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4">
+                            <Label Text="Situação financeira" Style="{StaticResource Muted}" />
+                            <Label Grid.Row="1" Text="{Binding OpenAmountText, StringFormat='Em aberto: {0}'}" Style="{StaticResource H2}" />
+                            <c:StatusChip Grid.Column="1" Grid.RowSpan="2" Text="{Binding FinancialStatusText}" Kind="{Binding FinancialStatusKind}" HorizontalOptions="End" />
+                        </Grid>
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="8" RowSpacing="8" BindableLayout.ItemsSource="{Binding Tiles}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="vm:HomeTile">
+                                <Border Grid.Row="{Binding Row}" Grid.Column="{Binding Column}" Style="{StaticResource Card}" Padding="8,14">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding Command}" />
+                                    </Border.GestureRecognizers>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Image Source="{Binding Icon}" WidthRequest="26" HeightRequest="26" HorizontalOptions="Center" />
+                                        <Label Text="{Binding Title}" FontSize="12" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" MaxLines="1" LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding CanReserve}">
+                        <Label Text="Próximas reservas" Style="{StaticResource Section}" />
+                        <Border Style="{StaticResource Card}" IsVisible="{Binding NoReservations}">
+                            <Label Text="Você não tem reservas futuras." Style="{StaticResource Muted}" />
+                        </Border>
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Reservations}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:ReservationDto">
+                                    <Border Style="{StaticResource Card}" Padding="14">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnReservationTapped" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="4" ColumnSpacing="8">
+                                            <Label Text="{Binding SpaceName}" Style="{StaticResource Strong}" />
+                                            <Label Grid.Row="1" Text="{Binding WhenText}" Style="{StaticResource Muted}" />
+                                            <c:StatusChip Grid.Column="1" Grid.RowSpan="2" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="8" IsVisible="{Binding HasAnnouncements}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="Comunicados" Style="{StaticResource Section}" VerticalOptions="Center" />
+                            <Button Grid.Column="1" Text="Ver todos" Style="{StaticResource TextButton}" Command="{Binding AllAnnouncementsCommand}" />
+                        </Grid>
+                        <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding Announcements}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="m:AnnouncementDto">
+                                    <Border Style="{StaticResource Card}" Padding="14">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnAnnouncementTapped" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" RowDefinitions="Auto,Auto" RowSpacing="4">
+                                            <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="{StaticResource Accent}" VerticalOptions="Center" IsVisible="{Binding IsUnread}" />
+                                            <Label Grid.Column="1" Text="{Binding Title}" Style="{StaticResource Strong}" MaxLines="2" LineBreakMode="TailTruncation" />
+                                            <Label Grid.Row="1" Grid.Column="1" Text="{Binding DateText}" Style="{StaticResource Muted}" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

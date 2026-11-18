@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.CardPage" x:DataType="vm:CardViewModel" Title="Carteirinha">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Style="{StaticResource PageStack}">
+                    <Border Style="{StaticResource PrimaryCard}" Padding="20">
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding ClubName}" TextColor="{StaticResource White}" FontFamily="OpenSansSemibold" FontSize="16" />
+                                <Label Grid.Column="1" Text="{Binding PersonTypeText}" TextColor="{StaticResource Accent}" FontFamily="OpenSansSemibold" FontSize="13" />
+                            </Grid>
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                                <Border WidthRequest="84" HeightRequest="84" StrokeThickness="2" Stroke="{StaticResource AccentBrush}" StrokeShape="RoundRectangle 42" BackgroundColor="{StaticResource PrimaryDark}">
+                                    <c:AuthImage FileId="{Binding Card.PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                                    <Label Text="{Binding Card.Name}" TextColor="{StaticResource White}" FontFamily="OpenSansSemibold" FontSize="18" />
+                                    <Label Text="{Binding Card.CardNumber, StringFormat='Nº {0}'}" TextColor="{StaticResource White}" Opacity="0.85" />
+                                    <Label Text="{Binding ResponsibleText}" TextColor="{StaticResource White}" Opacity="0.85" FontSize="12" IsVisible="{Binding HasResponsible}" />
+                                    <c:StatusChip Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="12">
+                            <Label Text="Apresente este código na portaria" Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                            <Label Text="{Binding OperationText}" Style="{StaticResource H1}" HorizontalTextAlignment="Center" IsVisible="{Binding HasQr}" />
+                            <Grid HeightRequest="260" WidthRequest="260" HorizontalOptions="Center">
+                                <Image Source="{Binding QrImage}" Aspect="AspectFit" IsVisible="{Binding HasQr}" />
+                                <ActivityIndicator IsRunning="{Binding IsGenerating}" IsVisible="{Binding IsGenerating}" HorizontalOptions="Center" VerticalOptions="Center" />
+                                <Border Style="{StaticResource DangerBanner}" IsVisible="{Binding HasQrError}" VerticalOptions="Center">
+                                    <Label Text="{Binding QrError}" TextColor="{StaticResource Danger}" HorizontalTextAlignment="Center" />
+                                </Border>
+                            </Grid>
+                            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasQr}">
+                                <Label Text="{Binding DisplayCode}" FontFamily="OpenSansSemibold" FontSize="30" CharacterSpacing="3" HorizontalTextAlignment="Center" />
+                                <ProgressBar Progress="{Binding Progress}" />
+                                <Label Text="{Binding CountdownText}" Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <Button Text="Gerar novo código" Style="{StaticResource SecondaryButton}" Command="{Binding NewCodeCommand}" />
+                            <Label Text="O código vale para uma única passagem e expira em instantes. Um novo código é gerado automaticamente enquanto esta tela estiver aberta." Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Label Text="{Binding PresenceText}" Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

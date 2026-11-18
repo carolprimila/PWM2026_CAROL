@@ -1,0 +1,102 @@
+name: clubes
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clubes}
+      POSTGRES_USER: ${POSTGRES_USER:-clubes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      TZ: America/Sao_Paulo
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Publicado apenas na máquina local, para desenvolvimento e manutenção.
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ASPNETCORE_URLS: http://+:8080
+      TZ: America/Sao_Paulo
+      ConnectionStrings__Default: Host=db;Port=5432;Database=${POSTGRES_DB:-clubes};Username=${POSTGRES_USER:-clubes};Password=${POSTGRES_PASSWORD}
+      Jwt__Key: ${JWT_KEY:?defina JWT_KEY no arquivo .env}
+      Cors__Origins__0: ${CORS_ORIGIN:-http://localhost:8081}
+      Auth__PasswordResetUrl: ${PASSWORD_RESET_URL:-}
+      Swagger__Enabled: ${SWAGGER_ENABLED:-false}
+      Storage__RootPath: /data/storage
+      Logging__Directory: /data/logs
+      Bootstrap__SuperAdminName: ${SUPERADMIN_NAME:-}
+      Bootstrap__SuperAdminEmail: ${SUPERADMIN_EMAIL:-}
+      Bootstrap__SuperAdminPassword: ${SUPERADMIN_PASSWORD:-}
+      Bootstrap__ClubName: ${CLUB_NAME:-}
+      Bootstrap__ClubAdminName: ${CLUB_ADMIN_NAME:-}
+      Bootstrap__ClubAdminEmail: ${CLUB_ADMIN_EMAIL:-}
+      Bootstrap__ClubAdminPassword: ${CLUB_ADMIN_PASSWORD:-}
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__User: ${SMTP_USER:-}
+      Email__Smtp__Password: ${SMTP_PASSWORD:-}
+      Email__Smtp__From: ${SMTP_FROM:-}
+      Payments__Provider: ${PAYMENTS_PROVIDER:-None}
+      Payments__SandboxSecret: ${PAYMENTS_SANDBOX_SECRET:-}
+      Push__FirebaseCredentialsFile: ${FIREBASE_CREDENTIALS_FILE:-}
+    volumes:
+      - storage:/data/storage
+      - logs:/data/logs
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  web:
+    build:
+      context: ./frontend/clubes-web
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8081}:80"
+
+  # Backup automático do PostgreSQL com política de retenção (ver docs/arquitetura/backup-e-restauracao.md).
+  backup:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGDATABASE: ${POSTGRES_DB:-clubes}
+      PGUSER: ${POSTGRES_USER:-clubes}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_INTERVAL_HOURS: ${BACKUP_INTERVAL_HOURS:-24}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      TZ: America/Sao_Paulo
+    volumes:
+      - ./backups:/backups
+      - ./database/scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
+
+volumes:
+  pgdata:
+  storage:
+  logs:

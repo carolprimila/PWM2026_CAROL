@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.UnsupportedPage" x:DataType="vm:UnsupportedViewModel" >
+    <VerticalStackLayout Padding="32" Spacing="16" VerticalOptions="Center">
+        <Image Source="ic_person.png" WidthRequest="56" HeightRequest="56" HorizontalOptions="Center" />
+        <Label Text="{Binding Greeting}" Style="{StaticResource H1}" HorizontalTextAlignment="Center" />
+        <Label Text="{Binding ClubName}" Style="{StaticResource Muted}" HorizontalTextAlignment="Center" />
+        <Label Text="Este aplicativo é destinado a associados, dependentes e à equipe da portaria. Para as demais funções administrativas, utilize o painel web do clube." HorizontalTextAlignment="Center" />
+        <Button Text="Sair" Command="{Binding LogoutCommand}" />
+    </VerticalStackLayout>
+</v:BasePage>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.SessionsPage" x:DataType="vm:SessionsViewModel" Title="Sessões ativas">
+    <Grid>
+        <RefreshView Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Items}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhuma sessão ativa." />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:SessionDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding DeviceText}" Style="{StaticResource Strong}" />
+                                        <c:StatusChip Grid.Column="1" Text="Este aparelho" Kind="Success" IsVisible="{Binding IsCurrent}" />
+                                    </Grid>
+                                    <Label Text="{Binding DetailText}" Style="{StaticResource Muted}" />
+                                    <Button Text="Encerrar sessão" Style="{StaticResource TextButton}" TextColor="{StaticResource Danger}" HorizontalOptions="Start" Clicked="OnRevoke" IsVisible="{Binding CanRevoke}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

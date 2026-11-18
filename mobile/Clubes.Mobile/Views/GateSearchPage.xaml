@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.GateSearchPage" x:DataType="vm:GateSearchViewModel" Title="Buscar pessoa">
+    <Grid RowDefinitions="Auto,*">
+        <VerticalStackLayout Padding="16,12" Spacing="8">
+            <c:FormField Label="Nome ou documento" Text="{Binding Term}" MaxLength="80" Error="{Binding TermError}" />
+            <Button Text="Buscar" Command="{Binding SearchCommand}" />
+            <Label Text="Use o registro manual apenas em situações excepcionais. A justificativa é obrigatória e fica registrada." Style="{StaticResource Muted}" />
+        </VerticalStackLayout>
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Items}">
+            <CollectionView.EmptyView>
+                <c:EmptyView Text="Busque um associado ou dependente pelo nome ou documento." Icon="ic_search.png" />
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="m:GatePersonDto">
+                    <Grid Padding="16,6">
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                                    <Border WidthRequest="52" HeightRequest="52" StrokeThickness="0" StrokeShape="RoundRectangle 26" BackgroundColor="{StaticResource NeutralSoft}" VerticalOptions="Center">
+                                        <c:AuthImage FileId="{Binding PhotoFileId}" Placeholder="ic_person_light.png" Aspect="AspectFill" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding Name}" Style="{StaticResource Strong}" />
+                                        <Label Text="{Binding DetailText}" Style="{StaticResource Muted}" />
+                                        <HorizontalStackLayout Spacing="8">
+                                            <c:StatusChip Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                            <Label Text="{Binding PresenceText}" Style="{StaticResource Muted}" VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Button Text="{Binding ActionText}" Style="{StaticResource SmallSecondaryButton}" Clicked="OnRegister" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <ActivityIndicator Grid.Row="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" />
+    </Grid>
+</v:BasePage>

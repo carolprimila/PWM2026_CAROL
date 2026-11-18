@@ -1,0 +1,25 @@
+# Segredos e ambiente local
+.env
+*.local
+# .NET
+bin/
+obj/
+*.user
+.vs/
+# Node
+node_modules/
+dist/
+# Dados locais
+storage/
+logs/
+backups/
+*.log
+# IDE
+.idea/
+.vscode/
+
+.artifacts-tests/
+api-dev.log
+
+# Contas de teste locais (geradas por database/scripts/contas-dev.py)
+*.local.cs

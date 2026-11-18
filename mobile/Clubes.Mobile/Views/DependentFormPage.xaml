@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.DependentFormPage" x:DataType="vm:DependentFormViewModel" Title="{Binding Title}">
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Style="{StaticResource PageStack}">
+                <Label Text="Identificação" Style="{StaticResource Section}" />
+                <c:FormField Label="Nome completo" Text="{Binding FullName}" MaxLength="150" Error="{Binding NameError}" />
+                <c:FormField Label="CPF (opcional)" Text="{Binding Cpf}" Mask="Cpf" Placeholder="000.000.000-00" MaxLength="14" />
+                <c:FormField Label="RG (opcional)" Text="{Binding Rg}" MaxLength="20" />
+                <Label Text="Data de nascimento" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <DatePicker Date="{Binding BirthDate}" MaximumDate="{Binding MaxDate}" Format="dd/MM/yyyy" />
+                </Border>
+                <Label Text="Gênero (opcional)" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{x:Static vm:DependentFormViewModel.Genders}" SelectedItem="{Binding Gender}" Title="Selecione" />
+                </Border>
+                <Label Text="Parentesco" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource InputBorder}">
+                    <Picker ItemsSource="{x:Static vm:DependentFormViewModel.Relationships}" SelectedItem="{Binding Relationship}" Title="Selecione" />
+                </Border>
+                <Label Text="{Binding RelationshipError}" Style="{StaticResource ErrorText}" />
+                <Label Text="Contato" Style="{StaticResource Section}" />
+                <c:FormField Label="E-mail (opcional)" Text="{Binding Email}" Keyboard="Email" MaxLength="150" Error="{Binding EmailError}" />
+                <c:FormField Label="Telefone (opcional)" Text="{Binding Phone}" Mask="Phone" Placeholder="(00) 00000-0000" MaxLength="16" />
+                <Button Text="Salvar" Command="{Binding SaveCommand}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+            </VerticalStackLayout>
+        </ScrollView>
+        <c:StateView IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>

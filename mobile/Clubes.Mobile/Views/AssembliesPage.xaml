@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<v:BasePage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+            xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+            xmlns:c="clr-namespace:Clubes.Mobile.Controls"
+            xmlns:m="clr-namespace:Clubes.Mobile.Models"
+            xmlns:s="clr-namespace:Clubes.Mobile.Services"
+            xmlns:v="clr-namespace:Clubes.Mobile.Views"
+            xmlns:vm="clr-namespace:Clubes.Mobile.ViewModels"
+            x:Class="Clubes.Mobile.Views.AssembliesPage" x:DataType="vm:AssembliesViewModel" Title="Assembleias e votações">
+    <Grid RowDefinitions="Auto,*">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Padding="16,12,16,4">
+            <c:ChoiceChip Text="Votações" IsSelected="{Binding ShowPolls}">
+                <c:ChoiceChip.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding TabPollsCommand}" />
+                </c:ChoiceChip.GestureRecognizers>
+            </c:ChoiceChip>
+            <c:ChoiceChip Grid.Column="1" Text="Assembleias" IsSelected="{Binding ShowAssemblies}">
+                <c:ChoiceChip.GestureRecognizers>
+                    <TapGestureRecognizer Command="{Binding TabAssembliesCommand}" />
+                </c:ChoiceChip.GestureRecognizers>
+            </c:ChoiceChip>
+        </Grid>
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}" IsVisible="{Binding ShowPolls}">
+            <CollectionView ItemsSource="{Binding Polls}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhuma votação disponível." Icon="ic_vote.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:PollDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpenPoll" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding Title}" Style="{StaticResource H2}" />
+                                        <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    </Grid>
+                                    <Label Text="{Binding AssemblyTitle}" Style="{StaticResource Muted}" IsVisible="{Binding HasAssembly}" />
+                                    <Label Text="{Binding PeriodText}" Style="{StaticResource Muted}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}" IsVisible="{Binding ShowAssemblies}">
+            <CollectionView ItemsSource="{Binding Assemblies}">
+                <CollectionView.EmptyView>
+                    <c:EmptyView Text="Nenhuma assembleia registrada." Icon="ic_vote.png" />
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="m:AssemblyDto">
+                        <Grid Padding="16,6">
+                            <Border Style="{StaticResource Card}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnOpenAssembly" />
+                                </Border.GestureRecognizers>
+                                <VerticalStackLayout Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                        <Label Text="{Binding Title}" Style="{StaticResource H2}" />
+                                        <c:StatusChip Grid.Column="1" Text="{Binding StatusText}" Kind="{Binding StatusKind}" />
+                                    </Grid>
+                                    <Label Text="{Binding WhenText}" Style="{StaticResource Muted}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </RefreshView>
+        <c:StateView Grid.Row="1" IsLoading="{Binding IsLoading}" ErrorMessage="{Binding ErrorMessage}" RetryCommand="{Binding LoadCommand}" />
+    </Grid>
+</v:BasePage>
